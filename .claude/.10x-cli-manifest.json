@@ -1,0 +1,16 @@
+{
+  "package": "@przeprogramowani/10x-cli",
+  "version": "1.6.0",
+  "manifestVersion": 2,
+  "lastApplied": "2026-05-17T20:47:42.645Z",
+  "lessonId": "m0l1",
+  "course": "10xdevs3",
+  "tool": "claude-code",
+  "files": {
+    "skills": {},
+    "prompts": [
+      "m0l1-prework.md"
+    ],
+    "configs": []
+  }
+}
