@@ -1,0 +1,30 @@
+---
+description: Database/documentation consistency rules
+globs: docs/demo-app/04-database.md,docs/demo-app/03-backend.md,apps/backend/**,**/*migration*
+alwaysApply: false
+---
+
+# Database and documentation consistency
+
+`docs/demo-app/04-database.md` is the conceptual data-model contract.
+
+When touching schema-related work:
+- Read the relevant section of `docs/demo-app/04-database.md` first.
+- Remember that PostgreSQL/Supabase implementation details are stale.
+- Preserve table meanings, relationships, and domain rules when porting to MySQL.
+- Prefer lookup tables or constrained strings where PostgreSQL enums do not map cleanly.
+- Replace RLS policies with app-layer authorization based on verified SSO user plus wedding membership.
+- Replace triggers with Sequelize hooks or explicit service methods.
+
+Required update order:
+1. Update the database doc if the model changes.
+2. Update migrations/models.
+3. Update API/service code.
+4. Update frontend/shared types if affected.
+
+Critical domains:
+- `weddings` and `wedding_members` define the shared wedding model.
+- `meal_options` belong to a wedding and feed guest meal selection.
+- Catering offers are user-entered per wedding, not a global marketplace.
+- The PDFs in `docs/menu/` are modeling references only; do not hardcode them as fixtures.
+- Hard-delete is the MVP behavior; do not add soft-delete unless asked.

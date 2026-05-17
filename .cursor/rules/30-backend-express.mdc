@@ -1,0 +1,40 @@
+---
+description: Backend rules for Express, Sequelize, MySQL, and SSO
+globs: apps/backend/**,**/*route*.ts,**/*controller*.ts,**/*service*.ts,**/*model*.ts
+alwaysApply: false
+---
+
+# Backend rules
+
+Use these rules when implementing the backend.
+
+Framework and persistence:
+- Use Node.js + Express.
+- Use Sequelize for ORM.
+- Use MySQL as the database.
+- Keep TypeScript strict if the backend is scaffolded in TypeScript.
+
+Do not implement stale stack choices:
+- No NestJS modules/controllers/providers unless the project owner explicitly changes the stack.
+- No Supabase client, Supabase Auth, PostgreSQL RLS, PostgreSQL enum types, or PostgreSQL trigger functions.
+
+Auth and authorization:
+- The backend does not accept or verify passwords.
+- Verify Bearer JWTs issued by `kubitksso.pl`.
+- Verify RS256 tokens through JWKS and cache keys for about 1 hour.
+- After token verification, enforce local wedding membership for every wedding-scoped resource.
+- Founder-only behavior applies only to hard-deleting the wedding.
+- For all other MVP CRUD, partners are symmetric.
+
+Data rules:
+- Treat `docs/demo-app/04-database.md` as the conceptual schema contract.
+- Port PostgreSQL-specific parts to MySQL/Sequelize equivalents.
+- If implementation requires schema changes, update `docs/demo-app/04-database.md` first, then migration/model code.
+- Use Sequelize hooks or explicit service logic for behavior previously described as database triggers.
+- Auto-task regeneration after wedding date changes must never touch completed tasks or manually-created tasks, and must be idempotent.
+
+API behavior:
+- Preserve resource semantics from `docs/demo-app/03-backend.md`, translated to Express.
+- Validate request bodies before service logic.
+- Return consistent JSON errors.
+- Keep route handlers thin; put business rules in services/helpers.

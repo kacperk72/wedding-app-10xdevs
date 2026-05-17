@@ -1,0 +1,28 @@
+---
+description: Repo workflow and implementation guardrails
+alwaysApply: true
+---
+
+# Workflow guardrails
+
+Before running commands:
+- Check whether the app scaffold exists.
+- In the current pre-implementation state, install/build/dev/test commands are expected not to work.
+- Do not run speculative package installs.
+
+When starting implementation:
+- Start from M0 in `docs/demo-app/05-implementation-plan.md`, but adapt it to Express + Sequelize + MySQL + external SSO.
+- Confirm the desired repo layout before scaffolding if the user has not already decided:
+  - monorepo: `apps/frontend`, `apps/backend`, `packages/shared-types`
+  - or separate deploy-oriented frontend/backend structure
+
+When changing docs:
+- Keep `wedding-planner-deployment.md` authoritative for deployment and stack.
+- Fix stale README or implementation-plan references only when the task includes documentation cleanup or when the stale text directly blocks the current change.
+- Do not silently mix old and new stack decisions.
+
+When implementing features:
+- Keep changes milestone-oriented.
+- Prefer end-to-end vertical slices.
+- Avoid backend-only or frontend-only "done" states for milestone completion.
+- Add open questions to the relevant doc when product scope is ambiguous.

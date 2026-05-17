@@ -1,0 +1,36 @@
+---
+description: Current architecture decisions and stale-doc translations
+alwaysApply: true
+---
+
+# Stack and architecture
+
+The current target stack is defined by `wedding-planner-deployment.md`, not by the older implementation docs.
+
+Current target:
+- Frontend: Angular 20+ standalone components, signals, SCSS.
+- Backend: Node.js + Express + Sequelize.
+- Database: MySQL on Hostinger.
+- Auth: external SSO at `kubitksso.pl`.
+- Hosting: Hostinger Business.
+- CI/CD: GitHub Actions, FTP deploy for frontend, SSH deploy for backend.
+
+Stale assumptions to translate:
+- Do not use NestJS unless the owner explicitly changes the stack again.
+- Do not use Supabase, PostgreSQL RLS, PostgreSQL triggers, or Supabase Auth.
+- Do not implement local username/password auth in this repo.
+- Do not make the wedding-planner backend responsible for password verification.
+- Translate older NestJS module/controller ideas into Express routes, middleware, services, and Sequelize models.
+- Translate PostgreSQL-only behavior into Sequelize hooks, app-layer guards, lookup tables, or explicit endpoints.
+
+Auth model:
+- `kubitksso.pl` owns login, passwords, and token issuing.
+- The wedding-planner backend verifies Bearer access tokens signed with RS256 via JWKS.
+- JWKS should be cached, approximately 1 hour per deployment doc guidance.
+- API authorization is based on the verified SSO user identity plus wedding membership in local tables.
+
+Important product invariants:
+- One wedding is shared by two partner accounts.
+- Both partners have symmetric CRUD permissions.
+- Only the wedding founder (`weddings.created_by_user_id`) can hard-delete the wedding itself.
+- Do not introduce other asymmetric permissions.

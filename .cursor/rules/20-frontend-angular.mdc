@@ -1,0 +1,41 @@
+---
+description: Frontend rules for Angular implementation
+globs: apps/frontend/**,**/*.component.ts,**/*.component.html,**/*.component.scss
+alwaysApply: false
+---
+
+# Frontend rules
+
+Use these rules when implementing the Angular frontend.
+
+Framework:
+- Angular 20+.
+- Standalone components.
+- Signals for local and shared reactive state.
+- SCSS for styling.
+- Strict TypeScript.
+
+UI language:
+- All user-visible text must be Polish.
+- Dates should be shown as `DD.MM.YYYY`.
+- Currency should use Polish formatting.
+
+Visual direction:
+- Base background: cream, approximately `#FAF7EE`.
+- Accent: bottle green, approximately `#3F5C3A`.
+- Headings: elegant serif such as Cormorant or Playfair.
+- Body: clean sans-serif such as Inter or DM Sans.
+- Use subtle shadows and soft wedding-planner aesthetics, but keep workflow screens efficient and readable.
+- Put visual tokens in `apps/frontend/src/styles/_tokens.scss` once the app scaffold exists.
+- Do not hardcode repeated color/font/radius values across components.
+
+UX requirements:
+- Build actual working app screens, not a marketing landing page.
+- Preserve responsive behavior described in `docs/demo-app/02-frontend.md`.
+- Seating drag-and-drop must have a keyboard-accessible fallback.
+- Every milestone should ship an end-to-end vertical slice visible in the UI, not only isolated backend or component work.
+
+State and API:
+- Prefer small feature services with signals.
+- Keep DTOs/types aligned with backend contracts and shared types when `packages/shared-types` exists.
+- Handle auth through the SSO token flow described in `wedding-planner-deployment.md`.

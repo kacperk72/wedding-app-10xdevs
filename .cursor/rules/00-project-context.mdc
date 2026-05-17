@@ -1,0 +1,28 @@
+---
+description: Core context for the Wedding Planner repository
+alwaysApply: true
+---
+
+# Wedding Planner context
+
+This repository is a 10xDevs educational project for a Polish-language wedding planning web app.
+
+Current status:
+- The repo is pre-implementation / specification-first.
+- There is no working app scaffold yet: no `apps/`, no `packages/`, no root `package.json`.
+- Do not assume `npm`, `pnpm`, Angular CLI, backend, database, lint, or tests exist until M0 is created.
+- Work in this repo is currently mostly documentation, planning, and future scaffolding.
+
+Important artifacts:
+- `wedding-planner-deployment.md` is the source of truth for deployment, auth, hosting, and stack decisions.
+- `docs/demo-app/01-overview.md` is the source of truth for product scope and user flows.
+- `docs/demo-app/02-frontend.md` describes the UI, screens, components, forms, and responsive behavior.
+- `docs/demo-app/03-backend.md` describes endpoint semantics, but its original NestJS/Supabase assumptions are stale.
+- `docs/demo-app/04-database.md` describes the data model, but PostgreSQL/Supabase-specific implementation details are stale.
+- `docs/demo-app/05-implementation-plan.md` describes milestones, but stack-specific details must be adapted.
+- `README.md` contains stale paths and stale stack details; trust the filesystem and the deployment doc over README.
+
+Language and product rules:
+- The user-facing UI must be Polish from the first implementation commit.
+- Use Polish labels, statuses, mock data, date formatting (`DD.MM.YYYY`), and currency formatting (`32 000 zl` style, or `zł` where the file already uses UTF-8 Polish text).
+- Avoid scope creep. If a feature is not in `docs/demo-app/01-overview.md`, add an open question instead of implementing it silently.
