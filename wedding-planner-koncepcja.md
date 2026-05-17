@@ -25,6 +25,8 @@ Projekt **fit-seats** (Angular 21, standalone components, signals, Vitest) — d
 - Stan wesela jest **prywatny per para** — naturalne uzasadnienie auth, nie udawane.
 - Dane wrażliwe: imiona i nazwiska gości, kwoty umów, telefony kontrahentów. **Świadomie nie przechowujemy PESELi ani innych danych identyfikacyjnych** — utrzymujemy minimalny zakres danych osobowych, co ułatwia compliance.
 - **W MVP brak ról zewnętrznych** (świadkowie / rodzina) — dostęp tylko dla pary młodej.
+- **Konta tworzy admin** w panelu SSO (`https://kubitksso.pl/users`); para młoda nie ma self-service rejestracji. To uproszczenie scope'u (brak flow „verify email", „forgot password" w MVP) i zgodne z faktem, że projekt używa **jednej pary** rzeczywistych narzeczonych.
+- **Auth obsługiwane przez nasz własny SSO** (`https://kubitksso.pl`, Node.js + MySQL + JWT/RS256, projekt `SSO/`), wspólny dla wszystkich aplikacji w ekosystemie. Wedding-planner jest tylko jedną z apek podpiętych pod tę bramkę.
 
 ### 2. Zarządzanie danymi (CRUD) — ✅ BARDZO MOCNE
 
@@ -177,7 +179,13 @@ Wedding planner to z natury bagno funkcji. Każda nowa zakładka kosztuje czas, 
 
 ### Decyzja: gdzie trzymać dane? — ROZSTRZYGNIĘTE
 
-**Supabase** (Postgres + auth + storage na PDF). Auth za darmo, storage na umowy w v2, **RLS** (Row Level Security) dla izolacji per para. Darmowy tier z naddatkiem starcza pod ten projekt.
+**Własny backend Node.js + Express + MySQL na Hostingerze**, identyczny stack co SSO. Auth realizowany przez **nasz SSO** (`https://kubitksso.pl`) — wedding-planner backend nie ma własnego mechanizmu logowania, weryfikuje wyłącznie tokeny RS256 wystawione przez SSO (przez JWKS pod `https://kubitksso.pl/.well-known/jwks.json`).
+
+**Domena planera:** `https://wedding-planner-kubitk.pl` (frontend + backend razem, frontend statyczny, backend Node.js w tym samym pakiecie Hostingera albo na subdomenie `api.wedding-planner-kubitk.pl`).
+
+**Izolacja per para (zamiast Supabase RLS):** każdy chroniony endpoint backendu wedding-planner sprawdza, że `JWT.userId` jest jednym z `partner_a_user_id` / `partner_b_user_id` na tabeli `weddings` zanim zwróci dane czy zaakceptuje zapis. Logika trywialna, spójna z RLS pojęciowo, wymaga tylko 5-linijkowego middlewaru.
+
+**Czemu nie Supabase:** mamy już własny SSO który będzie obsługiwać wszystkie aplikacje w ekosystemie (`https://kubitksso.pl`). Dorzucanie Supabase Auth oznaczałoby drugi system tożsamości i drugi ekran logowania dla pary młodej. Supabase Postgres jako sama baza bez auth/RLS daje mniej niż MySQL na Hostingerze (nie mamy z tego korzyści, a wprowadzamy zewnętrzną zależność).
 
 ### Decyzja: jak włączyć fit-seats? — ROZSTRZYGNIĘTE
 
@@ -205,11 +213,11 @@ W MVP można AI **całkiem pominąć** — wymagania kursu są spełnione bez ni
 ## Następne kroki (kolejność)
 
 1. **PRD** — problem, persona, user stories, MVP cut, non-goals, glosariusz.
-2. **Model danych** — schema Postgres (Supabase) + relacje + RLS.
-3. **Architektura** — mono-repo, struktura modułów Angular, lazy loading, jak wcielamy fit-seats.
-4. **Plan migracji fit-seats** — mapa zmian (auth, persistence z localStorage → Supabase, model gości jako shared).
-5. **Stub MVP** — Dashboard + Goście + Logowanie + lazy fit-seats. Reszta iteracyjnie.
-6. **CI/CD** — GitHub Actions: build + test + deploy preview.
+2. **Model danych** — schema MySQL (Sequelize models) + relacje. Tabela `weddings(partner_a_user_id, partner_b_user_id)` jako root encja; izolacja per para egzekwowana w warstwie aplikacji (middleware `belongsToWedding`).
+3. **Architektura** — frontend (Angular SPA + SDK SSO) + backend (Express + Sequelize + MySQL), oba w jednym repo `wedding-planner/`, deploy na `wedding-planner-kubitk.pl`. Auth zewnętrzny przez `kubitksso.pl`.
+4. **Plan migracji fit-seats** — mapa zmian (persistence z localStorage → MySQL przez API wedding-plannera, model gości jako shared, auth przez interceptor SSO).
+5. **Stub MVP** — Dashboard + Goście + Logowanie (przez SSO) + lazy fit-seats. Reszta iteracyjnie.
+6. **CI/CD** — GitHub Actions: build + test + FTP deploy frontu + SSH deploy backendu (szczegóły w `wedding-planner-deployment.md`).
 7. **Test e2e** — jeden przepływ z punktu 5 walidacji powyżej.
 
 ---
@@ -222,12 +230,16 @@ W MVP można AI **całkiem pominąć** — wymagania kursu są spełnione bez ni
 
 ## Decyzje już rozstrzygnięte
 
-- ✅ Backend: **Supabase** (Postgres + auth + RLS).
+- ✅ Auth: **własny SSO** (`https://kubitksso.pl`, Node.js + MySQL + JWT/RS256). Wedding-planner backend weryfikuje tokeny przez JWKS — nie ma własnego mechanizmu logowania.
+- ✅ Backend wedding-planner: **Node.js + Express + Sequelize + MySQL** na Hostingerze (analogicznie do SSO, ten sam stack).
+- ✅ Frontend wedding-planner: **Angular 21 + standalone components + signals** (analogicznie do SSO admin SPA).
+- ✅ Domena: `https://wedding-planner-kubitk.pl` (osobna od SSO `https://kubitksso.pl`).
 - ✅ fit-seats: **kopia do `10xdevs`** + adaptacja do nowego modelu danych. Stare repo zamrożone.
 - ✅ Dane osobowe: **tylko imię i nazwisko** gościa, brak PESELi i innych identyfikatorów.
 - ✅ Notyfikacje: **brak push/email** — wszystkie sygnały logiki biznesowej widoczne jako wskaźniki/flagi w UI.
 - ✅ Zaakceptowane moduły: Goście/RSVP, Kontrahenci, Umowy (bez PDF), Timeline dnia ślubu, Menu, Playlista, Notatki, Dokumenty USC, Dashboard.
 - ✅ Auth: **dwa oddzielne, linkowane konta** dla pary młodej (nie jedno wspólne).
+- ✅ Tworzenie kont: **admin tworzy je w panelu SSO** (`https://kubitksso.pl/users`). Brak self-service rejestracji w MVP ani v2.
 - ✅ Role zewnętrzne (świadkowie / rodzina): **nie**, w MVP dostęp tylko dla pary młodej. Nie planujemy też w v2.
 - ✅ Umowy: **bez przechowywania PDF**, tylko dane (kontrahent, kwoty, harmonogram płatności). Skany trzymane osobno na dysku.
 - ✅ Umowy w MVP, nie v2 (uproszczone, bo bez storage'u).

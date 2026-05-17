@@ -6,13 +6,14 @@ Dokument referencyjny pod implementację. Wszystkie decyzje już podjęte — pr
 
 | Warstwa | Wybór | Koszt | Uzasadnienie |
 |---|---|---|---|
-| Frontend (SPA) | Hostinger Business (już posiadane) | 0 zł dodatkowo | własny pakiet, .htaccess opanowany, FTP/SSH dostępny |
-| Backend (DB + Auth) | Supabase | 0 zł (free tier) | Postgres + auth + RLS, w stacku 10xDevs |
+| Frontend SPA (Angular) | Hostinger Business — `wedding-planner-kubitk.pl` | 0 zł dodatkowo | własny pakiet, .htaccess opanowany, FTP dostępny |
+| Backend wedding-planner | Node.js + Express + Sequelize + MySQL na Hostingerze | 0 zł dodatkowo | ten sam pakiet co frontend; analogicznie jak SSO |
+| Auth gateway | Nasz SSO (`kubitksso.pl`) — projekt `SSO/` | 0 zł dodatkowo | wspólny dla wszystkich apek, JWT RS256 z weryfikacją przez JWKS |
 | CI/CD | GitHub Actions | 0 zł (publiczne repo lub 2000 min/mc na prywatnym) | standard, wsparcie FTP-Deploy |
-| Domena | subdomena istniejącej domeny | 0 zł | np. `planner.twojadomena.pl` |
-| SSL | Hostinger free SSL | 0 zł | auto-renew, wymagane dla Supabase auth |
+| Domeny | `kubitksso.pl` (SSO), `wedding-planner-kubitk.pl` (planer) | wykupione | osobne domeny; bramka SSO i apka żyją obok siebie |
+| SSL | Hostinger free SSL (Let's Encrypt) | 0 zł | auto-renew, wymagane dla cookies SameSite=None |
 
-**Łączny koszt dodatkowy: 0 zł.** Cała chmura, jakiej dotykamy, to Supabase — używany jak biblioteka, nie jak infrastruktura. Brak konieczności uczenia się AWS/Azure/GCP.
+**Łączny koszt dodatkowy: 0 zł.** Wszystko hostowane na własnej infrastrukturze Hostingera — brak zewnętrznych SaaS-ów (porzucamy planowany Supabase, bo SSO realizuje tę rolę).
 
 ## Architektura deployu
 
@@ -28,69 +29,95 @@ Dokument referencyjny pod implementację. Wszystkie decyzje już podjęte — pr
    │                      │
    │  1. npm ci           │
    │  2. npm test         │
-   │  3. ng build         │
-   │  4. FTP-Deploy dist/ │
+   │  3. ng build (front) │
+   │  4. FTP-Deploy front │
+   │  5. SSH deploy back  │
    └──────────┬───────────┘
-              │ FTP
+              │ FTP / SSH
               ▼
-   ┌──────────────────────┐         ┌──────────────────────┐
-   │  Hostinger Business  │         │   Supabase           │
-   │                      │  HTTPS  │                      │
-   │  /public_html/       │ ───────►│   Postgres + Auth    │
-   │     planner/         │         │   + RLS              │
-   │  (Angular SPA)       │         │                      │
-   └──────────────────────┘         └──────────────────────┘
-              ▲
-              │ HTTPS (SSL z Hostingera)
-              │
-        Para młoda
+   ┌─────────────────────────────────────┐
+   │  Hostinger — wedding-planner-kubitk.pl
+   │                                     │
+   │  /public_html/      ← Angular SPA   │
+   │  /node_app/  (lub osobny subdomain) │
+   │     ← Express + Sequelize           │
+   │     ← MySQL (lokalna baza)          │
+   └────────────────┬────────────────────┘
+                    │ JWT (Bearer w nagłówku)
+                    │ JWKS pull (cache 1h)
+                    ▼
+   ┌─────────────────────────────────────┐
+   │  Hostinger — kubitksso.pl           │
+   │     ← Express + Sequelize + MySQL   │
+   │     ← podpisuje tokeny RS256        │
+   │     ← /.well-known/jwks.json        │
+   │     ← /login + /api/auth/* + admin  │
+   └────────────────┬────────────────────┘
+                    │ HTTPS (SSL z Hostingera)
+                    │
+              Para młoda (przeglądarka)
+                    ▲
+                    │ flow:
+                    │  1. wchodzi na wedding-planner-kubitk.pl
+                    │  2. SDK widzi brak sesji → redirect kubitksso.pl/login
+                    │  3. po zalogowaniu redirect z #sso_code=…
+                    │  4. SDK exchange'uje kod, ma access token
+                    │  5. odpytuje api wedding-plannera z Bearer
 ```
 
-Kluczowa obserwacja: **Hostinger serwuje tylko statyczne pliki**. Cała logika serwerowa (auth, baza, RLS) siedzi w Supabase, do którego SPA woła z przeglądarki.
+Kluczowa obserwacja: **wedding-planner backend nigdy nie weryfikuje hasła**. Hasła obsługuje wyłącznie SSO. Wedding-planner backend tylko sprawdza, że Bearer token jest podpisany przez znaną parę kluczy (pobraną z JWKS) i nie wygasł — czyli „ten user jest tym kim mówi że jest, SSO mu zaufał".
 
 ## Hostinger Business — co wykorzystujemy
 
 **Wykorzystujemy:**
-- FTP/SFTP access — dla GitHub Actions (FTP-Deploy-Action)
-- Free SSL (auto-renew) — wymagane dla Supabase auth (cookie SameSite/Secure)
+- **Node.js application support** — pod backend wedding-plannera (Express + Sequelize)
+- **MySQL** — baza wedding-plannera (osobna od bazy SSO, ale na tym samym serwerze)
+- FTP/SFTP access — dla GitHub Actions deploya frontu Angularowego
+- SSH access — pod deploy backendu (`git pull` + restart Node.js app)
+- Free SSL (auto-renew) — wymagane dla cookies SameSite=None używanych przez SSO
 - Cloudflare CDN — przyspieszenie SPA
-- Daily backups — bezpieczeństwo plików (na wypadek pomyłki w deployu)
-- Subdomeny (nielimitowane) — dedykowana subdomena dla projektu
-- .htaccess (SPA fallback) — już opanowane
-- Git deployment z panelu — **opcjonalny backup**, gdyby Actions padły
+- Daily backups — bezpieczeństwo plików i bazy
+- .htaccess (SPA fallback) — pod Angular routing
 
 **Nie wykorzystujemy** (są w pakiecie, ale niepotrzebne):
-- Node.js application support — backend mamy w Supabase
-- MySQL/MariaDB — używamy Postgres w Supabase
-- PHP/PHP-FPM — Angular nie korzysta
+- PHP/PHP-FPM — backend mamy w Node.js
 - Email serwerowy — brak notyfikacji w MVP
+- Storage na pliki PDF — umowy trzymamy bez skanów (decyzja z koncepcji)
 
 **Limity, które realnie obowiązują:**
-- 50 GB NVMe storage (Angular dist/ ~5-10 MB → totalny overkill)
+- 50 GB NVMe storage (Angular dist/ ~5-10 MB + node_modules backendu ~150 MB → spokojnie)
 - 30 Entry Processes (concurrent requests) → dla pary młodej overkill 10x
 - Daily backups → wystarczy
 
-## Subdomena — układ katalogów
+## Domeny — układ katalogów
 
-Plan: jedna subdomena dedykowana projektowi (nie miesza się z innymi stronkami).
+Plan: dwie osobne domeny, każda z własnym deployem.
 
 ```
-public_html/
-├── planner/              ← deploy target
-│   ├── index.html
-│   ├── main-{hash}.js
-│   ├── styles-{hash}.css
-│   ├── assets/
-│   └── .htaccess         ← SPA fallback
-├── inna-stronka/
-└── ...
+kubitksso.pl                      ← SSO (osobny projekt, repo SSO/)
+└── public_html/
+    ├── (Node.js app: backend SSO)
+    └── (statics serwowane z public/admin: SSO admin SPA)
+
+wedding-planner-kubitk.pl         ← wedding-planner
+└── public_html/
+    ├── index.html                ← Angular SPA build
+    ├── main-{hash}.js
+    ├── styles-{hash}.css
+    ├── assets/
+    └── .htaccess                 ← SPA fallback
+└── (Node.js app: backend wedding-plannera)
+    └── /api/* endpointów chronione weryfikacją JWT przez JWKS
 ```
 
-**Konfiguracja w panelu Hostingera:**
-1. Domains → Subdomains → utwórz `planner.twojadomena.pl`.
-2. Wskaż document root na `public_html/planner`.
-3. SSL certificate → wygeneruj dla subdomeny (free Let's Encrypt z Hostingera).
-4. Zanotuj FTP credentials z panelu (potrzebne do GitHub Secrets).
+**Konfiguracja w panelu Hostingera dla `wedding-planner-kubitk.pl`:**
+1. Domains → wykupiona już domena → wskaż document root na `public_html/wedding-planner` (lub główny katalog domeny).
+2. SSL certificate → wygeneruj (free Let's Encrypt).
+3. Node.js → utwórz aplikację Node.js wskazującą na katalog backendu (np. `/wedding-planner-backend/src/server.js`).
+4. MySQL → utwórz osobną bazę dla wedding-planner (np. `u253639506_wedding`) z dedykowanym kontem.
+5. Zanotuj FTP credentials z panelu (potrzebne do GitHub Secrets dla deployu frontu).
+
+**Powtórz analogicznie dla `kubitksso.pl`** (jeśli SSO jeszcze nie wdrożony).
 
 ## .htaccess (SPA fallback) — gotowy plik
 
@@ -168,21 +195,34 @@ jobs:
       - name: Build
         run: npm run build -- --configuration=production
 
-      - name: Deploy to Hostinger via FTP
+      - name: Deploy frontend to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server:     ${{ secrets.HOSTINGER_FTP_HOST }}
           username:   ${{ secrets.HOSTINGER_FTP_USER }}
           password:   ${{ secrets.HOSTINGER_FTP_PASS }}
-          local-dir:  ./dist/wedding-planner/browser/
-          server-dir: /public_html/planner/
-          dangerous-clean-slate: false  # nie usuwamy starych plików, FTP-Deploy robi inkrementalnie
+          local-dir:  ./frontend/dist/wedding-planner/browser/
+          server-dir: /public_html/
+          dangerous-clean-slate: false
+
+      - name: Deploy backend via SSH (git pull + restart)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key:      ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd ~/wedding-planner-backend
+            git pull
+            npm ci --omit=dev
+            # Restart Node.js app przez panel Hostingera lub touch'em pliku restart.txt
+            touch tmp/restart.txt
 ```
 
 **Uwagi:**
-- `local-dir` będzie zależał od nazwy projektu w `angular.json` (sprawdzić po `ng build`, gdzie ląduje output — Angular 17+ kładzie do `dist/<name>/browser/`).
-- `dangerous-clean-slate: false` (default) jest bezpieczniejsze — FTP-Deploy porównuje pliki przez hash i wgrywa tylko zmienione. Pierwsze wgranie zajmie minutę, kolejne kilka sekund.
-- Przy pierwszym deployu narzędzie tworzy `.ftp-deploy-sync-state.json` na serwerze — nie usuwać.
+- `local-dir` zależy od `outputPath` w `angular.json` — sprawdź po `ng build`, gdzie ląduje output. Domyślnie Angular kładzie do `dist/<name>/browser/`.
+- `dangerous-clean-slate: false` jest bezpieczniejsze — FTP-Deploy porównuje pliki przez hash i wgrywa tylko zmienione. Przy pierwszym deployu narzędzie tworzy `.ftp-deploy-sync-state.json` na serwerze — nie usuwać.
+- Backend deployuje się przez SSH + git pull (nie FTP), bo musi też zainstalować zależności i zrestartować proces Node.js. Hostinger Node.js Hosting akceptuje `tmp/restart.txt` jako sygnał do restartu.
 
 ## GitHub Secrets do skonfigurowania
 
@@ -190,52 +230,172 @@ W Settings → Secrets and variables → Actions → New repository secret:
 
 | Secret | Wartość | Skąd wziąć |
 |---|---|---|
-| `HOSTINGER_FTP_HOST` | np. `ftp.twojadomena.pl` | panel Hostinger → FTP Accounts |
-| `HOSTINGER_FTP_USER` | np. `u123456789.planner` | panel Hostinger → FTP Accounts |
-| `HOSTINGER_FTP_PASS` | hasło FTP | panel Hostinger (wygenerować dedykowane FTP konto dla planner-a, nie używać master account!) |
+| `HOSTINGER_FTP_HOST` | np. `ftp.wedding-planner-kubitk.pl` | panel Hostinger → FTP Accounts |
+| `HOSTINGER_FTP_USER` | np. `u253639506.planner` | panel Hostinger → FTP Accounts |
+| `HOSTINGER_FTP_PASS` | hasło FTP | panel Hostinger (wygenerować **dedykowane** FTP konto z dostępem tylko do `/public_html/`, nie używać master account) |
+| `HOSTINGER_SSH_HOST` | np. `wedding-planner-kubitk.pl` | panel Hostinger → SSH Access |
+| `HOSTINGER_SSH_USER` | nazwa użytkownika SSH | panel Hostinger |
+| `HOSTINGER_SSH_KEY` | private key (cały plik z `-----BEGIN OPENSSH PRIVATE KEY-----`) | wygenerowany lokalnie `ssh-keygen`, public key wrzucasz do panelu Hostingera |
 
-**Zalecenie bezpieczeństwa:** w panelu Hostingera utworzyć **osobne FTP konto** dla katalogu `/public_html/planner/` (nie master account). Wtedy nawet wyciek sekretu z GitHuba nie daje dostępu do innych stronek na tym samym pakiecie.
+**Zalecenie bezpieczeństwa:** w panelu Hostingera utworzyć **osobne FTP konto** dla katalogu `/public_html/` domeny `wedding-planner-kubitk.pl` (nie master account). Wtedy nawet wyciek sekretu z GitHuba nie daje dostępu do drugiej domeny (`kubitksso.pl`) ani do innych stronek na tym samym pakiecie.
 
-## Supabase setup w skrócie
+**Dla SSH klucz** — używaj dedykowanej pary kluczy stworzonej tylko pod ten deploy, nie używaj swojego osobistego klucza SSH.
 
-1. Załóż projekt na supabase.com (free tier).
-2. Z panelu skopiuj:
-   - `SUPABASE_URL` (np. `https://xxxxx.supabase.co`)
-   - `SUPABASE_ANON_KEY` (publiczny klucz, idzie do frontu)
-3. W kodzie Angular: użyj `@supabase/supabase-js`, klucze w `environment.ts` (nie w secret — anon key jest publiczny i chroniony przez RLS).
-4. Skonfiguruj **RLS policies** dla każdej tabeli — to jest twój główny mechanizm dostępu (np. „SELECT na guests gdzie wedding_id IN (SELECT id FROM weddings WHERE owner_id = auth.uid() OR partner_id = auth.uid())").
-5. Migracje SQL trzymaj w `supabase/migrations/` w repo (Supabase CLI).
+## Integracja z SSO — frontend (Angular SPA)
 
-**Uwaga:** `SUPABASE_ANON_KEY` jest publiczny i poprawnie wystawiać go w buildzie SPA. **RLS jest jedyną linią obrony** — nie bagatelizuj go.
+W `index.html` doklejamy tag SDK SSO przed `<app-root>`:
 
-## Lokalny dev — `.env.local` i Supabase local
-
-W trakcie developmentu warto mieć **lokalnego Supabase** zamiast bić w produkcyjny:
-
-```bash
-npm install -g supabase
-supabase init
-supabase start  # odpala lokalnego Postgresa + auth w Dockerze
+```html
+<script
+  src="https://kubitksso.pl/sdk/sso-sdk.js"
+  data-sso-url="https://kubitksso.pl"
+  data-app="wedding-planner"
+></script>
 ```
 
-W `environment.ts` (dev): URL/key z `supabase status`. Migracje testujesz lokalnie, potem `supabase db push` na produkcję.
+To jeden `<script>`, zero plików do kopiowania, zero zależności npm po stronie auth — SDK żyje na serwerze SSO, jeden update tam = aktualizacja wszędzie.
+
+W Angularze potrzebujesz tylko interceptora doklejającego token i guarda chroniącego trasy. Pełna instrukcja w `SSO/angular-sdk/README.md` — kopiujesz ~15 linii kodu (interceptor + guard) i jest gotowe.
+
+**Rejestracja apki w SSO** (jednorazowo, robi admin w panelu `https://kubitksso.pl/apps`):
+- Slug: `wedding-planner`
+- Display name: `Wedding Planner`
+- Domain: `https://wedding-planner-kubitk.pl` (prod) — **musi się zgadzać z origin**, inaczej SSO odrzuci redirect po loginie
+
+**Tworzenie kont pary młodej** (jednorazowo, panel `https://kubitksso.pl/users`):
+- Dwa konta `email` + `password`, role `user`
+- Każde przypisane do apki `wedding-planner`
+- Linkowanie ich w jedno wesele odbywa się **po stronie wedding-planner backendu** w tabeli `weddings(partner_a_user_id, partner_b_user_id)` — admin (czyli ty) wstawia ten rekord ręcznie SQL-em po założeniu kont, bo to jednorazowy setup.
+
+## Integracja z SSO — backend (Express + JWT verification)
+
+Backend wedding-plannera nigdy nie waliduje haseł i nie loguje. Przyjmuje wyłącznie tokeny RS256 podpisane przez SSO i weryfikuje je przez JWKS pobierane raz na godzinę z `https://kubitksso.pl/.well-known/jwks.json`.
+
+Instalacja (jednorazowo):
+
+```bash
+npm install jsonwebtoken jwks-rsa
+```
+
+Middleware weryfikujący token (przykład):
+
+```js
+// backend/src/middleware/sso-auth.js
+const jwt = require("jsonwebtoken");
+const jwksClient = require("jwks-rsa");
+
+const client = jwksClient({
+  jwksUri: process.env.SSO_JWKS_URL || "https://kubitksso.pl/.well-known/jwks.json",
+  cache: true,
+  cacheMaxAge: 3600 * 1000, // 1h, zgodnie z Cache-Control z SSO
+  rateLimit: true,
+});
+
+function getKey(header, callback) {
+  client.getSigningKey(header.kid, (err, key) =>
+    callback(err, key && key.getPublicKey()),
+  );
+}
+
+module.exports = function ssoAuth(req, res, next) {
+  const token = req.header("Authorization")?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "No token" });
+
+  jwt.verify(token, getKey, { algorithms: ["RS256"] }, (err, payload) => {
+    if (err) return res.status(401).json({ error: "Invalid token", details: [err.message] });
+    req.user = payload; // { userId, email, firstName, lastName, role, isActive, apps }
+    next();
+  });
+};
+```
+
+Middleware sprawdzający że user należy do wesela (zamiast Supabase RLS):
+
+```js
+// backend/src/middleware/belongs-to-wedding.js
+const { Wedding } = require("../models");
+
+module.exports = async function belongsToWedding(req, res, next) {
+  const weddingId = req.params.weddingId || req.body.weddingId;
+  const wedding = await Wedding.findByPk(weddingId);
+  if (!wedding) return res.status(404).json({ error: "Wedding not found" });
+
+  const uid = req.user.userId;
+  if (wedding.partner_a_user_id !== uid && wedding.partner_b_user_id !== uid) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  req.wedding = wedding;
+  next();
+};
+```
+
+Każdy endpoint wedding-plannera, który czyta lub modyfikuje dane wesela, lecisz z parą `[ssoAuth, belongsToWedding]`. To jest twoja warstwa autoryzacji — odpowiednik RLS z Supabase, ale w aplikacji.
+
+## Lokalny dev — wedding-planner + SSO razem
+
+W trakcie developmentu odpalasz **oba serwery lokalnie**:
+
+```bash
+# Terminal 1: SSO
+cd SSO/backend
+npm run dev          # localhost:3000
+
+# Terminal 2: wedding-planner backend
+cd wedding-planner/backend
+npm run dev          # localhost:3001 (inny port)
+
+# Terminal 3: wedding-planner frontend
+cd wedding-planner/frontend
+npm start            # ng serve, localhost:4200
+```
+
+W `wedding-planner/backend/.env`:
+```env
+SSO_JWKS_URL=http://localhost:3000/.well-known/jwks.json
+DB_HOST=localhost   # lub Hostinger remote MySQL z DB_SSL=true
+PORT=3001
+```
+
+W `wedding-planner/frontend/index.html` (dev):
+```html
+<script
+  src="http://localhost:3000/sdk/sso-sdk.js"
+  data-sso-url="http://localhost:3000"
+  data-app="wedding-planner"
+></script>
+```
+
+**W panelu SSO** (`http://localhost:3000/apps`) zarejestruj apkę z `domain: http://localhost:4200` — wtedy bramka zaakceptuje redirect na localhost:4200.
 
 ## Workflow dewelopera
 
-1. `feature/*` branch → praca lokalnie z lokalnym Supabase.
-2. PR → main → GitHub Actions automatycznie buduje, testuje, deployuje na Hostinger.
-3. Migracje DB: ręczny `supabase db push` (świadoma akcja, nie automat — żeby nie zepsuć produkcyjnej bazy).
-4. Rollback: w panelu Hostingera są daily backups; w Supabase point-in-time recovery na free tier ograniczony — ostrożnie z migracjami.
+1. `feature/*` branch → praca lokalnie (3 terminale: SSO backend, wedding-planner backend, wedding-planner frontend).
+2. PR → main → GitHub Actions automatycznie buduje, testuje, deployuje frontend (FTP) i backend (SSH).
+3. Migracje DB: w dev `sequelize.sync({ alter: true })` aktualizuje schemat automatycznie. **Na prodzie** — `sync()` bez `alter`, a zmiany schematu robisz świadomie przez SQL/Sequelize CLI.
+4. Rollback: w panelu Hostingera są daily backups dla MySQL i plików.
 
 ## Checklist przed pierwszym deployem
 
-- [ ] Subdomena `planner.twojadomena.pl` utworzona w panelu Hostingera, document root = `public_html/planner`.
-- [ ] SSL wygenerowany dla subdomeny.
-- [ ] FTP konto dedykowane (z dostępem ograniczonym do `/public_html/planner/`) utworzone.
-- [ ] `.htaccess` w `public/` projektu, asset skonfigurowany w `angular.json`.
-- [ ] Projekt Supabase założony, klucze skopiowane.
-- [ ] RLS włączony na każdej tabeli (CRITICAL).
-- [ ] GitHub Secrets dodane: 3× FTP.
+### Po stronie SSO (jeśli jeszcze nie wdrożony)
+- [ ] Domena `kubitksso.pl` skonfigurowana w panelu Hostingera, SSL wygenerowany.
+- [ ] Node.js application uruchomiona, wskazuje na `SSO/backend/src/server.js`.
+- [ ] MySQL baza utworzona, dane w `SSO/backend/.env` na serwerze.
+- [ ] Klucze RSA wygenerowane przy pierwszym starcie (`SSO/backend/keys/jwt-private.pem` + public).
+- [ ] `https://kubitksso.pl/.well-known/jwks.json` zwraca poprawny JWKS.
+- [ ] `https://kubitksso.pl/login` otwiera ekran logowania.
+
+### Po stronie wedding-planner
+- [ ] Domena `wedding-planner-kubitk.pl` w panelu Hostingera, document root = `public_html/`.
+- [ ] SSL wygenerowany.
+- [ ] FTP konto dedykowane (dostęp ograniczony do `/public_html/`) utworzone.
+- [ ] SSH klucz dla deploya backendu wgrany do panelu Hostingera, prywatny w GitHub Secrets.
+- [ ] `.htaccess` w `frontend/public/` projektu, asset skonfigurowany w `angular.json`.
+- [ ] Node.js application dla backendu wedding-plannera uruchomiona.
+- [ ] MySQL baza wedding-plannera utworzona (osobna od bazy SSO), `wedding-planner/backend/.env` z danymi DB + `SSO_JWKS_URL`.
+- [ ] Apka `wedding-planner` zarejestrowana w SSO (panel `https://kubitksso.pl/apps`) z domeną `https://wedding-planner-kubitk.pl`.
+- [ ] Konta pary młodej utworzone w SSO (panel `https://kubitksso.pl/users`), oboje przypisani do apki `wedding-planner`.
+- [ ] Rekord `weddings(partner_a_user_id, partner_b_user_id)` wstawiony ręcznie w bazie wedding-plannera.
+- [ ] GitHub Secrets dodane: 3× FTP + 3× SSH.
 - [ ] `.github/workflows/deploy.yml` w repo.
 - [ ] Pierwszy push na main → workflow zielony → strona działa pod HTTPS.
 
@@ -243,17 +403,24 @@ W `environment.ts` (dev): URL/key z `supabase status`. Migracje testujesz lokaln
 
 | Symptom | Pierwsze podejrzenie |
 |---|---|
-| 404 na podstronach (np. `/budzet`) | brak `.htaccess` w deployu lub złe `RewriteRule` |
-| Mixed content / CORS w konsoli | brak HTTPS na subdomenie albo zła `SUPABASE_URL` |
-| FTP-Deploy fail „550 Permission denied" | FTP konto nie ma uprawnień do katalogu — użyj master account jednorazowo, ale lepiej dedykowane |
+| 404 na podstronach Angulara (np. `/budzet`) | brak `.htaccess` w deployu lub złe `RewriteRule` |
+| Po loginie SSO redirect 400 „Invalid redirect" | apka `wedding-planner` w SSO ma niezgodną domenę — sprawdź panel SSO `/apps` |
+| Po loginie redirect, ale `/api/*` zwraca 401 | wedding-planner backend nie pobiera JWKS — sprawdź `SSO_JWKS_URL` w `.env` backendu |
+| `JsonWebTokenError: invalid signature` w logu backendu | klucze SSO zostały zregenerowane (np. `keys/` skasowany), a wedding-planner ma wycache'owany stary JWKS — restart backendu czyści cache |
+| CORS error przy fetch SDK (`/sdk/sso-sdk.js`) | SSO ma już `Access-Control-Allow-Origin: *` na tym katalogu — sprawdź czy Node.js app SSO żyje |
+| Mixed content w konsoli | brak HTTPS na którejś z domen — Let's Encrypt darmowo z panelu Hostingera |
+| FTP-Deploy fail „550 Permission denied" | FTP konto nie ma uprawnień do katalogu — wygeneruj dedykowane FTP konto |
+| SSH deploy fail „Permission denied (publickey)" | klucz publiczny nie wgrany do panelu Hostingera albo źle sformatowany prywatny w Secrets |
 | Build pass, ale strona pusta | `local-dir` w workflow nie pasuje do faktycznego output Angulara — sprawdź `dist/` po `ng build` |
-| Auth Supabase nie działa | brak HTTPS (cookies SameSite/Secure tego wymagają) |
+| Cookies refresh tokena nie idą cross-origin | SSO i wedding-planner muszą być oba na HTTPS w prod (SameSite=None wymaga Secure) |
 | Test pass lokalnie, fail w CI | różna wersja Node, brak `--watch=false`, headless browser nie skonfigurowany |
 
 ## Linki referencyjne
 
 - [Hostinger Business plan](https://www.hostinger.com/pricing)
-- [Hostinger — deploy via Git (oficjalna)](https://www.hostinger.com/support/1583302-how-to-deploy-a-git-repository-in-hostinger/)
+- [Hostinger — Node.js Hosting](https://www.hostinger.com/tutorials/nodejs)
+- [Hostinger — SSH Access](https://www.hostinger.com/tutorials/how-to-use-ssh)
 - [SamKirkland/FTP-Deploy-Action](https://github.com/marketplace/actions/ftp-deploy)
-- [Supabase Angular guide](https://supabase.com/docs/guides/getting-started/quickstarts/angularjs)
-- [Supabase RLS policies](https://supabase.com/docs/guides/auth/row-level-security)
+- [appleboy/ssh-action](https://github.com/appleboy/ssh-action)
+- [`jwks-rsa` (npm)](https://www.npmjs.com/package/jwks-rsa) — biblioteka pobierająca klucze publiczne z JWKS endpointu
+- Wewnętrzne: `SSO/README.md`, `SSO/angular-sdk/README.md` — instrukcja integracji SDK po stronie frontu
