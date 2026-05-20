@@ -1,3 +1,20 @@
 .playwright-mcp
 
 docs/menu
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+
+# Env files (production values live in Hostinger Node.js app panel)
+.env
+.env.*.local
+
+# Angular cache (frontend's own .gitignore covers this too)
+.angular/cache/
+
+# OS
+.DS_Store
+Thumbs.db

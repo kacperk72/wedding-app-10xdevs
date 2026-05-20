@@ -1,0 +1,63 @@
+name: Build, test and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    name: Build & deploy Angular SPA
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wedding-planner/frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: wedding-planner/frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint (if configured)
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Build
+        run: npm run build -- --configuration=production
+
+      - name: Deploy frontend to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server:     ${{ secrets.HOSTINGER_FTP_HOST }}
+          username:   ${{ secrets.HOSTINGER_FTP_USER }}
+          password:   ${{ secrets.HOSTINGER_FTP_PASS }}
+          local-dir:  ./wedding-planner/frontend/dist/wedding-planner/browser/
+          server-dir: /public_html/
+          dangerous-clean-slate: false
+
+  backend:
+    name: Deploy backend via SSH
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy (git pull + restart)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key:      ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd ~/wedding-planner-backend
+            git pull
+            npm ci --omit=dev
+            mkdir -p tmp
+            touch tmp/restart.txt
