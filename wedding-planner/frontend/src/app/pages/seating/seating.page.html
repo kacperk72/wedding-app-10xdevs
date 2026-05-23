@@ -1,0 +1,61 @@
+<app-page-header title="Rozsadzenie" subtitle="Stoły, miejsca i konflikty do sprawdzenia">
+  <span class="button-like">Dodaj stół</span>
+</app-page-header>
+
+<section class="section-grid section-grid--seating">
+  <aside class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Nieprzypisani</p>
+        <h3>4 osoby</h3>
+      </div>
+      <span class="badge badge--neutral">tylko potwierdzeni</span>
+    </div>
+    <div class="list">
+      @for (guest of guests; track guest.name) {
+        <div class="list-item">
+          <div>
+            <p class="list-item__title">{{ guest.name }}</p>
+            <p class="list-item__meta">{{ guest.tags }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  </aside>
+
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Plan sali</p>
+        <h2>12 stołów · 100 miejsc</h2>
+      </div>
+      <span class="badge badge--success">73 / 100 rozsadzonych</span>
+    </div>
+    <div class="round-table-grid">
+      @for (table of tables; track table.name) {
+        <div class="round-table">
+          <div>
+            <strong>{{ table.name }}</strong>
+            <span class="muted">{{ table.seats }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <aside class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Konflikty</p>
+        <h3>{{ conflicts.length }} ostrzeżenia</h3>
+      </div>
+    </div>
+    <div class="list">
+      @for (conflict of conflicts; track conflict) {
+        <div class="list-item">
+          <p class="list-item__meta">{{ conflict }}</p>
+        </div>
+      }
+    </div>
+  </aside>
+</section>

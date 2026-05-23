@@ -1,0 +1,101 @@
+<app-page-header title="Zadania" subtitle="Lista spraw z automatycznej osi czasu i własnych notatek">
+  <span class="button-like">Dodaj zadanie</span>
+</app-page-header>
+
+<div class="page-stack">
+  <div class="toolbar">
+    <span class="chip badge--success">Lista</span>
+    <span class="chip">Kalendarz</span>
+  </div>
+
+  <section class="kanban-section kanban-section--danger">
+    <div class="panel__header">
+      <h2>Opóźnione</h2>
+      <span class="badge badge--danger">{{ overdue().length }}</span>
+    </div>
+    <div class="list">
+      @for (task of overdue(); track task.id) {
+        <div class="list-item">
+          <div>
+            <p class="list-item__title">
+              <input type="checkbox" [checked]="task.done" (change)="toggleDone(task.id)" />
+              {{ task.title }}
+            </p>
+            <p class="list-item__meta">{{ task.due }} · {{ task.category }}</p>
+          </div>
+          @if (task.auto) {
+            <span class="badge badge--neutral">auto</span>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="kanban-section kanban-section--warning">
+    <div class="panel__header">
+      <h2>W tym tygodniu</h2>
+      <span class="badge badge--warning">{{ thisWeek().length }}</span>
+    </div>
+    <div class="list">
+      @for (task of thisWeek(); track task.id) {
+        <div class="list-item">
+          <div>
+            <p class="list-item__title">
+              <input type="checkbox" [checked]="task.done" (change)="toggleDone(task.id)" />
+              {{ task.title }}
+            </p>
+            <p class="list-item__meta">{{ task.due }} · {{ task.category }}</p>
+          </div>
+          @if (task.auto) {
+            <span class="badge badge--neutral">auto</span>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="kanban-section kanban-section--future">
+    <div class="panel__header">
+      <h2>W przyszłości</h2>
+      <span class="badge badge--info">{{ future().length }}</span>
+    </div>
+    <div class="list">
+      @for (task of future(); track task.id) {
+        <div class="list-item">
+          <div>
+            <p class="list-item__title">
+              <input type="checkbox" [checked]="task.done" (change)="toggleDone(task.id)" />
+              {{ task.title }}
+            </p>
+            <p class="list-item__meta">{{ task.due }} · {{ task.category }}</p>
+          </div>
+          @if (task.auto) {
+            <span class="badge badge--neutral">auto</span>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (completed().length > 0) {
+    <section class="surface panel">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Zrobione</p>
+          <h2>Ukończone zadania</h2>
+        </div>
+        <span class="badge badge--success">{{ completed().length }}</span>
+      </div>
+      <div class="list">
+        @for (task of completed(); track task.id) {
+          <div class="list-item">
+            <p class="list-item__title">{{ task.title }}</p>
+            <button type="button" class="button-like button-like--secondary" (click)="toggleDone(task.id)">
+              Cofnij
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>

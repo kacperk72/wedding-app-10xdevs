@@ -1,0 +1,17 @@
+<label class="input-date">
+  @if (label()) {
+    <span class="input-date__label">{{ label() }}</span>
+  }
+  <input
+    class="input-date__field"
+    [class.input-date__field--error]="error()"
+    type="date"
+    [value]="value()"
+    [disabled]="disabled()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+  />
+  @if (error()) {
+    <span class="input-date__error" role="alert">{{ error() }}</span>
+  }
+</label>

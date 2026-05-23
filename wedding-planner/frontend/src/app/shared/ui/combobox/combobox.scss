@@ -1,0 +1,40 @@
+.combobox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.combobox__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.combobox__select {
+  appearance: none;
+  width: 100%;
+  background-color: var(--color-surface);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1l5 5 5-5' stroke='%236b7264' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 36px 10px 14px;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(63, 92, 58, 0.15);
+  }
+
+  &:disabled {
+    background-color: var(--color-bg);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}

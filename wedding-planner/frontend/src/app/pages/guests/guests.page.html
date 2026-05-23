@@ -1,0 +1,186 @@
+<app-page-header title="Goście" subtitle="Lista zaproszonych z RSVP">
+  <button type="button" class="button-like" (click)="isAddDialogOpen.set(true)">
+    <app-icon name="user-plus" [size]="16" />
+    Dodaj gościa
+  </button>
+</app-page-header>
+
+<div class="page-stack">
+  <section class="section-grid">
+    @for (aggregate of aggregates(); track aggregate[0]) {
+      <article class="surface panel metric">
+        <p class="panel__eyebrow">{{ aggregate[0] }}</p>
+        <p class="metric__value">{{ aggregate[1] }}</p>
+      </article>
+    }
+  </section>
+
+  <section class="surface panel">
+    <div class="toolbar">
+      <div class="field" style="min-width: 260px">
+        <label for="guestSearch">Szukaj</label>
+        <input
+          id="guestSearch"
+          placeholder="Imię lub nazwisko"
+          [ngModel]="query()"
+          (ngModelChange)="setQuery($event)"
+        />
+      </div>
+      <div class="field">
+        <label for="rsvpFilter">Status RSVP</label>
+        <select
+          id="rsvpFilter"
+          [ngModel]="rsvpFilter()"
+          (ngModelChange)="setRsvpFilter($event)"
+        >
+          <option value="all">Wszystkie</option>
+          @for (option of rsvpOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="dietFilter">Dieta</label>
+        <select id="dietFilter" [ngModel]="dietFilter()" (ngModelChange)="setDietFilter($event)">
+          <option value="all">Wszystkie</option>
+          @for (option of dietOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="relationFilter">Relacja</label>
+        <select
+          id="relationFilter"
+          [ngModel]="relationFilter()"
+          (ngModelChange)="setRelationFilter($event)"
+        >
+          <option value="all">Wszystkie</option>
+          @for (relation of relations; track relation) {
+            <option [value]="relation">{{ relation }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </section>
+
+  @if (filteredGroups().length === 0) {
+    <section class="empty-state">
+      <p>Brak gości pasujących do wybranych filtrów.</p>
+    </section>
+  }
+
+  @for (group of filteredGroups(); track group.relation) {
+    <section class="surface panel">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Relacja</p>
+          <h2>{{ group.relation }}</h2>
+        </div>
+        <span class="badge badge--neutral">{{ group.guests.length }} osoby</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Imię i nazwisko</th>
+              <th>RSVP</th>
+              <th>Dieta</th>
+              <th>Stół</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (guest of group.guests; track guest.name) {
+              <tr>
+                <td><strong>{{ guest.name }}</strong></td>
+                <td>
+                  <span class="badge {{ rsvpClass(guest.rsvp) }}">{{ rsvpLabel(guest.rsvp) }}</span>
+                </td>
+                <td><span class="badge badge--neutral">{{ dietLabel(guest.diet) }}</span></td>
+                <td>{{ guest.table }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>
+
+@if (isAddDialogOpen()) {
+  <div class="modal-backdrop" role="presentation" (click)="isAddDialogOpen.set(false)">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addGuestTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Nowy gość</p>
+          <h2 id="addGuestTitle">Dodaj gościa</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="isAddDialogOpen.set(false)">
+          Zamknij
+        </button>
+      </div>
+
+      <form class="form-grid" (ngSubmit)="addGuest()">
+        <div class="field">
+          <label for="firstName">Imię</label>
+          <input
+            id="firstName"
+            name="firstName"
+            required
+            [ngModel]="newGuest().firstName"
+            (ngModelChange)="updateNewGuest({ firstName: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="lastName">Nazwisko</label>
+          <input
+            id="lastName"
+            name="lastName"
+            required
+            [ngModel]="newGuest().lastName"
+            (ngModelChange)="updateNewGuest({ lastName: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="relation">Relacja</label>
+          <select
+            id="relation"
+            name="relation"
+            [ngModel]="newGuest().relation"
+            (ngModelChange)="setNewGuestRelation($event)"
+          >
+            @for (relation of relations; track relation) {
+              <option [value]="relation">{{ relation }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="diet">Dieta</label>
+          <select
+            id="diet"
+            name="diet"
+            [ngModel]="newGuest().diet"
+            (ngModelChange)="setNewGuestDiet($event)"
+          >
+            @for (option of dietOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+          <button type="button" class="button-like button-like--secondary" (click)="isAddDialogOpen.set(false)">
+            Anuluj
+          </button>
+          <button type="submit" class="button-like">Dodaj</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

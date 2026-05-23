@@ -1,0 +1,97 @@
+<app-page-header title="Ustawienia" subtitle="Profil pary, konto partnera i dane wesela">
+  <span class="button-like button-like--secondary">Pobierz JSON</span>
+</app-page-header>
+
+<div class="page-stack">
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Profil pary</p>
+        <h2>Weronika & Kacper</h2>
+      </div>
+      <span class="badge badge--success">Do ślubu: 63 dni</span>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="partnerA">Imię partnerki</label>
+        <input id="partnerA" value="Weronika" />
+      </div>
+      <div class="field">
+        <label for="partnerB">Imię partnera</label>
+        <input id="partnerB" value="Kacper" />
+      </div>
+      <div class="field">
+        <label for="weddingDate">Data ślubu</label>
+        <input id="weddingDate" type="date" value="2026-07-25" />
+      </div>
+      <div class="field">
+        <label for="location">Miejsce ceremonii</label>
+        <input id="location" value="Pałac Polanka" />
+      </div>
+    </div>
+    <span class="button-like">Zapisz zmiany</span>
+  </section>
+
+  <section class="section-grid section-grid--two">
+    <article class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Menu na wesele</p>
+        <h3>Opcje dań dla gości</h3>
+      </div>
+      <div class="list">
+        @for (option of mealOptions; track option) {
+          <div class="list-item">
+            <p class="list-item__title">{{ option }}</p>
+            <span class="badge badge--neutral">drag</span>
+          </div>
+        }
+      </div>
+      <span class="button-like button-like--secondary">Dodaj opcję</span>
+    </article>
+
+    <article class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Połączone konto</p>
+        <h3>Konto połączone</h3>
+      </div>
+      <p class="muted">Partner ma dostęp do tego samego wesela i wspólnych danych.</p>
+      <div class="list-item">
+        <div>
+          <p class="list-item__title">Kacper Nowak</p>
+          <p class="list-item__meta">kacper@example.com</p>
+        </div>
+        <span class="badge badge--success">połączone</span>
+      </div>
+      <span class="button-like button-like--secondary">Wyślij zaproszenie ponownie</span>
+    </article>
+  </section>
+
+  <section class="section-grid section-grid--two">
+    <article class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Bezpieczeństwo</p>
+        <h3>Zmiana hasła</h3>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="currentPassword">Aktualne hasło</label>
+          <input id="currentPassword" type="password" />
+        </div>
+        <div class="field">
+          <label for="newPassword">Nowe hasło</label>
+          <input id="newPassword" type="password" />
+        </div>
+      </div>
+      <span class="button-like">Zmień hasło</span>
+    </article>
+
+    <article class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Eksport</p>
+        <h3>Dane wesela</h3>
+      </div>
+      <p class="muted">Eksport obejmuje gości, kontrahentów, budżet, zadania i rozsadzenie bez sekretów.</p>
+      <span class="button-like button-like--secondary">Pobierz JSON</span>
+    </article>
+  </section>
+</div>

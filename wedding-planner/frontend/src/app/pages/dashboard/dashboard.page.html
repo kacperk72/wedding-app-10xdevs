@@ -1,0 +1,62 @@
+<div class="page-stack dashboard-page">
+  <section class="dashboard-hero">
+    <p class="dashboard-hero__eyebrow">Weronika & Kacper · 25.07.2026</p>
+    <h1>Do ślubu zostało <strong>63 dni</strong></h1>
+    <p class="dashboard-hero__copy">
+      Wszystko, co musicie ogarnąć w jednym miejscu — goście, kontrahenci, budżet i zadania.
+    </p>
+  </section>
+
+  <section class="section-grid">
+    @for (kpi of kpis; track kpi.label) {
+      <article class="surface panel metric">
+        <div class="panel__header">
+          <p class="panel__eyebrow">{{ kpi.label }}</p>
+          <app-icon [name]="kpi.icon" [size]="18" />
+        </div>
+        <p class="metric__value">{{ kpi.value }}</p>
+        <div class="progress">
+          <div class="progress__bar {{ barClass(kpi.tone) }}" [style.width.%]="kpi.progress"></div>
+        </div>
+        <p class="metric__meta">{{ kpi.meta }}</p>
+      </article>
+    }
+  </section>
+
+  <section class="section-grid section-grid--two">
+    <article class="surface panel">
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Wymaga uwagi</p>
+          <h2>Najważniejsze akcje</h2>
+        </div>
+        <span class="badge badge--warning">{{ attention.length }}</span>
+      </div>
+      <div class="list">
+        @for (item of attention; track item) {
+          <div class="list-item">
+            <p class="list-item__title">{{ item }}</p>
+            <span class="button-like button-like--secondary">Otwórz</span>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Nadchodzące spotkania</p>
+        <h2>Kalendarz</h2>
+      </div>
+      <div class="list">
+        @for (meeting of meetings; track meeting.title) {
+          <div class="list-item">
+            <div>
+              <p class="list-item__title">{{ meeting.day }} {{ meeting.month }} · {{ meeting.title }}</p>
+              <p class="list-item__meta">{{ meeting.meta }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </article>
+  </section>
+</div>

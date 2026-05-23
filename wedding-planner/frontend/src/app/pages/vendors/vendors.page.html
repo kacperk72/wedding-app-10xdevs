@@ -1,0 +1,70 @@
+<app-page-header
+  title="Kontrahenci"
+  subtitle="Firmy i osoby, które pomagają dowieźć dzień ślubu"
+>
+  <span class="button-like">Dodaj kontrahenta</span>
+</app-page-header>
+
+<div class="page-stack">
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Wymaga uwagi</p>
+        <h2>Brakujący kontrahenci na 63 dni przed ślubem</h2>
+      </div>
+      <span class="badge badge--warning">3 kategorie</span>
+    </div>
+    <p class="muted">Do potwierdzenia zostały: makijaż, dekoracje stołów i transport gości.</p>
+  </section>
+
+  <div class="toolbar" aria-label="Filtry statusów">
+    @for (status of statuses; track status) {
+      <span class="chip">{{ status }}</span>
+    }
+  </div>
+
+  <div class="toolbar" aria-label="Filtry kategorii">
+    @for (category of categories; track category) {
+      <span class="chip">{{ category }}</span>
+    }
+  </div>
+
+  <section class="section-grid">
+    @for (vendor of vendors; track vendor.company) {
+      <article class="surface panel">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">{{ vendor.category }}</p>
+            <h3>{{ vendor.company }}</h3>
+          </div>
+          <span class="badge {{ statusClass(vendor.status) }}">
+            {{ statusLabel(vendor.status) }}
+          </span>
+        </div>
+        <div class="list">
+          <div>
+            <p class="list-item__title">{{ vendor.contact }}</p>
+            <p class="list-item__meta">{{ vendor.phone }}</p>
+          </div>
+          <div>
+            <p class="list-item__meta">{{ vendor.email }}</p>
+            <p class="list-item__title">{{ vendor.amount }}</p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <span class="button-like button-like--secondary">Edytuj</span>
+          <span class="button-like button-like--secondary">Zobacz umowę</span>
+        </div>
+      </article>
+    }
+
+    <article class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Nowy wpis</p>
+        <h3>Dodaj kontrahenta</h3>
+      </div>
+      <p class="muted">Kategoria, kontakt, status rozmów i szacowana kwota trafią później do budżetu.</p>
+      <span class="button-like">Dodaj</span>
+    </article>
+  </section>
+</div>

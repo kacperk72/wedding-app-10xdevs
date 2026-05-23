@@ -1,0 +1,9 @@
+<div
+  class="progress"
+  role="progressbar"
+  [attr.aria-valuenow]="clamped()"
+  aria-valuemin="0"
+  aria-valuemax="100"
+>
+  <div class="progress__fill progress__fill--{{ resolvedTone() }}" [style.width.%]="clamped()"></div>
+</div>

@@ -1,0 +1,19 @@
+<label class="combobox">
+  @if (label()) {
+    <span class="combobox__label">{{ label() }}</span>
+  }
+  <select
+    class="combobox__select"
+    [disabled]="isDisabled()"
+    [value]="value()"
+    (change)="onSelect($event)"
+    (blur)="onSelect($event)"
+  >
+    @if (placeholder()) {
+      <option value="" disabled>{{ placeholder() }}</option>
+    }
+    @for (opt of options(); track opt.value) {
+      <option [value]="opt.value">{{ opt.label }}</option>
+    }
+  </select>
+</label>

@@ -1,0 +1,25 @@
+.progress {
+  width: 100%;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 240ms ease;
+}
+
+.progress__fill--success {
+  background: var(--color-success);
+}
+
+.progress__fill--warning {
+  background: var(--color-warning);
+}
+
+.progress__fill--danger {
+  background: var(--color-danger);
+}

@@ -1,0 +1,19 @@
+<label class="input">
+  @if (label()) {
+    <span class="input__label">{{ label() }}</span>
+  }
+  <input
+    class="input__field"
+    [class.input__field--error]="error()"
+    [type]="type()"
+    [placeholder]="placeholder()"
+    [value]="value()"
+    [disabled]="disabled()"
+    [attr.autocomplete]="autocomplete()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+  />
+  @if (error()) {
+    <span class="input__error" role="alert">{{ error() }}</span>
+  }
+</label>

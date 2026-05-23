@@ -1,0 +1,29 @@
+@if (open()) {
+  <div class="backdrop" (click)="onBackdropClick()" role="presentation">
+    <div
+      class="panel"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="onPanelClick($event)"
+    >
+      <header class="panel__header">
+        <h2>{{ title() }}</h2>
+        <button
+          type="button"
+          class="panel__close"
+          aria-label="Zamknij"
+          (click)="closed.emit()"
+        >
+          ×
+        </button>
+      </header>
+      <div class="panel__body">
+        <ng-content />
+      </div>
+      <footer class="panel__footer">
+        <ng-content select="[dialog-actions]" />
+      </footer>
+    </div>
+  </div>
+}

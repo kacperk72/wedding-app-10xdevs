@@ -1,0 +1,67 @@
+<app-page-header title="Umowy" subtitle="Dokumenty, harmonogramy i najbliższe płatności">
+  <span class="button-like">Dodaj umowę</span>
+</app-page-header>
+
+<div class="page-stack">
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Najbliższe płatności</p>
+        <h2>3 pozycje w ciągu 30 dni</h2>
+      </div>
+      <span class="badge badge--warning">15 200 zł</span>
+    </div>
+
+    <div class="list">
+      @for (payment of payments; track payment.vendor + payment.type) {
+        <div class="list-item">
+          <div>
+            <p class="list-item__title">{{ payment.vendor }}</p>
+            <p class="list-item__meta">{{ payment.type }} · {{ payment.due }}</p>
+          </div>
+          <div class="toolbar">
+            <span class="badge {{ urgencyClass(payment.urgency) }}">termin</span>
+            <strong>{{ payment.amount }}</strong>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Tabela umów</p>
+        <h2>Wszystkie kontrakty</h2>
+      </div>
+      <span class="badge badge--neutral">Legenda płatności</span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Kontrahent</th>
+            <th>Kategoria</th>
+            <th>Kwota</th>
+            <th>Harmonogram</th>
+            <th>Podpisana</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (contract of contracts; track contract.vendor) {
+            <tr>
+              <td><strong>{{ contract.vendor }}</strong></td>
+              <td>{{ contract.category }}</td>
+              <td>{{ contract.amount }}</td>
+              <td>{{ contract.schedule }}</td>
+              <td>{{ contract.signed }}</td>
+              <td><span class="badge {{ contract.statusClass }}">{{ contract.status }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

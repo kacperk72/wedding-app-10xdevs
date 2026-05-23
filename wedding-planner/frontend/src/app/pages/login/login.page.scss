@@ -1,0 +1,18 @@
+.login-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: min(100%, 420px);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.login-card__hint {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}

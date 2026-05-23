@@ -1,0 +1,100 @@
+<app-page-header title="Oferta sali" subtitle="Konfigurator menu i dodatków z oferty weselnej">
+  <span class="button-like button-like--secondary">Edytuj ofertę</span>
+</app-page-header>
+
+<div class="page-stack">
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Aktywna oferta</p>
+        <h2>Pałac Polanka 2026</h2>
+      </div>
+      <span class="badge badge--success">ważna do 31.12.2026</span>
+    </div>
+
+    <div class="toolbar">
+      @for (pkg of packages; track pkg) {
+        <span class="chip" [class.badge--success]="pkg === 'Złoty'">{{ pkg }}</span>
+      }
+    </div>
+  </section>
+
+  <section class="section-grid section-grid--wide-left">
+    <div class="page-stack">
+      <article class="surface panel">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Pakiet Złoty</p>
+            <h2>{{ packagePrice }} zł za osobę</h2>
+          </div>
+          <div class="field" style="max-width: 140px">
+            <label for="guestCount">Goście</label>
+            <input
+              id="guestCount"
+              type="number"
+              min="1"
+              [ngModel]="guestCount()"
+              (ngModelChange)="setGuestCount($event)"
+            />
+          </div>
+        </div>
+        <p class="muted">Menu można modyfikować w ramach limitów wyboru dla każdej sekcji.</p>
+      </article>
+
+      @for (course of courses; track course.title) {
+        <article class="surface panel">
+          <div>
+            <p class="panel__eyebrow">{{ course.hint }}</p>
+            <h3>{{ course.title }}</h3>
+          </div>
+          <div class="list">
+            @for (dish of course.dishes; track dish) {
+              <div class="list-item">
+                <div>
+                  <p class="list-item__title">{{ dish }}</p>
+                  <p class="list-item__meta">alergeny i warianty dietetyczne do uzupełnienia</p>
+                </div>
+                <span class="badge badge--neutral">wybrane</span>
+              </div>
+            }
+          </div>
+        </article>
+      }
+    </div>
+
+    <aside class="page-stack">
+      <section class="surface panel">
+        <p class="panel__eyebrow">Dodatki</p>
+        <div class="list">
+          @for (addon of addons(); track addon.name) {
+            <div class="list-item">
+              <div>
+                <p class="list-item__title">{{ addon.name }}</p>
+                <p class="list-item__meta">{{ money(addon.price) }} / {{ addon.unit }}</p>
+              </div>
+              <button
+                type="button"
+                class="badge"
+                [class.badge--success]="addon.selected"
+                [class.badge--neutral]="!addon.selected"
+                (click)="toggleAddon(addon.name)"
+              >
+                {{ addon.selected ? 'dodane' : 'opcjonalne' }}
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="surface panel">
+        <p class="panel__eyebrow">Podsumowanie ceny</p>
+        <h2>{{ money(totalPrice()) }}</h2>
+        <p class="muted">
+          {{ packagePrice }} × {{ guestCount() }} + wybrane dodatki
+        </p>
+        <span class="button-like">Synchronizuj z RSVP</span>
+        <span class="button-like button-like--secondary">Zamroź w umowie</span>
+      </section>
+    </aside>
+  </section>
+</div>

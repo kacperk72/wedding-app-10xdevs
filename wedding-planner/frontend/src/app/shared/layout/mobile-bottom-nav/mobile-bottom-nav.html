@@ -1,0 +1,24 @@
+<nav class="bottom-nav" aria-label="Nawigacja mobilna">
+  <ul>
+    @for (item of items; track item.label) {
+      <li>
+        @if (item.disabled) {
+          <button type="button" class="bn-item bn-item--disabled" disabled title="Wkrótce">
+            <app-icon class="bn-item__icon" [name]="item.icon" [size]="18" />
+            <span class="bn-item__label">{{ item.label }}</span>
+          </button>
+        } @else {
+          <a
+            class="bn-item"
+            [routerLink]="item.routerLink!"
+            routerLinkActive="bn-item--active"
+            [routerLinkActiveOptions]="{ exact: item.routerLink === '/app' }"
+          >
+            <app-icon class="bn-item__icon" [name]="item.icon" [size]="18" />
+            <span class="bn-item__label">{{ item.label }}</span>
+          </a>
+        }
+      </li>
+    }
+  </ul>
+</nav>

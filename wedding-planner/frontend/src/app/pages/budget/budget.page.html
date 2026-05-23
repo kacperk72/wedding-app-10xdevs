@@ -1,0 +1,119 @@
+<app-page-header title="Budżet" subtitle="Plan, wydatki i rezerwacje z umów">
+  <button type="button" class="button-like" (click)="isExpenseDialogOpen.set(true)">
+    Dodaj wydatek
+  </button>
+  <span class="button-like button-like--secondary">Edytuj plan</span>
+</app-page-header>
+
+<div class="page-stack">
+  <section class="section-grid">
+    <article class="surface panel metric">
+      <p class="panel__eyebrow">Wydane</p>
+      <p class="metric__value">{{ money(spentTotal()) }}</p>
+      <p class="metric__meta">Suma opłaconych wydatków i płatności</p>
+    </article>
+    <article class="surface panel metric">
+      <p class="panel__eyebrow">Zarezerwowane</p>
+      <p class="metric__value">{{ money(reservedTotal()) }}</p>
+      <p class="metric__meta">Umowy i pozycje zaplanowane do zapłaty</p>
+    </article>
+    <article class="surface panel metric">
+      <p class="panel__eyebrow">Estymacja końcowa</p>
+      <p class="metric__value">{{ money(estimateTotal()) }}</p>
+      <p class="metric__meta">Suma planów we wszystkich kategoriach</p>
+    </article>
+  </section>
+
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Kategorie</p>
+        <h2>Kontrola planu</h2>
+      </div>
+      <span class="badge badge--info">15 kategorii</span>
+    </div>
+
+    <div class="list">
+      @for (category of categories(); track category.name) {
+        <div class="list-item">
+          <div>
+            <p class="list-item__title">{{ category.name }}</p>
+            <p class="list-item__meta">
+              {{ money(category.spent) }} wydane · est. {{ money(category.estimate) }} ·
+              {{ category.percent }}%
+            </p>
+          </div>
+          <div class="progress" style="min-width: 220px">
+            <div
+              class="progress__bar {{ barClass(category.tone) }}"
+              [style.width.%]="category.percent"
+            ></div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+</div>
+
+@if (isExpenseDialogOpen()) {
+  <div class="modal-backdrop" role="presentation" (click)="isExpenseDialogOpen.set(false)">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addExpenseTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Nowy wydatek</p>
+          <h2 id="addExpenseTitle">Dodaj wydatek</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="isExpenseDialogOpen.set(false)">
+          Zamknij
+        </button>
+      </div>
+      <form class="form-grid" (ngSubmit)="addExpense()">
+        <div class="field">
+          <label for="expenseCategory">Kategoria</label>
+          <select
+            id="expenseCategory"
+            name="expenseCategory"
+            [ngModel]="expenseCategory()"
+            (ngModelChange)="expenseCategory.set($event)"
+          >
+            @for (category of categories(); track category.name) {
+              <option [value]="category.name">{{ category.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="expenseAmount">Kwota</label>
+          <input
+            id="expenseAmount"
+            name="expenseAmount"
+            type="number"
+            min="1"
+            [ngModel]="expenseAmount()"
+            (ngModelChange)="setExpenseAmount($event)"
+          />
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="expenseDescription">Opis</label>
+          <input
+            id="expenseDescription"
+            name="expenseDescription"
+            [ngModel]="expenseDescription()"
+            (ngModelChange)="expenseDescription.set($event)"
+          />
+        </div>
+        <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+          <button type="button" class="button-like button-like--secondary" (click)="isExpenseDialogOpen.set(false)">
+            Anuluj
+          </button>
+          <button type="submit" class="button-like">Dodaj</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

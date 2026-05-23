@@ -1,0 +1,120 @@
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: var(--header-height);
+  padding: 10px var(--space-6);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-4);
+}
+
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header__heart {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.header__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.header__title {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0;
+}
+
+.header__counter {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  line-height: 1;
+}
+
+.header__counter-label {
+  font-size: 0.6875rem;
+  line-height: 1.15;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.header__counter-days {
+  margin: 0;
+  font-family: var(--font-serif);
+  line-height: 0.95;
+
+  strong {
+    font-size: 2rem;
+    color: var(--color-accent);
+    font-weight: 700;
+  }
+
+  span {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-left: 4px;
+  }
+}
+
+.header__counter-date {
+  font-size: 0.75rem;
+  line-height: 1.15;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.header__account {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+.header__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-surface);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 0.875rem;
+
+  &:hover {
+    background: var(--color-accent-dark);
+  }
+}
+
+@media (max-width: 767px) {
+  .header {
+    grid-template-columns: 1fr auto;
+    padding: 0 var(--space-4);
+  }
+
+  .header__counter {
+    display: none;
+  }
+}

@@ -1,0 +1,41 @@
+<header class="header">
+  <div class="header__brand">
+    <span class="header__heart" aria-hidden="true">
+      <app-icon name="heart" [size]="18" [filled]="true" />
+    </span>
+    <div class="header__brand-text">
+      <p class="header__eyebrow">Wedding Planner</p>
+      <p class="header__title">
+        @if (wedding.coupleLabel()) {
+          {{ wedding.coupleLabel() }}
+        } @else {
+          Para Młoda
+        }
+      </p>
+    </div>
+  </div>
+
+  <div class="header__counter">
+    @if (wedding.wedding(); as w) {
+      <p class="header__counter-label">DO ŚLUBU</p>
+      <p class="header__counter-days">
+        <strong>{{ wedding.daysUntilWedding() ?? '—' }}</strong>
+        <span>dni</span>
+      </p>
+      <p class="header__counter-date">{{ fmtDate(w.weddingDate) }}</p>
+    } @else {
+      <p class="header__counter-label">DO ŚLUBU</p>
+      <p class="header__counter-days"><strong>—</strong> <span>dni</span></p>
+    }
+  </div>
+
+  <div class="header__account">
+    <app-couple-avatar-pair
+      [initialA]="wedding.coupleInitials().a || 'W'"
+      [initialB]="wedding.coupleInitials().b || 'K'"
+    />
+    <button type="button" class="header__avatar" aria-label="Menu konta">
+      {{ wedding.coupleInitials().a || 'W' }}{{ wedding.coupleInitials().b || 'K' }}
+    </button>
+  </div>
+</header>

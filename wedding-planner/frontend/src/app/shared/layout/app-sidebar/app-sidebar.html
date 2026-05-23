@@ -1,0 +1,39 @@
+<aside class="sidebar">
+  <header class="sidebar__brand">
+    <p class="sidebar__title">Wesele 2026</p>
+    @if (wedding.wedding(); as w) {
+      <p class="sidebar__date">{{ fmtDate(w.weddingDate) }}</p>
+    } @else {
+      <p class="sidebar__date">— data wkrótce —</p>
+    }
+  </header>
+
+  <nav class="sidebar__nav" aria-label="Nawigacja główna">
+    <ul>
+      @for (item of items; track item.label) {
+        <li>
+          @if (item.disabled) {
+            <button type="button" class="nav-item nav-item--disabled" disabled title="Wkrótce">
+              <app-icon class="nav-item__icon" [name]="item.icon" [size]="16" />
+              <span class="nav-item__label">{{ item.label }}</span>
+            </button>
+          } @else {
+            <a
+              class="nav-item"
+              [routerLink]="item.routerLink!"
+              routerLinkActive="nav-item--active"
+              [routerLinkActiveOptions]="{ exact: item.routerLink === '/app' }"
+            >
+              <app-icon class="nav-item__icon" [name]="item.icon" [size]="16" />
+              <span class="nav-item__label">{{ item.label }}</span>
+            </a>
+          }
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <footer class="sidebar__footer">
+    <p>Zaproś partnera w Ustawieniach.</p>
+  </footer>
+</aside>
