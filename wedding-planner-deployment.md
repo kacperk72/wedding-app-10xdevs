@@ -7,13 +7,14 @@ Dokument referencyjny pod implementację. Wszystkie decyzje już podjęte — pr
 | Warstwa | Wybór | Koszt | Uzasadnienie |
 |---|---|---|---|
 | Frontend SPA (Angular) | Hostinger Business — `wedding-planner-kubitk.pl` | 0 zł dodatkowo | własny pakiet, .htaccess opanowany, FTP dostępny |
-| Backend wedding-planner | Node.js + Express + Sequelize + MySQL na Hostingerze | 0 zł dodatkowo | ten sam pakiet co frontend; analogicznie jak SSO |
+| Backend wedding-planner | Node.js + Express na Hostingerze | 0 zł dodatkowo | ten sam pakiet co frontend; backend tylko API + integracja SSO/Supabase |
+| Baza wedding-planner | Supabase Postgres | wg planu Supabase | domenowe dane planera, migracje SQL, triggery i funkcje PG |
 | Auth gateway | Nasz SSO (`kubitksso.pl`) — projekt `SSO/` | 0 zł dodatkowo | wspólny dla wszystkich apek, JWT RS256 z weryfikacją przez JWKS |
 | CI/CD | GitHub Actions | 0 zł (publiczne repo lub 2000 min/mc na prywatnym) | standard, wsparcie FTP-Deploy |
 | Domeny | `kubitksso.pl` (SSO), `wedding-planner-kubitk.pl` (planer) | wykupione | osobne domeny; bramka SSO i apka żyją obok siebie |
 | SSL | Hostinger free SSL (Let's Encrypt) | 0 zł | auto-renew, wymagane dla cookies SameSite=None |
 
-**Łączny koszt dodatkowy: 0 zł.** Wszystko hostowane na własnej infrastrukturze Hostingera — brak zewnętrznych SaaS-ów (porzucamy planowany Supabase, bo SSO realizuje tę rolę).
+**Decyzja aktualna (2026-05-23):** SSO zostaje osobną aplikacją z MySQL. Wedding-planner nie trzyma danych domenowych w MySQL; cała baza planera żyje w Supabase Postgres. Backend wedding-plannera weryfikuje token z SSO przez JWKS i używa Supabase service-role jako prywatnego klienta DB.
 
 ## Architektura deployu
 
@@ -40,21 +41,24 @@ Dokument referencyjny pod implementację. Wszystkie decyzje już podjęte — pr
    │                                     │
    │  /public_html/      ← Angular SPA   │
    │  /node_app/  (lub osobny subdomain) │
-   │     ← Express + Sequelize           │
-   │     ← MySQL (lokalna baza)          │
+   │     ← Express API                   │
+   │     ← Supabase service-role client  │
    └────────────────┬────────────────────┘
-                    │ JWT (Bearer w nagłówku)
-                    │ JWKS pull (cache 1h)
+                   │ JWT (Bearer w nagłówku)
+                   │ JWKS pull (cache 1h)
                     ▼
    ┌─────────────────────────────────────┐
    │  Hostinger — kubitksso.pl           │
-   │     ← Express + Sequelize + MySQL   │
+   │     ← SSO Express + Sequelize + MySQL│
    │     ← podpisuje tokeny RS256        │
    │     ← /.well-known/jwks.json        │
    │     ← /login + /api/auth/* + admin  │
    └────────────────┬────────────────────┘
-                    │ HTTPS (SSL z Hostingera)
-                    │
+                   │ HTTPS (SSL z Hostingera)
+                   │
+                   │ Supabase Postgres
+                   │ (wedding-planner DB)
+                   │
               Para młoda (przeglądarka)
                     ▲
                     │ flow:
@@ -70,8 +74,7 @@ Kluczowa obserwacja: **wedding-planner backend nigdy nie weryfikuje hasła**. Ha
 ## Hostinger Business — co wykorzystujemy
 
 **Wykorzystujemy:**
-- **Node.js application support** — pod backend wedding-plannera (Express + Sequelize)
-- **MySQL** — baza wedding-plannera (osobna od bazy SSO, ale na tym samym serwerze)
+- **Node.js application support** — pod backend wedding-plannera (Express)
 - FTP/SFTP access — dla GitHub Actions deploya frontu Angularowego
 - SSH access — pod deploy backendu (`git pull` + restart Node.js app)
 - Free SSL (auto-renew) — wymagane dla cookies SameSite=None używanych przez SSO
@@ -81,6 +84,7 @@ Kluczowa obserwacja: **wedding-planner backend nigdy nie weryfikuje hasła**. Ha
 
 **Nie wykorzystujemy** (są w pakiecie, ale niepotrzebne):
 - PHP/PHP-FPM — backend mamy w Node.js
+- MySQL Hostingera dla wedding-plannera — dane planera trzymamy w Supabase Postgres
 - Email serwerowy — brak notyfikacji w MVP
 - Storage na pliki PDF — umowy trzymamy bez skanów (decyzja z koncepcji)
 
@@ -114,8 +118,9 @@ wedding-planner-kubitk.pl         ← wedding-planner
 1. Domains → wykupiona już domena → wskaż document root na `public_html/wedding-planner` (lub główny katalog domeny).
 2. SSL certificate → wygeneruj (free Let's Encrypt).
 3. Node.js → utwórz aplikację Node.js wskazującą na katalog backendu (np. `/wedding-planner-backend/src/server.js`).
-4. MySQL → utwórz osobną bazę dla wedding-planner (np. `u253639506_wedding`) z dedykowanym kontem.
-5. Zanotuj FTP credentials z panelu (potrzebne do GitHub Secrets dla deployu frontu).
+4. Supabase → utwórz projekt/bazę dla wedding-planner, uruchom migracje z `wedding-planner/backend/supabase/migrations`.
+5. W panelu Hostingera ustaw env vars backendu: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWKS_URL`.
+6. Zanotuj FTP credentials z panelu (potrzebne do GitHub Secrets dla deployu frontu).
 
 **Powtórz analogicznie dla `kubitksso.pl`** (jeśli SSO jeszcze nie wdrożony).
 
@@ -285,7 +290,7 @@ const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
 
 const client = jwksClient({
-  jwksUri: process.env.SSO_JWKS_URL || "https://kubitksso.pl/.well-known/jwks.json",
+  jwksUri: process.env.JWKS_URL || "https://kubitksso.pl/.well-known/jwks.json",
   cache: true,
   cacheMaxAge: 3600 * 1000, // 1h, zgodnie z Cache-Control z SSO
   rateLimit: true,
@@ -309,27 +314,37 @@ module.exports = function ssoAuth(req, res, next) {
 };
 ```
 
-Middleware sprawdzający że user należy do wesela (zamiast Supabase RLS):
+Middleware / helper sprawdzający, że user należy do wesela. Ponieważ backend używa Supabase service-role, kontrola dostępu po stronie Express jest obowiązkowa; Supabase RLS może zostać dodane jako defense-in-depth.
 
 ```js
 // backend/src/middleware/belongs-to-wedding.js
-const { Wedding } = require("../models");
+const { supabase } = require("../config/database");
 
 module.exports = async function belongsToWedding(req, res, next) {
   const weddingId = req.params.weddingId || req.body.weddingId;
-  const wedding = await Wedding.findByPk(weddingId);
-  if (!wedding) return res.status(404).json({ error: "Wedding not found" });
+  const { data: user } = await supabase
+    .from("users")
+    .select("id")
+    .eq("sso_user_id", String(req.user.userId || req.user.sub))
+    .single();
 
-  const uid = req.user.userId;
-  if (wedding.partner_a_user_id !== uid && wedding.partner_b_user_id !== uid) {
+  const { data: member } = await supabase
+    .from("wedding_members")
+    .select("wedding_id")
+    .eq("wedding_id", weddingId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!member) {
     return res.status(403).json({ error: "Forbidden" });
   }
-  req.wedding = wedding;
+  req.weddingId = weddingId;
+  req.currentUserId = user.id;
   next();
 };
 ```
 
-Każdy endpoint wedding-plannera, który czyta lub modyfikuje dane wesela, lecisz z parą `[ssoAuth, belongsToWedding]`. To jest twoja warstwa autoryzacji — odpowiednik RLS z Supabase, ale w aplikacji.
+Każdy endpoint wedding-plannera, który czyta lub modyfikuje dane wesela, leci z parą `[ssoAuth, belongsToWedding]`. To jest aplikacyjna warstwa autoryzacji nad Supabase service-role.
 
 ## Lokalny dev — wedding-planner + SSO razem
 
@@ -351,8 +366,9 @@ npm start            # ng serve, localhost:4200
 
 W `wedding-planner/backend/.env`:
 ```env
-SSO_JWKS_URL=http://localhost:3000/.well-known/jwks.json
-DB_HOST=localhost   # lub Hostinger remote MySQL z DB_SSL=true
+JWKS_URL=http://localhost:3000/.well-known/jwks.json
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<secret-service-role-key>
 PORT=3001
 ```
 
@@ -371,8 +387,8 @@ W `wedding-planner/frontend/index.html` (dev):
 
 1. `feature/*` branch → praca lokalnie (3 terminale: SSO backend, wedding-planner backend, wedding-planner frontend).
 2. PR → main → GitHub Actions automatycznie buduje, testuje, deployuje frontend (FTP) i backend (SSH).
-3. Migracje DB: w dev `sequelize.sync({ alter: true })` aktualizuje schemat automatycznie. **Na prodzie** — `sync()` bez `alter`, a zmiany schematu robisz świadomie przez SQL/Sequelize CLI.
-4. Rollback: w panelu Hostingera są daily backups dla MySQL i plików.
+3. Migracje DB: schemat planera idzie przez SQL w `wedding-planner/backend/supabase/migrations`. Na start można uruchomić migrację w Supabase SQL Editor; docelowo przez Supabase CLI w CI.
+4. Rollback: frontend/backend przez GitHub/Hostinger deploy, baza przez backupy Supabase i ręcznie przygotowane migracje rollbackowe przy większych zmianach.
 
 ## Checklist przed pierwszym deployem
 
@@ -391,7 +407,8 @@ W `wedding-planner/frontend/index.html` (dev):
 - [ ] SSH klucz dla deploya backendu wgrany do panelu Hostingera, prywatny w GitHub Secrets.
 - [ ] `.htaccess` w `frontend/public/` projektu, asset skonfigurowany w `angular.json`.
 - [ ] Node.js application dla backendu wedding-plannera uruchomiona.
-- [ ] MySQL baza wedding-plannera utworzona (osobna od bazy SSO), `wedding-planner/backend/.env` z danymi DB + `SSO_JWKS_URL`.
+- [ ] Supabase project dla wedding-plannera utworzony, migracje SQL uruchomione.
+- [ ] `wedding-planner/backend/.env` / env panel Hostingera ma `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWKS_URL`.
 - [ ] Apka `wedding-planner` zarejestrowana w SSO (panel `https://kubitksso.pl/apps`) z domeną `https://wedding-planner-kubitk.pl`.
 - [ ] Konta pary młodej utworzone w SSO (panel `https://kubitksso.pl/users`), oboje przypisani do apki `wedding-planner`.
 - [ ] Rekord `weddings(partner_a_user_id, partner_b_user_id)` wstawiony ręcznie w bazie wedding-plannera.
@@ -405,7 +422,7 @@ W `wedding-planner/frontend/index.html` (dev):
 |---|---|
 | 404 na podstronach Angulara (np. `/budzet`) | brak `.htaccess` w deployu lub złe `RewriteRule` |
 | Po loginie SSO redirect 400 „Invalid redirect" | apka `wedding-planner` w SSO ma niezgodną domenę — sprawdź panel SSO `/apps` |
-| Po loginie redirect, ale `/api/*` zwraca 401 | wedding-planner backend nie pobiera JWKS — sprawdź `SSO_JWKS_URL` w `.env` backendu |
+| Po loginie redirect, ale `/api/*` zwraca 401 | wedding-planner backend nie pobiera JWKS — sprawdź `JWKS_URL` w `.env` backendu |
 | `JsonWebTokenError: invalid signature` w logu backendu | klucze SSO zostały zregenerowane (np. `keys/` skasowany), a wedding-planner ma wycache'owany stary JWKS — restart backendu czyści cache |
 | CORS error przy fetch SDK (`/sdk/sso-sdk.js`) | SSO ma już `Access-Control-Allow-Origin: *` na tym katalogu — sprawdź czy Node.js app SSO żyje |
 | Mixed content w konsoli | brak HTTPS na którejś z domen — Let's Encrypt darmowo z panelu Hostingera |

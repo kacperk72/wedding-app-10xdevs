@@ -1,6 +1,6 @@
 # Implementation Plan — Wedding Planner
 
-> **TL;DR**: Plan przepisania prototypu Lovable na produkcyjną aplikację w stosie zgodnym z `CLAUDE.md`: **Angular 20+ standalone + signals + SCSS** (frontend) + **NestJS + PostgreSQL/Supabase + JWT** (backend). Sekwencja: schema → auth → wesele → goście → kontrahenci+umowy → budżet → **catering konfigurator** → zadania → rozsadzenie → polish & ship. Każdy milestone produkuje działający, testowalny pionowy plaster.
+> **TL;DR**: Plan przepisania prototypu Lovable na produkcyjną aplikację w aktualnym stosie: **Angular standalone + signals + SCSS** (frontend) + **Express + Supabase Postgres + zewnętrzne SSO/JWKS** (backend). Sekwencja: schema → integracja SSO + wesele → goście → kontrahenci+umowy → budżet → **catering konfigurator** → zadania → rozsadzenie → polish & ship. Każdy milestone produkuje działający, testowalny pionowy plaster.
 
 Plan zakłada, że przeczytałeś już `01-overview.md`, `02-frontend.md`, `03-backend.md`, `04-database.md`. Tutaj skupiamy się **wyłącznie na sekwencji prac** — nie powtarzamy zawartości tamtych dokumentów.
 
@@ -8,77 +8,75 @@ Plan zakłada, że przeczytałeś już `01-overview.md`, `02-frontend.md`, `03-b
 
 ## Project setup (M0)
 
-Cel: monorepo, które się buduje i `npm run dev` startuje obie aplikacje.
+Cel: istniejący katalog `wedding-planner/` buduje frontend i backend, a backend ma połączenie z Supabase oraz SSO JWKS.
 
-- [ ] Zainicjuj monorepo (rekomenduję pnpm workspace):
-  - `apps/frontend` — Angular 20+
-  - `apps/backend` — NestJS
-  - `packages/shared-types` — DTO i enumy używane po obu stronach
-- [ ] Frontend scaffold: `ng new apps/frontend --standalone --style=scss --routing --strict`
-- [ ] Backend scaffold: `nest new apps/backend --strict --package-manager pnpm`
+- [x] Frontend scaffold: `wedding-planner/frontend` — Angular standalone + SCSS.
+- [x] Backend scaffold: `wedding-planner/backend` — Express.
 - [ ] Konfiguracja Prettier (100 chars, single quotes — zgodnie z konwencją repo) + ESLint w obu apkach
 - [ ] Tailwind opcjonalnie — *jeśli preferujesz utility classes*; w przeciwnym razie tokeny do SCSS variables (zalecam SCSS, bo `CLAUDE.md` mówi "SCSS scoped")
-- [ ] Backend: globalny `ValidationPipe({ whitelist: true, transform: true })`, `@nestjs/config` z `.env`/`.env.example`, helmet, CORS allowlist
+- [x] Backend: `dotenv`, helmet, CORS allowlist, JSON body parser.
+- [x] Backend: Supabase service-role client w `src/config/database.js`.
+- [x] Backend: JWKS auth middleware w `src/middleware/jwks-auth.js`.
 - [ ] Frontend: `provideRouter`, `provideHttpClient(withInterceptors([authInterceptor]))`, `provideAnimations`
-- [ ] Wspólne DTO w `packages/shared-types` (`Guest`, `Vendor`, `Contract`, …) z enumami z `04-database.md`
-- [ ] Docker compose: `postgres:15` + `pgadmin` (lub link do projektu Supabase, jeśli idziemy w Supabase od razu)
+- [ ] Wspólne DTO / typy można dodać później, jeśli backend i frontend zaczną duplikować kontrakty.
+- [ ] Supabase project: ustaw `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` w `.env`.
 - [ ] CI: lint + typecheck + test na push (rekomenduję GitHub Actions, ale zostaw to elastyczne)
-- [ ] Setup design tokens: kolory (zielony akcent, kremowe tło, pastele do badge'ów), typografia (szeryfowy heading + sans-serif body), `rounded-2xl`, cienie. Wsadź jako CSS custom properties w `apps/frontend/src/styles/_tokens.scss`.
+- [x] Setup design tokens w `wedding-planner/frontend/src/styles/_tokens.scss`.
 
-**Done when**: `pnpm dev` startuje frontend na `:4200` i backend na `:3000`; frontend uderza w `/api/health` i dostaje `200 OK`.
+**Done when**: frontend działa na `:4200`, backend na `:3000`/`:3001`, `/api/health` zwraca status procesu i reachability Supabase.
 
 ---
 
 ## Database (M1)
 
-Cel: schema zaaplikowana do bazy, RLS w miejscu, seed dla dev.
+Cel: schema zaaplikowana do Supabase, seed globalny i atomiczny bootstrap nowego wesela.
 
-- [ ] Wybierz narzędzie migracyjne i nie zmieniaj go: **Supabase migrations** (jeśli idziemy Supabase) **albo TypeORM migrations** (jeśli own Postgres)
-- [ ] Migracja `0001_init.sql` — **cały DDL z `04-database.md` § Full DDL** w kolejności sekcji 1-12 (FK spinają się tylko w tym porządku; szczególnie: `tables` przed `guests`, `meal_options` przed `guests`, `vendors` przed `expenses` i `catering_offers`, `catering_offers` → `catering_packages` → `catering_courses` → `catering_dishes` → junctions → `wedding_catering_selection` → picks → ALTER `contracts`)
-- [ ] Migracja `0002_triggers.sql` — `set_updated_at()` + 18 triggerów `tg_*_updated_at` (w tym 6 dla cateringu), `shift_auto_tasks_on_wedding_date_change()` + trigger, `enforce_seating_conflict_wedding_match()` + trigger, `enforce_catering_pick_consistency()` + trigger, `enforce_catering_course_dish_same_offer()` + trigger
-- [ ] Migracja `0003_rls.sql` — `ENABLE RLS` + policies dla każdej tabeli z `wedding_id` (w tym `catering_offers`, `wedding_catering_selection`). Specjalna polityka dla `weddings` (delete tylko przez `created_by_user_id`). Policy z join'em dla `payments` (przez `contracts`) i tabel cateringu bez `wedding_id` (przez offer/selection).
-- [ ] PG function `bootstrap_wedding(wedding_id uuid, creator_user_id uuid)` — atomowy seed po `INSERT INTO weddings`: wstawia `wedding_members` (creator jako `partner_a`), 15 `budget_categories`, materializuje tasks z `task_templates`. Wywoływane z backendu lub jako trigger AFTER INSERT.
-- [ ] Seed `task_templates` (~25 wpisów z prototypu — patrz `screenshots/desktop/07-zadania.png`, lista zadań po prawej z badge'em `auto`; `days_before_wedding` wyciągnij ręcznie z dat względem 25.07.2026)
-- [ ] Skrypt `seed-dev.ts`: 1 user (`anna@wesele.pl`/`password123`) jako founder, 1 wesele "Weronika & Kacper" 25.07.2026, 50 gości w 6 grupach (kilka z `diet='pending'`, kilka z konkretnym `meal_option_id`), 5 `meal_options` ("Schab tradycyjny"/"Łosoś z koprem"/"Wegański"/"Bezglutenowy"/"Dziecięce"), 10 kontrahentów (część "rozważany"), 8 umów z ratami, ~25 zadań (część `is_auto=true`), 12 stołów, 3 konflikty, 4 spotkania (DJ/catering/atelier/dekorator)
-- [ ] Sanity check: odpal `psql` + jeden query na każdą tabelę; sprawdź że RLS faktycznie blokuje dostęp do danych innego wesela (zaloguj się jako 2. user)
+- [x] Narzędzie migracyjne: Supabase SQL migrations w `wedding-planner/backend/supabase/migrations`.
+- [x] Migracja M1 `20260523233000_m1_schema_and_seed.sql` — DDL 23 tabel, indeksy, triggery i funkcje.
+- [x] PG function `bootstrap_wedding(p_wedding_id, p_creator_user_id)` — seeduje `wedding_members`, 15 `budget_categories`, 12 stołów i auto-zadania.
+- [x] PG function `create_wedding_with_bootstrap(...)` — atomowo tworzy wesele i odpala bootstrap.
+- [x] Seed `task_templates` w migracji + `npm run db:seed` jako idempotentny upsert.
+- [ ] Uruchom migrację w Supabase SQL Editor albo przez Supabase CLI.
+- [ ] Opcjonalnie: RLS policies jako osobna migracja defense-in-depth. Backend używa service-role, więc podstawowa autoryzacja i tak musi zostać w Express.
+- [ ] Seed dev danych domenowych: 1 user SSO-mapowany przez `sso_user_id`, 1 wesele "Weronika & Kacper" 25.07.2026, goście, meal_options, kontrahenci, umowy, stoły, konflikty, spotkania.
 
-**Done when**: świeży git clone + 1 komenda (`pnpm db:reset`) i masz działającą bazę z mockami dokładnie odzwierciedlającymi wygląd prototypu.
+**Done when**: świeża baza Supabase po migracji ma schemat M1, `task_templates`, a `POST /api/weddings` tworzy wesele z kategoriami budżetu, stołami i auto-zadaniami.
 
 ---
 
-## Auth & Wedding bootstrap (M2)
+## SSO integration & Wedding bootstrap (M2)
 
-Cel: zarejestrować się, zalogować, utworzyć wesele, zaprosić partnera.
+Cel: zalogować się przez SSO, zmapować użytkownika SSO do lokalnego `users`, utworzyć wesele i zaprosić partnera.
 
 ### Backend
 
-- [ ] `AuthModule`: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`
-- [ ] Hashowanie haseł: `argon2` (preferowane) lub `bcrypt` z work factor 12+
-- [ ] `JwtStrategy`: access token 15 min, refresh 7 dni z rotacją (zapisywany jako hash w `refresh_tokens(user_id, token_hash, expires_at, revoked_at)`)
-- [ ] `JwtAuthGuard` jako global default; endpointy publiczne oznaczane `@Public()`
-- [ ] `@CurrentUser()` decorator wyciągający `user` z requestu
-- [ ] `WeddingMemberGuard` — sprawdza, czy `req.user.id` jest w `wedding_members(wedding_id = req.params.weddingId)`. Aplikuj na controllery `weddings/:weddingId/*`
-- [ ] `WeddingsModule`: `POST /api/weddings` (tworzy wesele + wstawia bieżącego usera jako `partner_a` + seeduje budget categories), `GET /api/weddings/:id`, `PATCH /api/weddings/:id`
+- [x] `jwks-auth.js`: weryfikuje `Authorization: Bearer <token>` przez `JWKS_URL`; backend nie zna haseł.
+- [x] `ensureUserFromSsoPayload()`: upsert do `users` po `sso_user_id`; lokalne `users.id` jest FK dla `wedding_members`.
+- [x] `GET /api/me`: bieżący user, `weddingId`, partner.
+- [x] `POST /api/weddings`: wywołuje PG RPC `create_wedding_with_bootstrap`.
+- [x] `GET /api/weddings/:id`: sprawdza członkostwo i zwraca wesele + members.
+- [ ] `PATCH /api/weddings/:id`: aktualizacja profilu pary, z autoryzacją po `wedding_members`.
+- [ ] Guard/helper członkostwa dla wszystkich tras `weddings/:weddingId/*`.
 - [ ] `POST /api/weddings/:id/invite-partner` — generuje token, zapisuje `partner_invitations`, wysyła e-mail (na MVP: log do konsoli; produkcja: Resend/Postmark)
-- [ ] `POST /api/auth/accept-invite` — endpoint publiczny, tworzy nowego usera + wstawia jako `partner_b` + invaliduje token
-- [ ] `GET /api/me` — bieżący user z `weddingId` i `partner` (joinem przez `wedding_members`)
+- [ ] `POST /api/weddings/accept-invite` — endpoint publiczny albo SSO-assisted flow: po akceptacji mapuje użytkownika SSO i wstawia jako `partner_b`.
 
 ### Frontend
 
-- [ ] `AuthService`: signal `user`, metody `login()`, `register()`, `logout()`, `refresh()`, `me()`
-- [ ] HTTP interceptor: dorzuca `Authorization: Bearer …`; przy 401 próbuje 1x refresh i retry; przy drugim 401 wyloguj
+- [ ] Integracja SDK SSO: redirect do `kubitksso.pl/login`, exchange kodu na token, logout przez SSO.
+- [ ] `AuthService`: signal `user`, metody `loginWithSso()`, `logout()`, `me()`.
+- [ ] HTTP interceptor: dorzuca `Authorization: Bearer …`; przy 401 wyloguj/ponów flow SSO zgodnie z SDK.
 - [ ] `LoginPage` — split-screen layout zgodny z prototypem (`screenshots/desktop/01-login.png`)
-- [ ] `RegisterPage` — analogicznie
-- [ ] `AcceptInvitePage` — `/accept-invite?token=…` — formularz z imieniem, nazwiskiem, hasłem
+- [ ] `RegisterPage` — tylko jeśli SSO wystawia osobny flow rejestracji; nie implementować haseł w wedding-plannerze.
+- [ ] `AcceptInvitePage` — `/accept-invite?token=…` — potwierdza token zaproszenia; jeśli user nie ma sesji SSO, przekierowuje do SSO login/register.
 - [ ] `WeddingSetupWizard` — pokazywany po loginie, gdy user nie ma `weddingId` (pola z `Ustawienia > Profil pary`)
 - [ ] `authGuard` (route guard): jeśli brak usera → redirect `/`; jeśli user bez wesela → redirect `/setup`
 - [ ] `AppShell` z `AppSidebar` + `AppHeader` (oba czytają z `WeddingService` i `AuthService`)
 - [ ] `MobileBottomNav` (variant pod `<768px`)
 
 **Done when**:
-- Mogę się zarejestrować, zalogować, zobaczyć pusty Dashboard z licznikiem dni do mojej daty ślubu
-- Mogę zaprosić partnera mailem (na MVP — sprawdzam logi); on klika link, ustawia hasło, wpada do tego samego wesela
-- Refreshing pages utrzymuje sesję; wylogowanie czyści
+- Mogę zalogować się przez SSO, wejść do wedding-plannera, utworzyć wesele i zobaczyć Dashboard z licznikiem dni.
+- W Supabase powstają `users`, `weddings`, `wedding_members`, budżet startowy, stoły i auto-zadania.
+- Mogę zaprosić partnera mailem (na MVP — sprawdzam logi); po zalogowaniu przez SSO wpada do tego samego wesela.
 
 ---
 
@@ -285,7 +283,7 @@ Cel: domknięcie aplikacji.
 
 - [ ] Performance: lazy-load wszystkich routów (`loadComponent: () => import(...)`); analiza bundla (`source-map-explorer`); cel: initial bundle < 250KB gzip
 - [ ] Accessibility pass: keyboard navigation w sidebarze, focus-trap w modalach, ARIA labels na ikonach (np. avatary), kontrast badge'ów na pastelach
-- [ ] Responsive QA: ręczny przegląd na 1440 / 1024 / 768 / 375 (porównaj ze screenshotami w `docs/love-nest-co-lovable-app/screenshots/`)
+- [ ] Responsive QA: ręczny przegląd na 1440 / 1024 / 768 / 375 (porównaj ze screenshotami w `docs/demo-app/screenshots/`)
 - [ ] Security: helmet, rate limit auth (5/min/IP), CORS allowlist, HSTS, CSP nagłówki, sanityzacja inputów (czyste DTO + ValidationPipe wystarczy)
 - [ ] Observability: structured logging (`pino`), Sentry albo równoważnik
 - [ ] Migracje produkcyjne: skrypt deploy aplikujący migracje przed startem

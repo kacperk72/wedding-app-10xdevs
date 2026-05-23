@@ -4,32 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-**Pre-implementation.** This repo currently contains specification only — no `apps/`, no `packages/`, no `package.json`. Any "commands" (`pnpm dev`, `ng serve`, migrations) described in docs do not work yet; they describe the target after M0 scaffolding.
+**Implementation started.** The repo now contains `wedding-planner/frontend` and `wedding-planner/backend`. The backend is Express + Supabase Postgres and verifies the external SSO JWT through JWKS; authentication credentials and passwords stay in the separate SSO/MySQL app.
 
 Concrete artifacts present:
 - `docs/demo-app/01..05-*.md` — full spec (overview, frontend, backend, database, milestones M0–M10).
 - `docs/menu/*.pdf` — real catering offer (Pałac Polanka 2026) used as the model for the universal catering schema.
 - `wedding-planner-koncepcja.md` — validation against course requirements.
-- `wedding-planner-deployment.md` — deployment and SSO integration plan (authoritative — supersedes Supabase mentions elsewhere; see Stack pivot below).
+- `wedding-planner-deployment.md` — deployment and SSO integration plan (authoritative for hosting and environment variables).
 - `prompt-prototyp-ui.md` — original Lovable prompt used to generate the visual prototype.
 - `.claude/skills/app-reverse-engineer/` — the custom skill used to reverse-engineer the Lovable prototype into the `docs/demo-app/` spec.
 
-Note: `README.md` still references `docs/love-nest-co-lovable-app/` — that folder was renamed to `docs/demo-app/`. Trust the filesystem, not the README link paths.
+Note: specs live in `docs/demo-app/`; screenshots are under `docs/demo-app/screenshots/`.
 
-## Stack pivot — read before referencing any doc
+## Current stack — read before referencing any doc
 
-`docs/demo-app/` (especially `03-backend.md`, `04-database.md`, `05-implementation-plan.md`) was written assuming **NestJS + PostgreSQL + Supabase + JWT**. That stack was abandoned. The current target, set by `wedding-planner-deployment.md` (latest commit: "update(docs) - adapting the strategy to SSO"), is:
+`docs/demo-app/` was originally written around NestJS + Supabase auth. The current target keeps the Supabase/Postgres database, but auth is externalized to the existing SSO service:
 
 | Layer | Choice |
 |---|---|
 | Frontend | Angular 20+ standalone + signals + SCSS (unchanged) |
-| Backend | **Node.js + Express + Sequelize** (not NestJS) on Hostinger Node.js app |
-| Database | **MySQL** on Hostinger (not PostgreSQL/Supabase) |
-| Auth | **External SSO at `kubitksso.pl`** — backend never sees passwords, only verifies RS256 JWT via JWKS (cached 1h). Sibling repo `SSO/` owns auth entirely. |
-| Hosting | Hostinger Business: SPA via FTP to `wedding-planner-kubitk.pl`, backend as Node.js app on same host |
+| Backend | **Node.js + Express** on Hostinger Node.js app |
+| Database | **Supabase Postgres** for all wedding-planner domain data |
+| Auth | **External SSO at `kubitksso.pl`** — backend never sees passwords, only verifies RS256 JWT via JWKS (cached 1h). Sibling repo `SSO/` owns auth and uses MySQL internally. |
+| Hosting | Hostinger Business: SPA via FTP to `wedding-planner-kubitk.pl`, backend as Node.js app on same host, database in Supabase |
 | CI/CD | GitHub Actions (FTP-Deploy for FE, SSH for BE) |
 
-**Implication for the docs:** UI/data-model/feature scope in `docs/demo-app/` is still authoritative. Anything about NestJS modules, Supabase RLS, PostgreSQL triggers, or `pnpm` workspaces is **stale** — translate to Express controllers + Sequelize models + MySQL + plain npm. If the data model relies on Postgres-only features (RLS, triggers, enum types, `gen_random_uuid()`), reimplement that logic in Sequelize hooks / app-layer guards / lookup tables when porting.
+**Implication for the docs:** UI/data-model/feature scope in `docs/demo-app/` is authoritative. Anything about NestJS modules or local password auth is stale — translate to Express routes/services plus JWKS-verified SSO identity. PostgreSQL DDL, triggers, and Supabase migrations are valid for the wedding-planner database. RLS remains useful as a defense-in-depth option, but the backend currently uses a service-role Supabase client and enforces authorization in Express routes/services.
 
 ## Sources of truth (priority order, when conflicts arise)
 
@@ -42,10 +42,10 @@ Note: `README.md` still references `docs/love-nest-co-lovable-app/` — that fol
 ## Project-specific conventions
 
 - **Polski UI is not optional.** Labels, statuses, mock data, dates (`DD.MM.YYYY`), currency (`32 000 zł` with space as thousands separator) must be Polish from the first commit. Easier to write in Polish than to migrate enums later.
-- **Visual tokens (locked):** bottle green accent `~#3F5C3A`, cream background `~#FAF7EE`, serif headings (Cormorant/Playfair), sans body (Inter/DM Sans), `rounded-2xl`, subtle shadows. Put into `apps/frontend/src/styles/_tokens.scss` and never hardcode.
+- **Visual tokens (locked):** bottle green accent `~#3F5C3A`, cream background `~#FAF7EE`, serif headings (Cormorant/Playfair), sans body (Inter/DM Sans), `rounded-2xl`, subtle shadows. Put into `wedding-planner/frontend/src/styles/_tokens.scss` and never hardcode.
 - **One wedding, two accounts, symmetric CRUD.** Wedding is a first-class entity with two members via `wedding_members`. Both partners have identical permissions *except* hard-delete of the wedding itself, which is gated by `weddings.created_by_user_id` (the "founder"). Do not introduce asymmetric permissions for anything else.
 - **Catering configurator is universal.** Couples enter their own venue's offer (CRUD) — no global marketplace. The PDF in `docs/menu/` is the *modeling reference*, not a hardcoded fixture. Schema must accept any package-based catering offer.
-- **Auto-task timeline.** Tasks tagged `auto` are generated backward from `weddings.wedding_date` using `task_templates`. The original Postgres-trigger approach (`tg_weddings_shift_auto_tasks`) is no longer available on MySQL — reimplement as a Sequelize hook on `weddings.update` (or an explicit `POST /tasks/regenerate-auto` endpoint called from the date-change confirm dialog). Never touch completed tasks or manually-created tasks during regeneration; the operation must be idempotent.
+- **Auto-task timeline.** Tasks tagged `auto` are generated backward from `weddings.wedding_date` using `task_templates`. Keep the Postgres trigger/function approach from `04-database.md` / Supabase migrations: date changes shift only unfinished auto tasks. Never touch completed tasks or manually-created tasks during regeneration; the operation must be idempotent.
 - **Drag-and-drop needs a keyboard fallback.** Seating page uses `@angular/cdk/drag-drop`; an accessible alternative is a hard requirement, not a polish item.
 - **Each milestone ships an end-to-end vertical slice.** M3 means "user sees the added guest in the UI", not "POST returns 201". Don't merge backend-only or frontend-only milestone completions.
 
@@ -62,12 +62,12 @@ From `05-implementation-plan.md` § Resolved decisions — already settled, don'
 
 ## Working in this repo right now
 
-Until the M0 scaffold lands, expected work is **documentation editing** and **planning**. There is no build, no test, no lint. Don't run install/build commands speculatively — they will fail.
+The current scaffold lives under `wedding-planner/`. Backend commands run in `wedding-planner/backend`; frontend commands run in `wedding-planner/frontend`.
 
 When asked to start implementation:
-1. Begin with M0 from `docs/demo-app/05-implementation-plan.md` — but adapt to the SSO/Express/MySQL stack (no NestJS, no Supabase migrations, no pnpm workspaces unless you're keeping pnpm only for the monorepo layout).
-2. Before scaffolding, confirm with the user whether the monorepo structure (`apps/frontend`, `apps/backend`, `packages/shared-types`) still applies, since the deployment doc treats them as two independent Hostinger deploys.
-3. The data model in `04-database.md` (23 tables including the catering subsystem) is the contract — port it to MySQL/Sequelize faithfully; any name/type adjustments must round-trip back into that doc.
+1. Continue from `docs/demo-app/05-implementation-plan.md`, adapted to the existing folders: `wedding-planner/frontend` and `wedding-planner/backend`.
+2. Backend implementation uses Express routes/services, Supabase JS service-role client, and JWKS auth middleware. Do not add Sequelize/MySQL to wedding-planner; MySQL belongs to SSO only.
+3. The data model in `04-database.md` (23 tables including the catering subsystem) is the contract. Schema changes must round-trip into the Supabase migration and that doc.
 
 ## Parent repo context
 

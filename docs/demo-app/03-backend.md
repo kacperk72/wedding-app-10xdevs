@@ -1,26 +1,29 @@
 # Backend — Wedding Planner
 
-> **TL;DR**: Oryginał to **statyczny prototyp Lovable** — backendu nie ma, jedyny request poza zasobami statycznymi to `POST /~api/analytics` (telemetria Lovable). Cała specyfikacja API w tym pliku jest **inferowana** z UI: encji, ich pól, akcji widocznych w interfejsie, agregatów na dashboardzie. Rekomendacja stosu: **NestJS + PostgreSQL (Supabase) + JWT**.
+> **TL;DR**: Oryginał to **statyczny prototyp Lovable** — backendu nie ma, jedyny request poza zasobami statycznymi to `POST /~api/analytics` (telemetria Lovable). Cała specyfikacja API w tym pliku jest **inferowana** z UI. Aktualny stos implementacji: **Express + Supabase Postgres + zewnętrzne SSO przez JWKS**. SSO obsługuje hasła i sesję; wedding-planner trzyma tylko dane domenowe.
 
 ## Detected style
 
 - **API style**: brak (do zaprojektowania); rekomendowany **REST** w stylu zasobowym, prefix `/api`.
 - **Base URL**: `/api` (rekomendowane), z weselem jako encją kontekstową w wielu ścieżkach: `/api/weddings/<id>/<resource>`.
-- **Auth**: brak w prototypie; **JWT z refresh tokenem** (zgodnie z `CLAUDE.md`).
+- **Auth**: brak w prototypie; w aplikacji produkcyjnej **zewnętrzne SSO** (`kubitksso.pl`) wydaje JWT RS256, a backend wedding-plannera tylko weryfikuje Bearer token przez JWKS.
 - **Versioning**: nie potrzebny w MVP (single client, single backend); ewentualnie `/api/v1/` od początku.
 - **Multitenancy**: model "jedno wesele dwa konta" — każdy użytkownik ma 0 lub 1 wesela, wesele ma 1-2 partnerów. Każdy zasób (gość, kontrahent, …) jest "własnością" wesela; backend musi to konsekwentnie egzekwować.
 
 ## Recommended stack for rebuild
 
-- **Framework**: **NestJS** — projekt nietrywialny, ~9 zasobów, walidacja, RLS-style guardy. Express jest zbyt cienki przy tej skali.
-- **Język**: TypeScript strict.
-- **Walidacja**: `class-validator` + `class-transformer`, globalny `ValidationPipe({ whitelist: true, transform: true })`.
-- **DB driver**: Supabase JS client (jeśli idziemy w Supabase) **lub** TypeORM/Prisma na własnym Postgres. Supabase upraszcza auth + RLS, ale narzuca strukturę.
-- **Auth**: JWT (`@nestjs/jwt`), `Passport.JwtStrategy`, custom `WeddingMemberGuard` weryfikujący przynależność do wesela z parametru ścieżki.
+- **Framework**: **Express** (obecny backend w `wedding-planner/backend`).
+- **Język**: JavaScript CommonJS na start; ewentualna migracja do TypeScript później, gdy API się ustabilizuje.
+- **Walidacja**: lekkie helpery/DTO per route na start; przy rozroście można dodać `zod`.
+- **DB driver**: `@supabase/supabase-js` z service-role key po stronie backendu. Klucz nigdy nie trafia do frontendu.
+- **Auth**: middleware JWKS (`middleware/jwks-auth.js`) weryfikuje token SSO. Backend mapuje payload SSO do lokalnego `users.sso_user_id`.
+- **Autoryzacja danych**: Express sprawdza członkostwo w `wedding_members`; Supabase RLS może być dodane jako defense-in-depth.
 
 ## Authentication
 
-### Register
+Wedding-planner **nie ma własnego register/login/refresh/logout**. Te endpointy należą do SSO. Sekcja niżej opisuje kontrakt logiczny, ale implementacyjnie frontend loguje użytkownika w SSO, a do wedding-plannera wysyła `Authorization: Bearer <accessToken>`.
+
+### Register (SSO)
 
 `POST /api/auth/register`
 
@@ -499,20 +502,19 @@ Bazowy URL: `/api/weddings/:weddingId/meal-options`
 
 | Method | Path                          | Opis                                              |
 | ------ | ----------------------------- | ------------------------------------------------- |
-| POST   | `/api/auth/change-password`   | `{ currentPassword, newPassword }`                |
-| POST   | `/api/auth/logout-all`        | Unieważnia wszystkie refresh tokeny usera         |
+| POST   | SSO `/api/auth/change-password` | Zmiana hasła należy do SSO, nie do wedding-plannera |
+| POST   | SSO `/api/auth/logout-all`      | Unieważnia sesje/tokeny w SSO                     |
 | GET    | `/api/weddings/:id/export`    | Pełny dump JSON wesela (gości, kontrahentów, umów, płatności, budżetu, wydatków, zadań, stołów, konfliktów, spotkań, meal_options). Bez `password_hash` i `partner_invitations.token`. |
-| DELETE | `/api/weddings/:id`           | Hard-delete całego wesela. **Tylko dla `created_by_user_id`** (RLS). Cascade usuwa wszystkie dziecięce zasoby. |
+| DELETE | `/api/weddings/:id`           | Hard-delete całego wesela. **Tylko dla `created_by_user_id`**. Cascade usuwa wszystkie dziecięce zasoby. |
 
 ## Errors
 
-Standard NestJS shape:
+Standard Express JSON shape:
 
 ```json
 {
-  "statusCode": 400,
-  "message": "Validation failed",
-  "errors": [{ "field": "email", "message": "must be a valid email" }]
+  "error": "Validation failed",
+  "details": ["email must be valid"]
 }
 ```
 
@@ -520,10 +522,10 @@ Statusy używane: `400` walidacja, `401` brak/zły token, `403` próba dostępu 
 
 ## Rate limiting / security headers
 
-- **Auth endpointy** (`/auth/login`, `/auth/register`, `/auth/refresh`): rate limit 5/min/IP.
-- Pozostałe endpointy: 100/min/user.
+- **SSO auth endpointy** (`/auth/login`, `/auth/register`, `/auth/refresh`) limituje aplikacja SSO.
+- Endpointy wedding-plannera: 100/min/user/IP.
 - Helmet + CORS allowlist (frontend origin).
-- HSTS, CSP nagłówki — domyślne shadowy NestJS + Helmet.
+- HSTS, CSP nagłówki — Helmet + konfiguracja reverse proxy/Hostingera.
 
 ## Real-time / async
 
