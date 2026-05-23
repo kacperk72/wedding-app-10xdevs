@@ -7,6 +7,8 @@ require("dotenv").config();
 const corsOptions = require("./config/cors");
 const errorHandler = require("./middleware/error-handler");
 const healthRouter = require("./routes/health");
+const meRouter = require("./routes/me");
+const weddingsRouter = require("./routes/weddings");
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -22,6 +24,8 @@ if (process.env.NODE_ENV !== "test") app.use(morgan("combined"));
 app.use(express.json({ limit: "1mb" }));
 
 app.use("/api/health", healthRouter);
+app.use("/api/me", meRouter);
+app.use("/api/weddings", weddingsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found" });
@@ -29,10 +33,12 @@ app.use((_req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(
-    `Wedding-planner backend listening on port ${PORT} (${process.env.NODE_ENV || "development"})`,
-  );
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(
+      `Wedding-planner backend listening on port ${PORT} (${process.env.NODE_ENV || "development"})`,
+    );
+  });
+}
 
 module.exports = app;

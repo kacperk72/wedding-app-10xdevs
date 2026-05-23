@@ -10,9 +10,9 @@ if (!url || !serviceRoleKey) {
   );
 }
 
-// Service-role client: bypasses RLS. Authorization happens upstream
-// in middleware/jwks-auth.js (SSO JWT verification). Never expose this
-// client or its key to the frontend.
+// Service-role client: bypasses Supabase RLS. Authorization happens upstream
+// in middleware/jwks-auth.js (SSO JWT verification). Never expose this key
+// to the Angular bundle.
 const supabase = createClient(url, serviceRoleKey, {
   auth: {
     persistSession: false,
@@ -24,10 +24,10 @@ const supabase = createClient(url, serviceRoleKey, {
 async function isReachable() {
   try {
     const { error } = await supabase
-      .from("_supabase_health_probe")
+      .from("_wedding_planner_health_probe")
       .select("*", { count: "exact", head: true });
-    // PGRST205 = table not found; the round-trip itself proved
-    // the connection works. Anything else (network, auth, 5xx) is real.
+    // PGRST205 = table not found; the round-trip itself proved connection,
+    // credentials and PostgREST are working.
     if (error && error.code !== "PGRST205") return false;
     return true;
   } catch {

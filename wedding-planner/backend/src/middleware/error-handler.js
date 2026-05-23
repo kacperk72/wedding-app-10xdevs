@@ -2,35 +2,15 @@
 function errorHandler(err, req, res, _next) {
   console.error("Error:", err);
 
-  if (err.name === "SequelizeValidationError") {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: err.errors.map((e) => e.message),
-    });
-  }
-
-  if (err.name === "SequelizeUniqueConstraintError") {
-    const field = err.errors[0]?.path || "field";
-    return res.status(400).json({
-      error: `${field} already exists`,
-      details: err.errors.map((e) => e.message),
-    });
-  }
-
-  if (err.name === "SequelizeForeignKeyConstraintError") {
-    return res.status(400).json({
-      error: "Referenced resource not found",
-      details: ["A related record does not exist"],
-    });
-  }
-
-  if (err.name === "SequelizeDatabaseError") {
-    return res.status(400).json({
-      error: "Database error",
-      details:
-        process.env.NODE_ENV === "development"
-          ? [err.message]
-          : ["Invalid request"],
+  if (err.code && (err.details || err.hint || err.message)) {
+    const statusByCode = {
+      "23503": 400,
+      "23505": 409,
+      PGRST116: 404,
+    };
+    return res.status(err.status || statusByCode[err.code] || 400).json({
+      error: err.message || "Database error",
+      details: [err.details, err.hint].filter(Boolean),
     });
   }
 
