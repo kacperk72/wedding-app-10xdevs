@@ -1,32 +1,38 @@
-const { Sequelize } = require("sequelize");
+const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
-const useSsl = process.env.DB_SSL === "true";
+const url = process.env.SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || "wedding_planner",
-  process.env.DB_USER || "root",
-  process.env.DB_PASSWORD || "",
-  {
-    host: process.env.DB_HOST || "localhost",
-    port: parseInt(process.env.DB_PORT, 10) || 3306,
-    dialect: "mysql",
-    logging: process.env.NODE_ENV === "development" ? console.log : false,
-    define: { timestamps: true, underscored: false },
-    pool: { max: 5, min: 0, acquire: 30000, idle: 10000 },
-    dialectOptions: useSsl
-      ? { ssl: { require: true, rejectUnauthorized: false } }
-      : {},
+if (!url || !serviceRoleKey) {
+  throw new Error(
+    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Copy .env.example to .env and fill them in.",
+  );
+}
+
+// Service-role client: bypasses RLS. Authorization happens upstream
+// in middleware/jwks-auth.js (SSO JWT verification). Never expose this
+// client or its key to the frontend.
+const supabase = createClient(url, serviceRoleKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
   },
-);
+});
 
 async function isReachable() {
   try {
-    await sequelize.authenticate();
+    const { error } = await supabase
+      .from("_supabase_health_probe")
+      .select("*", { count: "exact", head: true });
+    // PGRST205 = table not found; the round-trip itself proved
+    // the connection works. Anything else (network, auth, 5xx) is real.
+    if (error && error.code !== "PGRST205") return false;
     return true;
   } catch {
     return false;
   }
 }
 
-module.exports = { sequelize, isReachable };
+module.exports = { supabase, isReachable };

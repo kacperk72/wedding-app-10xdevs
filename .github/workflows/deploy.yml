@@ -1,9 +1,14 @@
-name: Build, test and deploy
+name: Build, test and deploy frontend
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+# Backend NIE jest deployowany z tego workflowa — Hostinger sam ciągnie repo
+# z main przy każdym pushu (Application root: wedding-planner/backend),
+# robi npm install i restartuje Node.js app. Workflow trzyma tylko frontend
+# (statyczne pliki, Hostinger ich nie buduje).
 
 jobs:
   frontend:
@@ -44,20 +49,3 @@ jobs:
           local-dir:  ./wedding-planner/frontend/dist/wedding-planner/browser/
           server-dir: /public_html/
           dangerous-clean-slate: false
-
-  backend:
-    name: Deploy backend via SSH
-    runs-on: ubuntu-latest
-    steps:
-      - name: SSH deploy (git pull + restart)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:     ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key:      ${{ secrets.HOSTINGER_SSH_KEY }}
-          script: |
-            cd ~/wedding-planner-backend
-            git pull
-            npm ci --omit=dev
-            mkdir -p tmp
-            touch tmp/restart.txt

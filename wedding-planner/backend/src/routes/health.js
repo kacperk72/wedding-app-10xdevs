@@ -7,7 +7,7 @@ router.get("/", async (_req, res) => {
   const dbOk = await isReachable();
   res.status(dbOk ? 200 : 503).json({
     status: dbOk ? "ok" : "degraded",
-    db: dbOk ? "reachable" : "unreachable",
+    supabase: dbOk ? "reachable" : "unreachable",
     uptime: process.uptime(),
     time: new Date().toISOString(),
   });
