@@ -50,17 +50,17 @@ Cel: schema zaaplikowana do Supabase, seed globalny i atomiczny bootstrap nowego
 
 Cel: zalogować się przez SSO, zmapować użytkownika SSO do lokalnego `users`, utworzyć wesele i zaprosić partnera.
 
-### Backend
+### Backend (zamknięte)
 
 - [x] `jwks-auth.js`: weryfikuje `Authorization: Bearer <token>` przez `JWKS_URL`; backend nie zna haseł.
 - [x] `ensureUserFromSsoPayload()`: upsert do `users` po `sso_user_id`; lokalne `users.id` jest FK dla `wedding_members`.
-- [x] `GET /api/me`: bieżący user, `weddingId`, partner.
-- [x] `POST /api/weddings`: wywołuje PG RPC `create_wedding_with_bootstrap`.
-- [x] `GET /api/weddings/:id`: sprawdza członkostwo i zwraca wesele + members.
-- [ ] `PATCH /api/weddings/:id`: aktualizacja profilu pary, z autoryzacją po `wedding_members`.
-- [ ] Guard/helper członkostwa dla wszystkich tras `weddings/:weddingId/*`.
-- [ ] `POST /api/weddings/:id/invite-partner` — generuje token, zapisuje `partner_invitations`, wysyła e-mail (na MVP: log do konsoli; produkcja: Resend/Postmark)
-- [ ] `POST /api/weddings/accept-invite` — endpoint publiczny albo SSO-assisted flow: po akceptacji mapuje użytkownika SSO i wstawia jako `partner_b`.
+- [x] `GET /api/me`: bieżący user, `weddingId`, `weddingMembership` (rola + linkedAt), partner z `linkStatus`.
+- [x] `POST /api/weddings`: wywołuje PG RPC `create_wedding_with_bootstrap`; zwraca status/error jako jsonb (migracja `20260524123000`), Express mapuje `data.error` na `ConflictError`/`BadRequestError`.
+- [x] `GET /api/weddings/:id`: chroniony przez `requireWeddingMember({paramName:'id'})`, zwraca wesele + members.
+- [x] `PATCH /api/weddings/:id`: pod tym samym guardem, partial update przez `buildWeddingPatch`.
+- [x] **Membership guard** `middleware/wedding-member.js` — factory `requireWeddingMember({paramName})`, lazy `getCurrentUser`, ustawia `req.currentUser` i `req.weddingMembership`. Stosowany przez `router.use(...)` na poziomie nested router (`guests`, `meal-options`, `tables`).
+- [x] `POST /api/weddings/:id/invite-partner` — generuje 32-byte hex token, TTL 7 dni (stała `INVITE_TTL_MS`), upsert na `(wedding_id, email)` jeśli poprzednia invite jest `pending`/`expired` (`accepted`/`declined` → 409). Rate limit 5/min. MVP: link logowany do konsoli.
+- [x] `POST /api/weddings/accept-invite` — wywołuje atomową PG RPC `accept_partner_invite(p_token, p_user_id)` (migracja `20260524120000`), `SELECT FOR UPDATE` na invitation + `unique_violation` handler na `wedding_members.user_id`. Rate limit 10/min.
 
 ### Frontend
 
@@ -86,13 +86,16 @@ Cel: zalogować się przez SSO, zmapować użytkownika SSO do lokalnego `users`,
 
 Cel: pełny CRUD na gościach + agregaty + filtry.
 
-### Backend
-- [ ] `GuestsModule` z controllerem pod `weddings/:weddingId/guests`
-- [ ] DTO: `CreateGuestDto` (4 pola: firstName/lastName/relation/diet), `UpdateGuestDto` (wszystkie pola opcjonalne, w tym `mealOptionId`, `tableId`, `isChild`, `hasPlusOne`)
-- [ ] Service: list (z filterami i `search`), get one, create (defaults: `rsvpStatus='pending'`, `diet='pending'` jeśli nie podane, `isChild=false`, `hasPlusOne=false`), update, delete
-- [ ] `GET /aggregates` — pojedynczy SQL z `COUNT(*) FILTER (WHERE …)`; mapowanie pól patrz `03-backend.md` § Guests
-- [ ] `MealOptionsModule` (paralelnie): CRUD pod `weddings/:weddingId/meal-options`
-- [ ] Test: happy path tworzenia gościa + pobrania agregatu + walidacja `meal_option_id` należy do tego samego wesela
+### Backend (zamknięte poza `/aggregates`)
+- [x] `routes/guests.js` jako nested router pod `/api/weddings/:weddingId/guests` (mergeParams + `router.use(requireWeddingMember())`).
+- [x] Walidacja przez helpery z `utils/request-validation.js` zamiast DTO klas: `requireString`/`optionalEnum`/`optionalBoolean`/`optionalDateString` + `enumValue` na `relation`.
+- [x] Endpointy: list z filtrami (`rsvp`/`diet`/`relation`/`search`) i sortowaniem (`sort=firstName|lastName`, `direction=asc|desc`), POST/PATCH/DELETE. Defaults: `rsvpStatus='pending'`, `diet='pending'`, `isChild=false`, `hasPlusOne=false`.
+- [ ] `GET /aggregates` — pojedynczy SQL z `COUNT(*) FILTER (WHERE …)`; mapowanie pól patrz `03-backend.md` § Guests. **Nie wystawione** — FE musi póki co liczyć lokalnie z `GET /guests`.
+- [x] `routes/meal-options.js` jako nested router pod `/api/weddings/:weddingId/meal-options` — CRUD.
+- [x] **Bonus z M8 wcześniej**: `routes/tables.js` pod `/api/weddings/:weddingId/tables` — CRUD z walidacją `seatsCount 1..24`. Potrzebne do edytora gościa (dropdown `tableId`).
+- [x] Cross-wedding FK guard: helper `assertWeddingRecordExists(table, id, weddingId, label)` — gwarantuje, że `mealOptionId`/`tableId` należą do tego samego wesela.
+- [x] Test infrastructure: `test/helpers/mock-supabase.js` (in-memory QueryBuilder + mock RPC `accept_partner_invite`) + `test/helpers/http-app.js` (`createTestServer({seed})` + `request()`). Reuse'owalne dla M4+.
+- [x] Pokrycie testowe: `test/resource-crud.test.js` (guest CRUD + cross-wedding FK rejection, meal-options CRUD, tables CRUD + seatsCount 1-24 walidacja), `test/invite-flow.test.js` (4 testy), `test/weddings-me.test.js` (POST /weddings + 3 case'y GET /me), `test/request-validation.test.js`, `test/error-handler.test.js`, `test/mappers.test.js`, `test/bootstrap-wedding.test.js`. **30 testów / 10 suites, all green.**
 
 ### Frontend
 - [ ] `GuestsService`: signal `guests`, computed `aggregates`, `filteredGuests` (wg search/filters)

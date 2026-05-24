@@ -102,6 +102,22 @@ Response (200):
 
 Każde poniżej (poza `/auth/*` i `/me`) wymaga aktywnego JWT i przynależności użytkownika do wesela `:weddingId`.
 
+### Implementation status (snapshot przy `46ec7fd`)
+
+| Sekcja | Status | Komentarz |
+|---|---|---|
+| `/api/me` | ✅ | Z `weddingMembership` (role + linkedAt). 3 testy: bez membership / partner_a sam / oboje |
+| `Wedding` (POST/GET/PATCH/invite/accept) | ✅ | Wszystkie 5 endpointów. POST i accept-invite robione przez PG RPCs zwracające jsonb `{status, error}` lub success payload. Rate limity: `invite-partner` 5/min, `accept-invite` 10/min |
+| `Guests` (POST/GET/PATCH/DELETE) | ✅ | Filtry `rsvp`/`diet`/`relation`/`search`, sortowanie. Cross-wedding FK guard na `mealOptionId`/`tableId` |
+| `Guests` `/aggregates` | ❌ | **Niezaimplementowane.** FE musi liczyć z `GET /guests`. Do zrobienia jako osobny SQL z `COUNT(*) FILTER (WHERE …)` |
+| `Meal options` (CRUD) | ✅ | Nested pod `/api/weddings/:weddingId/meal-options` |
+| `Tables` (CRUD) | ✅ | **Wyciągnięte z M8 wcześniej** (potrzebne do edytora gościa). Walidacja `seatsCount 1..24` |
+| `Vendors`, `Contracts`, `Payments`, `Budget`, `Tasks`, `Seating`, `Catering`, `Dashboard`, `Settings/Export` | ❌ | M4-M10 — niezaimplementowane |
+
+**Konwencja dla nowych zasobów:** nested router `express.Router({ mergeParams: true })` mounted pod `/api/weddings/:weddingId/<resource>`, `router.use(requireWeddingMember())` u góry, mapper w `utils/mappers.js`, `assertWeddingRecordExists()` na każdym FK przecinającym wesela.
+
+**RPC pattern dla operacji wielo-tabelowych:** zamiast 5-step Express transaction → jedna PG function `SECURITY DEFINER` zwracająca `jsonb_build_object('status', 4xx, 'error', '...')` przy biznesowych konfliktach lub success payload przy OK. Express handler keys off `data.error`. Atomowość + spójne mapowanie statusów. Przykłady: `accept_partner_invite`, `create_wedding_with_bootstrap` (migracje `20260524120000`, `20260524123000`).
+
 ### Wedding (encja kontekstowa)
 
 #### `POST /api/weddings`
@@ -152,7 +168,14 @@ Request: `{ "email": "kacper.wisniewski@mail.pl" }`
 Side effect: zapisuje pending invitation (token, TTL 7 dni) i wysyła e-mail (SMTP / Resend / Postmark — do wyboru).
 
 #### `POST /api/weddings/accept-invite`
-(Niewymaga JWT — link z e-maila.) Body: `{ "token": "...", "password": "...", "firstName": "...", "lastName": "..." }`. Tworzy nowego usera + dołącza go jako partnerB do wesela.
+
+**Wymaga JWT** (partner_b musi się zalogować przez SSO **przed** akceptacją linka — frontend `AcceptInvitePage` przekierowuje na SSO login jeśli brak sesji, potem wraca z tokenem z URL).
+
+Body: `{ "token": "<32-byte hex z URL>" }`.
+
+Side effect: wywołuje atomową PG RPC `accept_partner_invite(p_token, p_user_id)` — `SELECT ... FOR UPDATE` na invitation, walidacja statusu/expiry, insert do `wedding_members` jako `partner_b`, oznaczenie invitation jako `accepted`. Race na drugim koncie zaakceptowanym pierwszy wygrywa, drugi dostaje 409 przez `unique_violation` handler.
+
+Response (200): `{ "weddingId", "weddingMembership": { weddingId, role, linkedAt } }`. Błędy: 400 invalid/expired token, 409 user już ma wesele lub partner_b już zlinkowany, 429 rate-limit (10/min).
 
 ### Guests
 
