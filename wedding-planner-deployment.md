@@ -274,7 +274,7 @@ W Angularze potrzebujesz tylko interceptora doklejającego token i guarda chroni
 
 ## Integracja z SSO — backend (Express + JWT verification)
 
-Backend wedding-plannera nigdy nie waliduje haseł i nie loguje. Przyjmuje wyłącznie tokeny RS256 podpisane przez SSO i weryfikuje je przez JWKS pobierane raz na godzinę z `https://kubitksso.pl/.well-known/jwks.json`.
+Backend wedding-plannera nigdy nie waliduje haseł i nie loguje. Przyjmuje wyłącznie tokeny RS256 podpisane przez SSO i weryfikuje je przez JWKS pobierane raz na godzinę z `https://olive-camel-278313.hostingersite.com/.well-known/jwks.json` — **API host**, nie `kubitksso.pl` (po split deployment SSO klucze publiczne żyją obok `/api/auth/*`, nie obok login UI; ten sam URL jest w `SSO/README.md:128`).
 
 Instalacja (jednorazowo):
 
@@ -290,7 +290,7 @@ const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
 
 const client = jwksClient({
-  jwksUri: process.env.JWKS_URL || "https://kubitksso.pl/.well-known/jwks.json",
+  jwksUri: process.env.JWKS_URL || "https://olive-camel-278313.hostingersite.com/.well-known/jwks.json",
   cache: true,
   cacheMaxAge: 3600 * 1000, // 1h, zgodnie z Cache-Control z SSO
   rateLimit: true,
@@ -397,7 +397,7 @@ W `wedding-planner/frontend/index.html` (dev):
 - [ ] Node.js application uruchomiona, wskazuje na `SSO/backend/src/server.js`.
 - [ ] MySQL baza utworzona, dane w `SSO/backend/.env` na serwerze.
 - [ ] Klucze RSA wygenerowane przy pierwszym starcie (`SSO/backend/keys/jwt-private.pem` + public).
-- [ ] `https://kubitksso.pl/.well-known/jwks.json` zwraca poprawny JWKS.
+- [ ] `https://olive-camel-278313.hostingersite.com/.well-known/jwks.json` zwraca poprawny JWKS (klucze publiczne żyją na API hoście, nie pod kubitksso.pl).
 - [ ] `https://kubitksso.pl/login` otwiera ekran logowania.
 
 ### Po stronie wedding-planner
