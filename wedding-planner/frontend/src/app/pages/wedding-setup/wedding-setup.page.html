@@ -1,0 +1,53 @@
+<app-page-header title="Konfiguracja wesela" subtitle="Utworz profil pary i podstawowe dane dnia" />
+
+<div class="page-stack">
+  <section class="surface panel">
+    <form class="form-grid" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="partnerAName">Imie partnera A</label>
+        <input
+          id="partnerAName"
+          name="partnerAName"
+          required
+          [ngModel]="form().partnerAName"
+          (ngModelChange)="update({ partnerAName: $event })"
+        />
+      </div>
+      <div class="field">
+        <label for="partnerBName">Imie partnera B</label>
+        <input
+          id="partnerBName"
+          name="partnerBName"
+          required
+          [ngModel]="form().partnerBName"
+          (ngModelChange)="update({ partnerBName: $event })"
+        />
+      </div>
+      <div class="field">
+        <label for="weddingDate">Data slubu</label>
+        <input
+          id="weddingDate"
+          name="weddingDate"
+          type="date"
+          required
+          [ngModel]="form().weddingDate"
+          (ngModelChange)="update({ weddingDate: $event })"
+        />
+      </div>
+      <div class="field">
+        <label for="ceremonyLocation">Miejsce ceremonii</label>
+        <input
+          id="ceremonyLocation"
+          name="ceremonyLocation"
+          [ngModel]="form().ceremonyLocation"
+          (ngModelChange)="update({ ceremonyLocation: $event })"
+        />
+      </div>
+      <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+        <button type="submit" class="button-like" [disabled]="isSubmitting()">
+          Utworz wesele
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

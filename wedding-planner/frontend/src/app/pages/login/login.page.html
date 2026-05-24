@@ -1,25 +1,16 @@
 <section class="login-card surface panel">
   <div>
-    <p class="panel__eyebrow">Witaj z powrotem</p>
-    <h1>Logowanie</h1>
-    <p class="muted">Zaloguj się, żeby przejść do wspólnego planu wesela.</p>
+    <p class="panel__eyebrow">Wedding Planner</p>
+    <h1>Logowanie SSO</h1>
+    <p class="muted">Zaloguj sie przez wspolne konto KubitK SSO.</p>
   </div>
 
-  <form class="login-form">
-    <div class="field">
-      <label for="email">E-mail</label>
-      <input id="email" type="email" value="anna@wesele.pl" autocomplete="email" />
-    </div>
-
-    <div class="field">
-      <label for="password">Hasło</label>
-      <input id="password" type="password" value="password123" autocomplete="current-password" />
-    </div>
-
-    <a class="button-like" routerLink="/app">Zaloguj</a>
-  </form>
+  <button type="button" class="button-like" (click)="login()">
+    <app-icon name="badge-check" [size]="16" />
+    Zaloguj przez SSO
+  </button>
 
   <p class="login-card__hint">
-    Demo korzysta jeszcze z mocków frontendu. Integracja z `POST /api/auth/login` jest opisana w M2.
+    Po zalogowaniu SSO przekieruje Cie z powrotem do planera wesela.
   </p>
 </section>

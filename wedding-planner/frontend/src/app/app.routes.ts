@@ -12,6 +12,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/login/login.page').then((m) => m.LoginPage),
         pathMatch: 'full',
       },
+      {
+        path: 'accept-invite',
+        loadComponent: () =>
+          import('./pages/accept-invite/accept-invite.page').then((m) => m.AcceptInvitePage),
+      },
     ],
   },
   {
@@ -25,6 +30,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPage),
         pathMatch: 'full',
+      },
+      {
+        path: 'setup',
+        loadComponent: () =>
+          import('./pages/wedding-setup/wedding-setup.page').then((m) => m.WeddingSetupPage),
       },
       {
         path: 'goscie',

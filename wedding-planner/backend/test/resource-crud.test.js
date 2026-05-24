@@ -84,6 +84,12 @@ describe("scoped wedding resource CRUD", () => {
     assert.equal(list.status, 200);
     assert.equal(list.body.length, 2);
 
+    const aggregates = await request(server, "GET", "/api/weddings/wedding-1/guests/aggregates");
+    assert.equal(aggregates.status, 200);
+    assert.equal(aggregates.body.invited, 2);
+    assert.equal(aggregates.body.confirmed, 0);
+    assert.equal(aggregates.body.declined, 1);
+
     const removed = await request(
       server,
       "DELETE",

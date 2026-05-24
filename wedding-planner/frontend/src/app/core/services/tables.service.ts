@@ -1,0 +1,51 @@
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
+import { CreateTableDto, UpdateTableDto, WeddingTable } from '../models/table.model';
+import { apiUrl } from '../http/api-url';
+
+@Injectable({ providedIn: 'root' })
+export class TablesService {
+  private readonly http = inject(HttpClient);
+
+  private readonly _tables = signal<WeddingTable[]>([]);
+  readonly tables = this._tables.asReadonly();
+
+  list(weddingId: string): Observable<WeddingTable[]> {
+    return this.http
+      .get<WeddingTable[]>(apiUrl(`/weddings/${weddingId}/tables`))
+      .pipe(tap((tables) => this._tables.set(tables)));
+  }
+
+  create(weddingId: string, dto: CreateTableDto): Observable<WeddingTable> {
+    this.assertSeatsCount(dto.seatsCount);
+    return this.http
+      .post<WeddingTable>(apiUrl(`/weddings/${weddingId}/tables`), dto)
+      .pipe(tap((created) => this._tables.update((list) => [...list, created])));
+  }
+
+  update(weddingId: string, id: string, patch: UpdateTableDto): Observable<WeddingTable> {
+    if (patch.seatsCount !== undefined) this.assertSeatsCount(patch.seatsCount);
+    return this.http
+      .patch<WeddingTable>(apiUrl(`/weddings/${weddingId}/tables/${id}`), patch)
+      .pipe(
+        tap((updated) =>
+          this._tables.update((list) =>
+            list.map((table) => (table.id === id ? updated : table)),
+          ),
+        ),
+      );
+  }
+
+  remove(weddingId: string, id: string): Observable<void> {
+    return this.http
+      .delete<void>(apiUrl(`/weddings/${weddingId}/tables/${id}`))
+      .pipe(tap(() => this._tables.update((list) => list.filter((table) => table.id !== id))));
+  }
+
+  private assertSeatsCount(value: number): void {
+    if (!Number.isInteger(value) || value < 1 || value > 24) {
+      throw new Error('Liczba miejsc musi byc w zakresie 1-24.');
+    }
+  }
+}

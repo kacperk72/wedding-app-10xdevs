@@ -114,6 +114,28 @@ async function loadGuestForWedding(guestId, weddingId) {
 
 router.use(requireWeddingMember());
 
+router.get("/aggregates", async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from("guests")
+      .select("rsvp_status, diet, is_child, meal_option_id")
+      .eq("wedding_id", req.params.weddingId);
+
+    if (error) throw error;
+    res.json({
+      invited: data.length,
+      confirmed: data.filter((guest) => guest.rsvp_status === "confirmed").length,
+      pending: data.filter((guest) => guest.rsvp_status === "pending").length,
+      declined: data.filter((guest) => guest.rsvp_status === "declined").length,
+      vegeOrVegan: data.filter((guest) => guest.diet === "vege" || guest.diet === "vegan").length,
+      children: data.filter((guest) => guest.is_child).length,
+      noMealPick: data.filter((guest) => guest.meal_option_id === null).length,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/", async (req, res, next) => {
   try {
     const search = req.query.search ? String(req.query.search).trim().toLowerCase() : "";

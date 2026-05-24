@@ -16,6 +16,7 @@ const DEFAULT_FILTERS: GuestFilters = {
   rsvp: 'all',
   diet: 'all',
   relation: 'all',
+  sort: 'lastName',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -48,13 +49,19 @@ export class GuestsService {
   readonly filteredGuests = computed<Guest[]>(() => {
     const f = this._filters();
     const q = f.search.trim().toLowerCase();
-    return this._guests().filter(
-      (g) =>
+    return this._guests()
+      .filter(
+        (g) =>
         (f.rsvp === 'all' || g.rsvpStatus === f.rsvp) &&
         (f.diet === 'all' || g.diet === f.diet) &&
         (f.relation === 'all' || g.relation === f.relation) &&
         (q === '' || `${g.firstName} ${g.lastName}`.toLowerCase().includes(q)),
-    );
+      )
+      .sort((a, b) => {
+        const first = f.sort === 'firstName' ? a.firstName : a.lastName;
+        const second = f.sort === 'firstName' ? b.firstName : b.lastName;
+        return first.localeCompare(second, 'pl');
+      });
   });
 
   readonly groupedByRelation = computed<Array<[Relation, Guest[]]>>(() => {

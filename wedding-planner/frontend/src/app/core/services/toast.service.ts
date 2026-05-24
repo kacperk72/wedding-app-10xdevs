@@ -25,6 +25,14 @@ export class ToastService {
     setTimeout(() => this.dismiss(id), durationMs ?? 4000);
   }
 
+  success(message: string): void {
+    this.show({ kind: 'success', message });
+  }
+
+  error(message: string): void {
+    this.show({ kind: 'error', message });
+  }
+
   dismiss(id: string): void {
     this._toasts.update((list) => list.filter((t) => t.id !== id));
   }

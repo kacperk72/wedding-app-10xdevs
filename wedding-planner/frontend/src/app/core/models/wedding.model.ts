@@ -8,3 +8,10 @@ export interface Wedding {
   ceremonyLocation: string | null;
   createdByUserId: string;
 }
+
+export interface CreateWeddingDto {
+  partnerAName: string;
+  partnerBName: string;
+  weddingDate: string;
+  ceremonyLocation: string | null;
+}

@@ -1,24 +1,18 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
-import { Wedding } from '../models/wedding.model';
+import { Observable, map, of, switchMap, tap } from 'rxjs';
+import { AuthService } from './auth.service';
+import { CreateWeddingDto, Wedding } from '../models/wedding.model';
 import { apiUrl } from '../http/api-url';
 
 const MS_PER_DAY = 86_400_000;
-const DEMO_WEDDING: Wedding = {
-  id: 'demo-wedding',
-  partnerAName: 'Weronika',
-  partnerBName: 'Kacper',
-  weddingDate: '2026-07-25',
-  ceremonyLocation: 'Pałac Polanka',
-  createdByUserId: 'demo-user',
-};
 
 @Injectable({ providedIn: 'root' })
 export class WeddingService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
-  private readonly _wedding = signal<Wedding | null>(DEMO_WEDDING);
+  private readonly _wedding = signal<Wedding | null>(null);
   readonly wedding = this._wedding.asReadonly();
 
   readonly daysUntilWedding = computed<number | null>(() => {
@@ -45,9 +39,24 @@ export class WeddingService {
     };
   });
 
-  loadCurrent(): Observable<Wedding> {
-    return this.http
-      .get<Wedding>(apiUrl('/me/wedding'))
-      .pipe(tap((w) => this._wedding.set(w)));
+  loadCurrent(): Observable<Wedding | null> {
+    return this.auth.me().pipe(
+      switchMap((user) => {
+        if (!user.weddingId) {
+          this._wedding.set(null);
+          return of(null);
+        }
+        return this.http
+          .get<Wedding>(apiUrl(`/weddings/${user.weddingId}`))
+          .pipe(tap((w) => this._wedding.set(w)));
+      }),
+    );
+  }
+
+  create(dto: CreateWeddingDto): Observable<Wedding> {
+    return this.http.post<Wedding>(apiUrl('/weddings'), dto).pipe(
+      tap((w) => this._wedding.set(w)),
+      switchMap((w) => this.auth.me().pipe(map(() => w))),
+    );
   }
 }

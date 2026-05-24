@@ -1,11 +1,18 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Icon } from '../../shared/ui/icon/icon';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-login-page',
-  imports: [RouterLink],
+  imports: [Icon],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginPage {}
+export class LoginPage {
+  private readonly auth = inject(AuthService);
+
+  protected login(): void {
+    this.auth.loginWithSso('/app');
+  }
+}

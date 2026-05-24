@@ -1,31 +1,26 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
+import {
+  CreateGuestDto,
+  DIET_LABELS,
+  Diet,
+  Guest,
+  RELATION_LABELS,
+  RSVP_LABELS,
+  Relation,
+  RsvpStatus,
+} from '../../core/models/guest.model';
+import { GuestsService } from '../../core/services/guests.service';
+import { TablesService } from '../../core/services/tables.service';
+import { ToastService } from '../../core/services/toast.service';
+import { WeddingService } from '../../core/services/wedding.service';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 import { Icon } from '../../shared/ui/icon/icon';
 
-type RsvpStatus = 'confirmed' | 'pending' | 'declined';
-type Diet = 'pending' | 'standard' | 'vege' | 'vegan' | 'gluten_free';
-
-interface Guest {
-  id: number;
-  name: string;
-  relation: string;
-  rsvp: RsvpStatus;
-  diet: Diet;
-  table: string;
-}
-
-interface GroupedGuests {
-  relation: string;
-  guests: Guest[];
-}
-
-interface NewGuestForm {
-  firstName: string;
-  lastName: string;
-  relation: string;
-  diet: Diet;
-}
+const RELATIONS = Object.keys(RELATION_LABELS) as Relation[];
+const DIETS = Object.keys(DIET_LABELS) as Diet[];
+const RSVP_STATUSES = Object.keys(RSVP_LABELS) as RsvpStatus[];
 
 @Component({
   selector: 'app-guests-page',
@@ -34,159 +29,91 @@ interface NewGuestForm {
   styleUrl: './guests.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GuestsPage {
-  protected readonly relations = [
-    'Rodzina Panny Młodej',
-    'Rodzina Pana Młodego',
-    'Znajomi',
-    'Praca',
-  ];
+export class GuestsPage implements OnInit {
+  protected readonly guestsService = inject(GuestsService);
+  protected readonly tablesService = inject(TablesService);
+  private readonly weddingService = inject(WeddingService);
+  private readonly toast = inject(ToastService);
 
-  protected readonly dietOptions: { value: Diet; label: string }[] = [
-    { value: 'pending', label: 'nie wybrano' },
-    { value: 'standard', label: 'standard' },
-    { value: 'vege', label: 'wege' },
-    { value: 'vegan', label: 'wegan' },
-    { value: 'gluten_free', label: 'bez glutenu' },
-  ];
+  protected readonly relationOptions = RELATIONS.map((value) => ({
+    value,
+    label: RELATION_LABELS[value],
+  }));
+  protected readonly dietOptions = DIETS.map((value) => ({ value, label: DIET_LABELS[value] }));
+  protected readonly rsvpOptions = RSVP_STATUSES.map((value) => ({ value, label: RSVP_LABELS[value] }));
 
-  protected readonly rsvpOptions: { value: RsvpStatus; label: string }[] = [
-    { value: 'confirmed', label: 'potwierdzony' },
-    { value: 'pending', label: 'oczekuje' },
-    { value: 'declined', label: 'odmowa' },
-  ];
-
-  protected readonly query = signal('');
-  protected readonly rsvpFilter = signal<RsvpStatus | 'all'>('all');
-  protected readonly dietFilter = signal<Diet | 'all'>('all');
-  protected readonly relationFilter = signal<string>('all');
   protected readonly isAddDialogOpen = signal(false);
-  protected readonly newGuest = signal<NewGuestForm>({
+  protected readonly newGuest = signal<CreateGuestDto>({
     firstName: '',
     lastName: '',
-    relation: this.relations[0],
+    relation: 'wspolni_znajomi',
     diet: 'standard',
   });
 
-  private readonly guests = signal<Guest[]>([
-    {
-      id: 1,
-      name: 'Anna Kowalska',
-      relation: 'Rodzina Panny Młodej',
-      rsvp: 'confirmed',
-      diet: 'vege',
-      table: 'Stół 1',
-    },
-    {
-      id: 2,
-      name: 'Marek Kowalski',
-      relation: 'Rodzina Panny Młodej',
-      rsvp: 'pending',
-      diet: 'standard',
-      table: '—',
-    },
-    {
-      id: 3,
-      name: 'Zofia Zielińska',
-      relation: 'Rodzina Panny Młodej',
-      rsvp: 'confirmed',
-      diet: 'gluten_free',
-      table: 'Stół 2',
-    },
-    {
-      id: 4,
-      name: 'Piotr Nowak',
-      relation: 'Rodzina Pana Młodego',
-      rsvp: 'confirmed',
-      diet: 'standard',
-      table: 'Stół 3',
-    },
-    {
-      id: 5,
-      name: 'Maja Nowak',
-      relation: 'Rodzina Pana Młodego',
-      rsvp: 'declined',
-      diet: 'pending',
-      table: '—',
-    },
-    {
-      id: 6,
-      name: 'Julia Wójcik',
-      relation: 'Znajomi',
-      rsvp: 'pending',
-      diet: 'vegan',
-      table: '—',
-    },
-    {
-      id: 7,
-      name: 'Adam Lis',
-      relation: 'Znajomi',
-      rsvp: 'confirmed',
-      diet: 'standard',
-      table: 'Stół 4',
-    },
-  ]);
-
-  protected readonly aggregates = computed(() => {
-    const guests = this.guests();
+  protected readonly aggregateCards = computed(() => {
+    const a = this.guestsService.aggregates();
     return [
-      ['Zaproszonych', guests.length.toString()],
-      ['Potwierdzonych', guests.filter((guest) => guest.rsvp === 'confirmed').length.toString()],
-      ['Oczekuje', guests.filter((guest) => guest.rsvp === 'pending').length.toString()],
-      ['Odmów', guests.filter((guest) => guest.rsvp === 'declined').length.toString()],
-      [
-        'Wege',
-        guests.filter((guest) => guest.diet === 'vege' || guest.diet === 'vegan').length.toString(),
-      ],
-      ['Dzieci', '1'],
-      ['Bez dania', guests.filter((guest) => guest.diet === 'pending').length.toString()],
+      ['Zaproszonych', a.invited.toString()],
+      ['Potwierdzonych', a.confirmed.toString()],
+      ['Oczekuje', a.pending.toString()],
+      ['Odmow', a.declined.toString()],
+      ['Wege', a.vegeOrVegan.toString()],
+      ['Dzieci', a.children.toString()],
+      ['Bez dania', a.noMealPick.toString()],
     ];
   });
 
-  protected readonly filteredGroups = computed<GroupedGuests[]>(() => {
-    const query = this.query().trim().toLowerCase();
-    const rsvp = this.rsvpFilter();
-    const diet = this.dietFilter();
-    const relation = this.relationFilter();
+  ngOnInit(): void {
+    const weddingId = this.weddingService.wedding()?.id;
+    if (weddingId) {
+      this.loadResources(weddingId);
+      return;
+    }
 
-    const filtered = this.guests().filter((guest) => {
-      const matchesQuery = !query || guest.name.toLowerCase().includes(query);
-      const matchesRsvp = rsvp === 'all' || guest.rsvp === rsvp;
-      const matchesDiet = diet === 'all' || guest.diet === diet;
-      const matchesRelation = relation === 'all' || guest.relation === relation;
-      return matchesQuery && matchesRsvp && matchesDiet && matchesRelation;
+    this.weddingService.loadCurrent().subscribe({
+      next: (wedding) => {
+        if (wedding) {
+          this.loadResources(wedding.id);
+          return;
+        }
+        this.toast.error('Najpierw skonfiguruj wesele.');
+      },
+      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
     });
+  }
 
-    return this.relations
-      .map((groupRelation) => ({
-        relation: groupRelation,
-        guests: filtered.filter((guest) => guest.relation === groupRelation),
-      }))
-      .filter((group) => group.guests.length > 0);
-  });
+  private loadResources(weddingId: string): void {
+    forkJoin([this.guestsService.list(weddingId), this.tablesService.list(weddingId)]).subscribe({
+      error: () => this.toast.error('Nie udalo sie pobrac gosci.'),
+    });
+  }
 
-  protected updateNewGuest(patch: Partial<NewGuestForm>): void {
+  protected updateNewGuest(patch: Partial<CreateGuestDto>): void {
     this.newGuest.update((current) => ({ ...current, ...patch }));
   }
 
-  protected setQuery(value: string): void {
-    this.query.set(value);
+  protected setSearch(value: string): void {
+    this.guestsService.setFilters({ search: value });
   }
 
   protected setRsvpFilter(value: string): void {
-    this.rsvpFilter.set(this.isRsvpStatus(value) ? value : 'all');
+    this.guestsService.setFilters({ rsvp: this.isRsvpStatus(value) ? value : 'all' });
   }
 
   protected setDietFilter(value: string): void {
-    this.dietFilter.set(this.isDiet(value) ? value : 'all');
+    this.guestsService.setFilters({ diet: this.isDiet(value) ? value : 'all' });
   }
 
   protected setRelationFilter(value: string): void {
-    this.relationFilter.set(this.relations.includes(value) ? value : 'all');
+    this.guestsService.setFilters({ relation: this.isRelation(value) ? value : 'all' });
+  }
+
+  protected setSort(value: string): void {
+    this.guestsService.setFilters({ sort: value === 'firstName' ? 'firstName' : 'lastName' });
   }
 
   protected setNewGuestRelation(value: string): void {
-    this.updateNewGuest({ relation: this.relations.includes(value) ? value : this.relations[0] });
+    this.updateNewGuest({ relation: this.isRelation(value) ? value : 'wspolni_znajomi' });
   }
 
   protected setNewGuestDiet(value: string): void {
@@ -194,37 +121,44 @@ export class GuestsPage {
   }
 
   protected addGuest(): void {
+    const weddingId = this.requireWeddingId();
     const form = this.newGuest();
     const firstName = form.firstName.trim();
     const lastName = form.lastName.trim();
-    if (!firstName || !lastName) return;
+    if (!weddingId || !firstName || !lastName) return;
 
-    this.guests.update((guests) => [
-      ...guests,
-      {
-        id: Date.now(),
-        name: `${firstName} ${lastName}`,
-        relation: form.relation,
-        rsvp: 'pending',
-        diet: form.diet,
-        table: '—',
-      },
-    ]);
-    this.newGuest.set({
-      firstName: '',
-      lastName: '',
-      relation: this.relations[0],
-      diet: 'standard',
-    });
-    this.isAddDialogOpen.set(false);
+    this.guestsService
+      .create(weddingId, { ...form, firstName, lastName })
+      .subscribe({
+        next: () => {
+          this.newGuest.set({
+            firstName: '',
+            lastName: '',
+            relation: 'wspolni_znajomi',
+            diet: 'standard',
+          });
+          this.isAddDialogOpen.set(false);
+          this.toast.success('Gosc zostal dodany.');
+        },
+        error: () => this.toast.error('Nie udalo sie dodac goscia.'),
+      });
   }
 
-  protected rsvpLabel(status: RsvpStatus): string {
-    return {
-      confirmed: 'potwierdzony',
-      pending: 'oczekuje',
-      declined: 'odmowa',
-    }[status];
+  protected updateGuest(guest: Guest, patch: Partial<Guest>): void {
+    const weddingId = this.requireWeddingId();
+    if (!weddingId) return;
+    this.guestsService.update(weddingId, guest.id, patch).subscribe({
+      error: () => this.toast.error('Nie udalo sie zapisac zmian.'),
+    });
+  }
+
+  protected removeGuest(guest: Guest): void {
+    const weddingId = this.requireWeddingId();
+    if (!weddingId) return;
+    this.guestsService.remove(weddingId, guest.id).subscribe({
+      next: () => this.toast.success('Gosc zostal usuniety.'),
+      error: () => this.toast.error('Nie udalo sie usunac goscia.'),
+    });
   }
 
   protected rsvpClass(status: RsvpStatus): string {
@@ -235,21 +169,38 @@ export class GuestsPage {
     }[status];
   }
 
+  protected relationLabel(relation: Relation): string {
+    return RELATION_LABELS[relation];
+  }
+
   protected dietLabel(diet: Diet): string {
-    return this.dietOptions.find((option) => option.value === diet)?.label ?? diet;
+    return DIET_LABELS[diet];
+  }
+
+  protected rsvpLabel(status: RsvpStatus): string {
+    return RSVP_LABELS[status];
+  }
+
+  protected tableLabel(tableId: string | null): string {
+    if (!tableId) return '-';
+    return this.tablesService.tables().find((table) => table.id === tableId)?.name ?? '-';
+  }
+
+  private requireWeddingId(): string | null {
+    const id = this.weddingService.wedding()?.id ?? null;
+    if (!id) this.toast.error('Najpierw skonfiguruj wesele.');
+    return id;
+  }
+
+  private isRelation(value: string): value is Relation {
+    return RELATIONS.includes(value as Relation);
   }
 
   private isRsvpStatus(value: string): value is RsvpStatus {
-    return value === 'confirmed' || value === 'pending' || value === 'declined';
+    return RSVP_STATUSES.includes(value as RsvpStatus);
   }
 
   private isDiet(value: string): value is Diet {
-    return (
-      value === 'pending' ||
-      value === 'standard' ||
-      value === 'vege' ||
-      value === 'vegan' ||
-      value === 'gluten_free'
-    );
+    return DIETS.includes(value as Diet);
   }
 }

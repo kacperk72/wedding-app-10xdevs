@@ -50,6 +50,7 @@ export interface GuestFilters {
   rsvp: RsvpStatus | 'all';
   diet: Diet | 'all';
   relation: Relation | 'all';
+  sort: 'lastName' | 'firstName';
 }
 
 export const RELATION_LABELS: Record<Relation, string> = {
