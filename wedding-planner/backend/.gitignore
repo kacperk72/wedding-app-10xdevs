@@ -6,3 +6,6 @@ logs/
 .DS_Store
 Thumbs.db
 .env.example
+
+# Supabase CLI local link state — regenerable via `supabase link`
+supabase/.temp/
