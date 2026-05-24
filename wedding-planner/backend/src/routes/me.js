@@ -1,11 +1,10 @@
 const express = require("express");
-const requireSsoAuth = require("../middleware/jwks-auth");
 const { supabase } = require("../config/database");
 const { ensureUserFromSsoPayload } = require("../services/users");
 
 const router = express.Router();
 
-router.get("/", requireSsoAuth, async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     const user = await ensureUserFromSsoPayload(req.user);
     const { data: member, error: memberError } = await supabase
@@ -42,6 +41,13 @@ router.get("/", requireSsoAuth, async (req, res, next) => {
       firstName: user.first_name,
       lastName: user.last_name,
       weddingId: member?.wedding_id || null,
+      weddingMembership: member
+        ? {
+            weddingId: member.wedding_id,
+            role: member.role,
+            linkedAt: member.linked_at,
+          }
+        : null,
       partner,
     });
   } catch (err) {

@@ -6,9 +6,13 @@ require("dotenv").config();
 
 const corsOptions = require("./config/cors");
 const errorHandler = require("./middleware/error-handler");
+const requireSsoAuth = require("./middleware/jwks-auth");
 const healthRouter = require("./routes/health");
 const meRouter = require("./routes/me");
 const weddingsRouter = require("./routes/weddings");
+const guestsRouter = require("./routes/guests");
+const mealOptionsRouter = require("./routes/meal-options");
+const tablesRouter = require("./routes/tables");
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -24,8 +28,11 @@ if (process.env.NODE_ENV !== "test") app.use(morgan("combined"));
 app.use(express.json({ limit: "1mb" }));
 
 app.use("/api/health", healthRouter);
-app.use("/api/me", meRouter);
-app.use("/api/weddings", weddingsRouter);
+app.use("/api/me", requireSsoAuth, meRouter);
+app.use("/api/weddings/:weddingId/guests", requireSsoAuth, guestsRouter);
+app.use("/api/weddings/:weddingId/meal-options", requireSsoAuth, mealOptionsRouter);
+app.use("/api/weddings/:weddingId/tables", requireSsoAuth, tablesRouter);
+app.use("/api/weddings", requireSsoAuth, weddingsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found" });

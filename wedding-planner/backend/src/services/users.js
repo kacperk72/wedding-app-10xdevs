@@ -18,6 +18,7 @@ async function ensureUserFromSsoPayload(payload) {
       {
         sso_user_id: String(ssoUserId),
         email: payload.email,
+        // SSO emits camelCase today; snake_case keeps this tolerant of issuer drift.
         first_name: payload.firstName || payload.first_name || null,
         last_name: payload.lastName || payload.last_name || null,
         email_verified: true,

@@ -1,5 +1,12 @@
-// 4-arg signature is required — Express identifies error handlers by arity.
+// 4-arg signature is required: Express identifies error handlers by arity.
 function errorHandler(err, req, res, _next) {
+  if (err.isDomainError) {
+    return res.status(err.status).json({
+      error: err.message,
+      details: err.details || [],
+    });
+  }
+
   console.error("Error:", err);
 
   if (err.code && (err.details || err.hint || err.message)) {

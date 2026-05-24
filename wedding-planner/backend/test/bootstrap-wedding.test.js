@@ -88,3 +88,51 @@ describe("Supabase migration", () => {
     }
   });
 });
+
+describe("Partner invite RPC migration", () => {
+  const migrationPath = join(
+    __dirname,
+    "..",
+    "supabase",
+    "migrations",
+    "20260524120000_accept_partner_invite_rpc.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8");
+
+  it("defines an atomic accept_partner_invite RPC with key guards", () => {
+    for (const fragment of [
+      "create or replace function accept_partner_invite",
+      "for update",
+      "insert into wedding_members",
+      "set status = 'accepted'",
+      "grant execute on function public.accept_partner_invite",
+      "revoke execute on function public.accept_partner_invite",
+    ]) {
+      assert.ok(sql.includes(fragment), `${fragment} is present`);
+    }
+  });
+});
+
+describe("Create wedding RPC migration", () => {
+  const migrationPath = join(
+    __dirname,
+    "..",
+    "supabase",
+    "migrations",
+    "20260524123000_create_wedding_with_bootstrap_json_errors.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8");
+
+  it("returns json errors instead of sniffable raised messages", () => {
+    for (const fragment of [
+      "create or replace function create_wedding_with_bootstrap",
+      "return jsonb_build_object('status', 409, 'error', 'User already belongs to a wedding')",
+      "exception",
+      "when unique_violation then",
+      "grant execute on function public.create_wedding_with_bootstrap",
+      "revoke execute on function public.create_wedding_with_bootstrap",
+    ]) {
+      assert.ok(sql.includes(fragment), `${fragment} is present`);
+    }
+  });
+});
