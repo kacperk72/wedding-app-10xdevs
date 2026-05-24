@@ -270,7 +270,7 @@ W Angularze potrzebujesz tylko interceptora doklejającego token i guarda chroni
 **Tworzenie kont pary młodej** (jednorazowo, panel `https://kubitksso.pl/users`):
 - Dwa konta `email` + `password`, role `user`
 - Każde przypisane do apki `wedding-planner`
-- Linkowanie ich w jedno wesele odbywa się **po stronie wedding-planner backendu** w tabeli `weddings(partner_a_user_id, partner_b_user_id)` — admin (czyli ty) wstawia ten rekord ręcznie SQL-em po założeniu kont, bo to jednorazowy setup.
+- Linkowanie ich w jedno wesele odbywa się **po stronie wedding-planner backendu** przez tabelę `wedding_members` (`wedding_id`, `user_id`, `role`). Pierwsze logowanie partnera_a robi `POST /api/weddings` → wywołuje PG RPC `create_wedding_with_bootstrap`, która tworzy wesele i wstawia założyciela jako `partner_a`. Partner_b dochodzi przez flow zaproszenia (`POST /api/weddings/:id/invite-partner` → `POST /api/weddings/accept-invite`).
 
 ## Integracja z SSO — backend (Express + JWT verification)
 
@@ -314,7 +314,7 @@ module.exports = function ssoAuth(req, res, next) {
 };
 ```
 
-Middleware / helper sprawdzający, że user należy do wesela. Ponieważ backend używa Supabase service-role, kontrola dostępu po stronie Express jest obowiązkowa; Supabase RLS może zostać dodane jako defense-in-depth.
+Middleware / helper sprawdzający, że user należy do wesela. Ponieważ backend używa Supabase `service_role` (omija RLS), kontrola dostępu po stronie Express jest obowiązkowa. **RLS jest włączony deny-all na wszystkich 25 tabelach w `public`** (migracja `20260524090000_rls_lockdown`) jako defense-in-depth na wypadek przypadkowego wystawienia `anon`/`authenticated` w Data API — bez polityk każdy taki request kończy się pustym wynikiem. SECURITY DEFINER RPCs (`bootstrap_wedding`, `create_wedding_with_bootstrap`) mają `EXECUTE` odebrany od `PUBLIC` (migracja `20260524093000_revoke_security_definer_from_public`) — wywołać je może tylko `service_role`.
 
 ```js
 // backend/src/middleware/belongs-to-wedding.js
@@ -407,11 +407,12 @@ W `wedding-planner/frontend/index.html` (dev):
 - [ ] SSH klucz dla deploya backendu wgrany do panelu Hostingera, prywatny w GitHub Secrets.
 - [ ] `.htaccess` w `frontend/public/` projektu, asset skonfigurowany w `angular.json`.
 - [ ] Node.js application dla backendu wedding-plannera uruchomiona.
-- [ ] Supabase project dla wedding-plannera utworzony, migracje SQL uruchomione.
+- [ ] Supabase project dla wedding-plannera utworzony, migracje uruchomione przez `npx supabase link --project-ref <ref>` + `npx supabase db push` (z katalogu `wedding-planner/backend/`).
+- [ ] `npx supabase db advisors` lub MCP `get_advisors` pokazują 0 ERROR (RLS lockdown migracja zaaplikowana).
 - [ ] `wedding-planner/backend/.env` / env panel Hostingera ma `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWKS_URL`.
 - [ ] Apka `wedding-planner` zarejestrowana w SSO (panel `https://kubitksso.pl/apps`) z domeną `https://wedding-planner-kubitk.pl`.
 - [ ] Konta pary młodej utworzone w SSO (panel `https://kubitksso.pl/users`), oboje przypisani do apki `wedding-planner`.
-- [ ] Rekord `weddings(partner_a_user_id, partner_b_user_id)` wstawiony ręcznie w bazie wedding-plannera.
+- [ ] Wesele nie wymaga ręcznego SQL — partner_a po pierwszym loginie wywołuje `POST /api/weddings`, które uruchamia `create_wedding_with_bootstrap` RPC; partner_b dołącza przez flow zaproszenia.
 - [ ] GitHub Secrets dodane: 3× FTP + 3× SSH.
 - [ ] `.github/workflows/deploy.yml` w repo.
 - [ ] Pierwszy push na main → workflow zielony → strona działa pod HTTPS.

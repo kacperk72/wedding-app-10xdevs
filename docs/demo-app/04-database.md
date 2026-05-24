@@ -1,6 +1,6 @@
 # Database — Wedding Planner
 
-> **TL;DR**: PostgreSQL (Supabase). **23 tabele** główne. Rdzeń modelu: `weddings` jako encja kontekstowa, do której należą goście, kontrahenci, umowy, kategorie budżetu, transakcje, zadania, stoły, konflikty, spotkania, opcje dań **oraz konfigurator oferty cateringu** (9 tabel: oferty, pakiety, kategorie kursów, dania, dodatki + wybór pary z M:N picks). Dwóch partnerów łączy z weselem tabela `wedding_members`; jeden z nich (`weddings.created_by_user_id`) ma uprawnienia do hard-delete wesela, reszta CRUD jest symetryczna. Cała baza jest **inferowana** z UI prototypu Lovable + **rozszerzona** o domenę cateringu na podstawie realnej oferty (PDF Pałac Polanka 2026 jako wzorzec — model jest jednak uniwersalny, każda para wprowadza ofertę swojej sali).
+> **TL;DR**: PostgreSQL 17 (Supabase). **25 tabel** główne. Rdzeń modelu: `weddings` jako encja kontekstowa, do której należą goście, kontrahenci, umowy, kategorie budżetu, transakcje, zadania, stoły, konflikty, spotkania, opcje dań **oraz konfigurator oferty cateringu** (9 tabel: oferty, pakiety, kategorie kursów, dania, dodatki + wybór pary z M:N picks). Dwóch partnerów łączy z weselem tabela `wedding_members`; jeden z nich (`weddings.created_by_user_id`) ma uprawnienia do hard-delete wesela, reszta CRUD jest symetryczna. Cała baza jest **inferowana** z UI prototypu Lovable + **rozszerzona** o domenę cateringu na podstawie realnej oferty (PDF Pałac Polanka 2026 jako wzorzec — model jest jednak uniwersalny, każda para wprowadza ofertę swojej sali). **Schemat zaaplikowany** na zdalnym projekcie (`wedding-planner/backend/supabase/migrations/`); RLS deny-all włączone na każdej tabeli `public` — autoryzacja domenowa w Express middleware, nie w politykach (patrz sekcja RLS).
 
 **Engine**: PostgreSQL 15+ (Supabase).
 **Konwencje**: UUID PK (`gen_random_uuid()`), `snake_case` kolumny, `created_at` / `updated_at` na każdej tabeli, kwoty w `numeric(12,2)` (PLN), enums przez `text CHECK (… IN (…))` zamiast natywnego `enum` (łatwiejsze migracje).
@@ -1064,97 +1064,75 @@ Implementacja w aplikacji (NestJS service) lub jako PG function `bootstrap_weddi
 
 ## Row-Level Security (Supabase)
 
-Polityka domyślna: **tylko członkowie wesela** mogą czytać i modyfikować jego zasoby. Helper funkcja:
+**Status:** RLS jest włączone **deny-all** na wszystkich 25 tabelach `public` (migracja `20260524090000_rls_lockdown`). Autoryzacja domenowa (kto należy do którego wesela) żyje **w Express middleware**, nie w politykach PG.
+
+### Dlaczego nie polityki `auth.uid()`?
+
+Oryginał tego dokumentu zakładał Supabase Auth — i polityki `current_user_belongs_to_wedding(wedding_id)` używające `auth.uid()` jako tożsamości użytkownika. W naszej architekturze:
+
+- **Auth jest zewnętrzny** (`kubitksso.pl`, JWT RS256 weryfikowany przez JWKS w backendzie). Supabase nigdy nie widzi sesji użytkownika.
+- **Backend rozmawia z Postgresem jako `service_role`**, który omija RLS z definicji.
+- `auth.uid()` w naszym kontekście zwraca **NULL** — każda polityka oparta o niego natychmiast zwróciłaby false dla wszystkich.
+
+Polityki opisane w wersji historycznej tego pliku **nie zostały zaimplementowane** i nie zostaną — to jest świadoma decyzja architektoniczna, nie zaległość.
+
+### Co zrobiliśmy zamiast
+
+| Warstwa | Mechanizm | Egzekwowane przez |
+|---|---|---|
+| **L1 — Authentication** | `Authorization: Bearer <SSO JWT>` weryfikowany przez JWKS | `middleware/jwks-auth.js` |
+| **L2 — Authorization (membership)** | Sprawdzenie wpisu w `wedding_members(wedding_id, user_id)` | Express middleware/helper na każdej trasie `/api/weddings/:weddingId/*` (do dorobienia w M2) |
+| **L3 — Defense-in-depth (DB)** | RLS deny-all dla `anon`/`authenticated`; `service_role` omija | Migracja `20260524090000_rls_lockdown` |
+| **L4 — RPC lockdown** | `EXECUTE` na `bootstrap_wedding` / `create_wedding_with_bootstrap` odebrany od `PUBLIC` | Migracja `20260524093000_revoke_security_definer_from_public` |
+| **L5 — Function hardening** | `search_path = public, pg_catalog` zapinane na wszystkich 8 funkcjach | Część migracji `rls_lockdown` |
+
+### Co dokładnie zawiera `rls_lockdown`
 
 ```sql
-CREATE OR REPLACE FUNCTION current_user_belongs_to_wedding(w_id uuid)
-RETURNS boolean LANGUAGE sql STABLE AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM wedding_members wm
-    WHERE wm.wedding_id = w_id AND wm.user_id = auth.uid()
-  );
-$$;
+-- 25× alter table <name> enable row level security;
+-- (zero polityk == deny-all dla każdego nie-service_role)
+
+-- Tylko service_role może wywołać RPCs domenowe
+revoke execute on function public.bootstrap_wedding(uuid, uuid) from public;
+revoke execute on function public.create_wedding_with_bootstrap(uuid, text, text, date, text) from public;
+
+-- Pinned search_path na funkcjach (chroni SECURITY DEFINER przed hijack'iem)
+alter function public.set_updated_at()                                              set search_path = public, pg_catalog;
+alter function public.shift_auto_tasks_on_wedding_date_change()                     set search_path = public, pg_catalog;
+alter function public.enforce_seating_conflict_wedding_match()                      set search_path = public, pg_catalog;
+alter function public.enforce_catering_course_dish_same_offer()                     set search_path = public, pg_catalog;
+alter function public.enforce_catering_selection_package_wedding()                  set search_path = public, pg_catalog;
+alter function public.enforce_catering_pick_consistency()                           set search_path = public, pg_catalog;
+alter function public.bootstrap_wedding(uuid, uuid)                                 set search_path = public, pg_catalog;
+alter function public.create_wedding_with_bootstrap(uuid, text, text, date, text)   set search_path = public, pg_catalog;
 ```
 
-Polityka per tabela (przykład — guests, identyczne dla każdej tabeli z `wedding_id`):
+Stan po migracji potwierdzony przez `supabase get_advisors`: **0 ERROR, 1 WARN** (`citext` w `public` — zaakceptowane MVP, przeniesienie wymaga drop'a kolumny `users.email`).
 
-```sql
-ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
+### Specjalna reguła: hard-delete wesela
 
-CREATE POLICY guests_select_member ON guests
-  FOR SELECT USING (current_user_belongs_to_wedding(wedding_id));
+Decyzja produktowa: hard-delete całego wesela tylko przez "founder'a" (`weddings.created_by_user_id`). **Implementacja w Express service** (`services/weddings.js` przy `DELETE /api/weddings/:id`):
 
-CREATE POLICY guests_modify_member ON guests
-  FOR ALL USING (current_user_belongs_to_wedding(wedding_id))
-  WITH CHECK (current_user_belongs_to_wedding(wedding_id));
+```js
+if (wedding.created_by_user_id !== req.currentUserId) {
+  throw new ForbiddenError('Tylko założyciel wesela może je skasować.');
+}
 ```
 
-Powtórzyć dla każdej tabeli z `wedding_id`: `wedding_members`, `vendors`, `contracts`, `budget_categories`, `expenses`, `tasks`, `tables`, `seating_conflicts`, `meetings`, `meal_options`, `partner_invitations`, `catering_offers`, `wedding_catering_selection`. Dla `payments` i tabel cateringu bez bezpośredniego `wedding_id` (`catering_packages`, `catering_courses`, `catering_dishes`, `catering_course_dishes`, `catering_addons`, `wedding_catering_dish_picks`, `wedding_catering_addon_picks`) policy z join'em — patrz niżej.
+NIE w polityce RLS — bo i tak service_role je omija, a Express ma czytelniejszy error message niż "0 rows affected".
 
-Specjalna polityka dla `weddings` — read/update dla każdego członka, ale **delete** tylko dla `created_by_user_id`:
+### Kiedy warto byłoby wrócić do fine-grained RLS
 
-```sql
-ALTER TABLE weddings ENABLE ROW LEVEL SECURITY;
+Gdyby kiedyś:
+- Frontend dostał bezpośredni dostęp do Supabase (z publishable key), albo
+- Wystawić Edge Functions wywoływane przez `anon`/`authenticated`,
 
-CREATE POLICY weddings_select_member ON weddings
-  FOR SELECT USING (current_user_belongs_to_wedding(id));
+— wtedy potrzebowalibyśmy zmapować SSO `sub` na PG sesję. Wzorzec to:
+1. Supabase Auth hook (lub middleware proxy) który wymienia SSO JWT na własny PG token,
+2. Funkcja `current_app_user()` czytająca `current_setting('request.jwt.claims', true)::json->>'sub'` zamiast `auth.uid()`,
+3. Polityki zaprojektowane tak jak w wersji historycznej tego dokumentu (membership check przez `wedding_members`).
 
-CREATE POLICY weddings_update_member ON weddings
-  FOR UPDATE USING (current_user_belongs_to_wedding(id))
-  WITH CHECK (current_user_belongs_to_wedding(id));
-
-CREATE POLICY weddings_delete_founder ON weddings
-  FOR DELETE USING (created_by_user_id = auth.uid());
-
-CREATE POLICY weddings_insert_self ON weddings
-  FOR INSERT WITH CHECK (created_by_user_id = auth.uid());
-```
-
-Dla `payments` (brak bezpośredniego `wedding_id`):
-
-```sql
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY payments_member ON payments
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM contracts c
-      WHERE c.id = payments.contract_id
-        AND current_user_belongs_to_wedding(c.wedding_id)
-    )
-  );
-```
-
-Alternatywa upraszczająca: zdenormalizować `wedding_id` na `payments` (mała kolumna, duża wygoda RLS).
-
-Analogiczne policy z join'em dla tabel cateringu **bez** `wedding_id`:
-
-```sql
--- catering_packages → przez catering_offers
-ALTER TABLE catering_packages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY catering_packages_member ON catering_packages
-  FOR ALL USING (EXISTS (
-    SELECT 1 FROM catering_offers o
-     WHERE o.id = catering_packages.catering_offer_id
-       AND current_user_belongs_to_wedding(o.wedding_id)
-  ));
-
--- catering_courses → przez catering_packages → catering_offers
-ALTER TABLE catering_courses ENABLE ROW LEVEL SECURITY;
-CREATE POLICY catering_courses_member ON catering_courses
-  FOR ALL USING (EXISTS (
-    SELECT 1 FROM catering_packages cp
-      JOIN catering_offers o ON o.id = cp.catering_offer_id
-     WHERE cp.id = catering_courses.catering_package_id
-       AND current_user_belongs_to_wedding(o.wedding_id)
-  ));
-
--- catering_dishes, catering_addons → analogicznie do catering_packages (przez offer)
--- catering_course_dishes → przez catering_courses (j.w.)
--- wedding_catering_dish_picks / wedding_catering_addon_picks → przez wedding_catering_selection.wedding_id
-```
-
-> **Wydajność**: te joiny są na FK z indeksami, więc Supabase RLS koszt jest pomijalny. Jeśli kiedyś poczujemy ból (np. przy budowaniu listy 1000 dań), można zdenormalizować `wedding_id` na każdej tabeli cateringu (jak proponujemy dla `payments`).
+W MVP nie ma takiej potrzeby — całe API idzie przez Express, jedna ścieżka, jeden punkt egzekwowania autoryzacji.
 
 ---
 

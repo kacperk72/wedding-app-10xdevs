@@ -19,7 +19,7 @@ Cel: istniejący katalog `wedding-planner/` buduje frontend i backend, a backend
 - [x] Backend: JWKS auth middleware w `src/middleware/jwks-auth.js`.
 - [ ] Frontend: `provideRouter`, `provideHttpClient(withInterceptors([authInterceptor]))`, `provideAnimations`
 - [ ] Wspólne DTO / typy można dodać później, jeśli backend i frontend zaczną duplikować kontrakty.
-- [ ] Supabase project: ustaw `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` w `.env`.
+- [x] Supabase project: `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` w `.env` (gitignored, `.env.example` jako template).
 - [ ] CI: lint + typecheck + test na push (rekomenduję GitHub Actions, ale zostaw to elastyczne)
 - [x] Setup design tokens w `wedding-planner/frontend/src/styles/_tokens.scss`.
 
@@ -32,12 +32,14 @@ Cel: istniejący katalog `wedding-planner/` buduje frontend i backend, a backend
 Cel: schema zaaplikowana do Supabase, seed globalny i atomiczny bootstrap nowego wesela.
 
 - [x] Narzędzie migracyjne: Supabase SQL migrations w `wedding-planner/backend/supabase/migrations`.
-- [x] Migracja M1 `20260523233000_m1_schema_and_seed.sql` — DDL 23 tabel, indeksy, triggery i funkcje.
+- [x] Migracja M1 `20260523233000_m1_schema_and_seed.sql` — DDL 25 tabel, indeksy, triggery i funkcje.
 - [x] PG function `bootstrap_wedding(p_wedding_id, p_creator_user_id)` — seeduje `wedding_members`, 15 `budget_categories`, 12 stołów i auto-zadania.
 - [x] PG function `create_wedding_with_bootstrap(...)` — atomowo tworzy wesele i odpala bootstrap.
 - [x] Seed `task_templates` w migracji + `npm run db:seed` jako idempotentny upsert.
-- [ ] Uruchom migrację w Supabase SQL Editor albo przez Supabase CLI.
-- [ ] Opcjonalnie: RLS policies jako osobna migracja defense-in-depth. Backend używa service-role, więc podstawowa autoryzacja i tak musi zostać w Express.
+- [x] Migracje wykonane na zdalnym projekcie przez `npx supabase link` + `npx supabase db push` (z `wedding-planner/backend/`).
+- [x] RLS lockdown jako osobna migracja `20260524090000_rls_lockdown` — RLS deny-all na wszystkich 25 tabelach `public`, `search_path` zapinane na 8 funkcjach. Backend (service_role) omija RLS; `anon`/`authenticated` bez polityk = każdy ich request to 0 wierszy.
+- [x] Lockdown SECURITY DEFINER RPCs — migracja `20260524093000_revoke_security_definer_from_public` (revoke EXECUTE od PUBLIC na `bootstrap_wedding` i `create_wedding_with_bootstrap`). Tylko `service_role` może je wywołać.
+- [x] `supabase get_advisors` (security): 0 ERROR, 1 zaakceptowany WARN (`citext` w `public` — przeniesienie wymaga drop'a `users.email`).
 - [ ] Seed dev danych domenowych: 1 user SSO-mapowany przez `sso_user_id`, 1 wesele "Weronika & Kacper" 25.07.2026, goście, meal_options, kontrahenci, umowy, stoły, konflikty, spotkania.
 
 **Done when**: świeża baza Supabase po migracji ma schemat M1, `task_templates`, a `POST /api/weddings` tworzy wesele z kategoriami budżetu, stołami i auto-zadaniami.

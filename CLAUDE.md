@@ -29,7 +29,7 @@ Note: specs live in `docs/demo-app/`; screenshots are under `docs/demo-app/scree
 | Hosting | Hostinger Business: SPA via FTP to `wedding-planner-kubitk.pl`, backend as Node.js app on same host, database in Supabase |
 | CI/CD | GitHub Actions (FTP-Deploy for FE, SSH for BE) |
 
-**Implication for the docs:** UI/data-model/feature scope in `docs/demo-app/` is authoritative. Anything about NestJS modules or local password auth is stale — translate to Express routes/services plus JWKS-verified SSO identity. PostgreSQL DDL, triggers, and Supabase migrations are valid for the wedding-planner database. RLS remains useful as a defense-in-depth option, but the backend currently uses a service-role Supabase client and enforces authorization in Express routes/services.
+**Implication for the docs:** UI/data-model/feature scope in `docs/demo-app/` is authoritative. Anything about NestJS modules or local password auth is stale — translate to Express routes/services plus JWKS-verified SSO identity. PostgreSQL DDL, triggers, and Supabase migrations are valid for the wedding-planner database. **RLS is enabled deny-all on every public table** (migration `20260524090000_rls_lockdown`); the backend talks to Postgres as `service_role` which bypasses RLS by default, so authorization is enforced in Express middleware (membership checks against `wedding_members`). `anon`/`authenticated` exist only as a safety net — no policies means every Data API call through those roles is denied. SECURITY DEFINER functions (`bootstrap_wedding`, `create_wedding_with_bootstrap`) have `EXECUTE` revoked from `PUBLIC` (migration `20260524093000_revoke_security_definer_from_public`); only `service_role` can call them.
 
 ## Sources of truth (priority order, when conflicts arise)
 
@@ -67,7 +67,14 @@ The current scaffold lives under `wedding-planner/`. Backend commands run in `we
 When asked to start implementation:
 1. Continue from `docs/demo-app/05-implementation-plan.md`, adapted to the existing folders: `wedding-planner/frontend` and `wedding-planner/backend`.
 2. Backend implementation uses Express routes/services, Supabase JS service-role client, and JWKS auth middleware. Do not add Sequelize/MySQL to wedding-planner; MySQL belongs to SSO only.
-3. The data model in `04-database.md` (23 tables including the catering subsystem) is the contract. Schema changes must round-trip into the Supabase migration and that doc.
+3. The data model in `04-database.md` (25 tables including the catering subsystem) is the contract. Schema changes must round-trip into the Supabase migration and that doc.
+
+**Migrations applied to the remote Supabase project** (`wedding-planner/backend/supabase/migrations/`):
+- `20260523233000_m1_schema_and_seed.sql` — full schema (25 tables, indexes, triggers, `bootstrap_wedding` / `create_wedding_with_bootstrap` RPCs, `task_templates` seed)
+- `20260524090000_rls_lockdown.sql` — RLS enabled on all 25 public tables (deny-all for `anon`/`authenticated`), `search_path` pinned on all 8 custom functions
+- `20260524093000_revoke_security_definer_from_public.sql` — `EXECUTE` revoked from `PUBLIC` on both SECURITY DEFINER RPCs
+
+To add a new migration: `npx supabase migration new <name>` from `wedding-planner/backend/`, write SQL, then `npx supabase db push`. The Supabase MCP plugin lets agents iterate via `execute_sql` and verify with `get_advisors` before committing to a migration file. **Do not use `apply_migration` MCP tool for iterative work — it writes history on every call and conflicts with `db pull`.**
 
 ## Parent repo context
 

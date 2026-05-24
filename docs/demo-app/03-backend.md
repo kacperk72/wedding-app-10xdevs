@@ -17,13 +17,13 @@
 - **Walidacja**: lekkie helpery/DTO per route na start; przy rozroście można dodać `zod`.
 - **DB driver**: `@supabase/supabase-js` z service-role key po stronie backendu. Klucz nigdy nie trafia do frontendu.
 - **Auth**: middleware JWKS (`middleware/jwks-auth.js`) weryfikuje token SSO. Backend mapuje payload SSO do lokalnego `users.sso_user_id`.
-- **Autoryzacja danych**: Express sprawdza członkostwo w `wedding_members`; Supabase RLS może być dodane jako defense-in-depth.
+- **Autoryzacja danych**: Express sprawdza członkostwo w `wedding_members` (middleware/helper na każdej trasie `/api/weddings/:weddingId/*`). Supabase RLS **jest włączone deny-all** na wszystkich 25 tabelach `public` (migracja `20260524090000_rls_lockdown`) — `service_role` omija je z definicji, `anon`/`authenticated` nie mają polityk więc każdy request przez nich = 0 wierszy. SECURITY DEFINER RPCs (`bootstrap_wedding`, `create_wedding_with_bootstrap`) mają `EXECUTE` odebrany od `PUBLIC` (migracja `20260524093000_revoke_security_definer_from_public`).
 
 ## Authentication
 
-Wedding-planner **nie ma własnego register/login/refresh/logout**. Te endpointy należą do SSO. Sekcja niżej opisuje kontrakt logiczny, ale implementacyjnie frontend loguje użytkownika w SSO, a do wedding-plannera wysyła `Authorization: Bearer <accessToken>`.
+Wedding-planner **nie ma własnego register/login/refresh/logout**. Te endpointy żyją na SSO (`kubitksso.pl`), nie tutaj. Sekcje `Register`/`Login`/`Refresh`/`Logout` poniżej dokumentują **co wystawia SSO** (kontrakt, który frontend konsumuje przez SDK SSO) — są tu dla kompletności, bo i tak są częścią flow użytkownika. Wedding-planner backend **przyjmuje wyłącznie** `Authorization: Bearer <accessToken>` i weryfikuje podpis przez JWKS. Jedyny endpoint w tej sekcji który implementujemy my to `GET /api/me`.
 
-### Register (SSO)
+### Register (SSO — endpoint poza wedding-plannerem)
 
 `POST /api/auth/register`
 
