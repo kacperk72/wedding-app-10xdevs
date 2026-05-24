@@ -102,21 +102,28 @@ Response (200):
 
 Każde poniżej (poza `/auth/*` i `/me`) wymaga aktywnego JWT i przynależności użytkownika do wesela `:weddingId`.
 
-### Implementation status (snapshot przy `46ec7fd`)
+### Implementation status
 
 | Sekcja | Status | Komentarz |
 |---|---|---|
 | `/api/me` | ✅ | Z `weddingMembership` (role + linkedAt). 3 testy: bez membership / partner_a sam / oboje |
 | `Wedding` (POST/GET/PATCH/invite/accept) | ✅ | Wszystkie 5 endpointów. POST i accept-invite robione przez PG RPCs zwracające jsonb `{status, error}` lub success payload. Rate limity: `invite-partner` 5/min, `accept-invite` 10/min |
 | `Guests` (POST/GET/PATCH/DELETE) | ✅ | Filtry `rsvp`/`diet`/`relation`/`search`, sortowanie. Cross-wedding FK guard na `mealOptionId`/`tableId` |
-| `Guests` `/aggregates` | ❌ | **Niezaimplementowane.** FE musi liczyć z `GET /guests`. Do zrobienia jako osobny SQL z `COUNT(*) FILTER (WHERE …)` |
+| `Guests` `/aggregates` | ✅ | PG RPC `guest_aggregates(p_wedding_id)` zwracający 7 KPI; mounted **przed** routami parametrycznymi w `routes/guests.js`; Dashboard wywołuje przez `GuestsService.loadAggregates` |
 | `Meal options` (CRUD) | ✅ | Nested pod `/api/weddings/:weddingId/meal-options` |
 | `Tables` (CRUD) | ✅ | **Wyciągnięte z M8 wcześniej** (potrzebne do edytora gościa). Walidacja `seatsCount 1..24` |
-| `Vendors`, `Contracts`, `Payments`, `Budget`, `Tasks`, `Seating`, `Catering`, `Dashboard`, `Settings/Export` | ❌ | M4-M10 — niezaimplementowane |
+| `Vendors` (CRUD) | ✅ | `routes/vendors.js`; 10 kategorii / 5 statusów; `GET /missing` zwraca kategorie bez secured-status vendor'a (`zarezerwowany`/`zaplacony`/`wykonany`); `has_contract` flag dodawany przez `attachContractFlags()` z perf-correct `.in("vendor_id", ids)` |
+| `Contracts` (CRUD + `/upcoming-payments`) | ✅ | `routes/contracts.js`; list zwraca contract'y z vendor + payments inline; `loadContracts()` używa `.in("contract_id", ids)` (nie pulluje payments globalnie) |
+| `Payments` (CRUD nested pod contract) | ✅ | `routes/payments.js`; każda mutacja wywołuje `syncContractStatus()` która przelicza i ustawia `contracts.status` na `pending`/`in_progress`/`deposit_paid`/`paid_in_full` |
+| `Budget`, `Tasks`, `Seating`, `Catering`, `Dashboard`, `Settings/Export` | ❌ | M5-M10 — niezaimplementowane |
 
 **Konwencja dla nowych zasobów:** nested router `express.Router({ mergeParams: true })` mounted pod `/api/weddings/:weddingId/<resource>`, `router.use(requireWeddingMember())` u góry, mapper w `utils/mappers.js`, `assertWeddingRecordExists()` na każdym FK przecinającym wesela.
 
-**RPC pattern dla operacji wielo-tabelowych:** zamiast 5-step Express transaction → jedna PG function `SECURITY DEFINER` zwracająca `jsonb_build_object('status', 4xx, 'error', '...')` przy biznesowych konfliktach lub success payload przy OK. Express handler keys off `data.error`. Atomowość + spójne mapowanie statusów. Przykłady: `accept_partner_invite`, `create_wedding_with_bootstrap` (migracje `20260524120000`, `20260524123000`).
+**Cross-table joins:** **zawsze** filtruj przez `.in("fk_column", ids)` zamiast `select *` (nawet z `service_role` które omija RLS). Default `select *` pulluje globalnie i odfiltrowuje w JS — wolne i conceptually wrong. Dwa bugi tego kształtu istniały w pierwszej iteracji M4 (vendors `attachContractFlags`, contracts `loadContracts` payments) i zostały naprawione.
+
+**RPC pattern dla operacji wielo-tabelowych:** zamiast 5-step Express transaction → jedna PG function `SECURITY DEFINER` zwracająca `jsonb_build_object('status', 4xx, 'error', '...')` przy biznesowych konfliktach lub success payload przy OK. Express handler keys off `data.error`. Atomowość + spójne mapowanie statusów. Przykłady: `accept_partner_invite`, `create_wedding_with_bootstrap`, `guest_aggregates` (migracje `20260524120000`, `20260524123000`, `20260524190000`).
+
+**Lockdown SECURITY DEFINER RPCs:** Supabase auto-grantuje `EXECUTE` dla `anon`/`authenticated` na każdą nową funkcję w `public` (PostgREST używa tych grantów dla `/rest/v1/rpc/*`). `revoke execute ... from public` **nie tyka** explicit-grantów na konkretnych rolach — trzeba dodatkowo `revoke execute ... from anon, authenticated`. Migracja `20260524193000_revoke_rpc_execute_from_client_roles` robi to retroaktywnie dla wszystkich 4 SECURITY DEFINER RPCs (`bootstrap_wedding`, `create_wedding_with_bootstrap`, `accept_partner_invite`, `guest_aggregates`). Każda nowa SECURITY DEFINER RPC w przyszłości musi pamiętać o tych dwóch revokes.
 
 ### Wedding (encja kontekstowa)
 

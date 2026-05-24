@@ -1,28 +1,78 @@
-<app-page-header title="Umowy" subtitle="Dokumenty, harmonogramy i najbliższe płatności">
-  <span class="button-like">Dodaj umowę</span>
+<app-page-header title="Umowy" subtitle="Dokumenty, harmonogramy i najblizsze platnosci">
+  <button type="button" class="button-like" (click)="addContract()">Dodaj umowe</button>
 </app-page-header>
 
 <div class="page-stack">
   <section class="surface panel">
     <div class="panel__header">
       <div>
-        <p class="panel__eyebrow">Najbliższe płatności</p>
-        <h2>3 pozycje w ciągu 30 dni</h2>
+        <p class="panel__eyebrow">Nowa umowa</p>
+        <h2>Dodaj kontrakt</h2>
       </div>
-      <span class="badge badge--warning">15 200 zł</span>
+    </div>
+    <form class="form-grid" (ngSubmit)="addContract()">
+      <div class="field">
+        <label for="vendorId">Kontrahent</label>
+        <select
+          id="vendorId"
+          name="vendorId"
+          [ngModel]="newContract().vendorId"
+          (ngModelChange)="updateNewContract({ vendorId: $event })"
+        >
+          <option value="">Wybierz</option>
+          @for (vendor of vendorsService.vendors(); track vendor.id) {
+            <option [value]="vendor.id">{{ vendor.companyName }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="totalAmount">Kwota</label>
+        <input
+          id="totalAmount"
+          name="totalAmount"
+          type="number"
+          min="0"
+          [ngModel]="newContract().totalAmount"
+          (ngModelChange)="updateNewContract({ totalAmount: +$event })"
+        />
+      </div>
+      <div class="field">
+        <label for="signedDate">Data podpisu</label>
+        <input
+          id="signedDate"
+          name="signedDate"
+          type="date"
+          [ngModel]="newContract().signedDate"
+          (ngModelChange)="updateNewContract({ signedDate: $event || null })"
+        />
+      </div>
+      <button type="submit" class="button-like">Dodaj</button>
+    </form>
+  </section>
+
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Najblizsze platnosci</p>
+        <h2>{{ contractsService.upcomingPayments().length }} pozycji w ciagu 30 dni</h2>
+      </div>
+      <span class="badge badge--warning">{{ money(upcomingTotal()) }}</span>
     </div>
 
     <div class="list">
-      @for (payment of payments; track payment.vendor + payment.type) {
+      @for (payment of contractsService.upcomingPayments(); track payment.id) {
         <div class="list-item">
           <div>
-            <p class="list-item__title">{{ payment.vendor }}</p>
-            <p class="list-item__meta">{{ payment.type }} · {{ payment.due }}</p>
+            <p class="list-item__title">{{ payment.vendorName || '-' }}</p>
+            <p class="list-item__meta">
+              {{ paymentKindLabel(payment.kind) }} · {{ payment.dueDate }} · {{ payment.daysUntilDue }} dni
+            </p>
           </div>
-          <div class="toolbar">
-            <span class="badge {{ urgencyClass(payment.urgency) }}">termin</span>
-            <strong>{{ payment.amount }}</strong>
-          </div>
+          <strong>{{ money(payment.amount) }}</strong>
+        </div>
+      } @empty {
+        <div class="list-item">
+          <p class="list-item__title">Brak platnosci w najblizszych 30 dniach.</p>
         </div>
       }
     </div>
@@ -31,10 +81,9 @@
   <section class="surface panel">
     <div class="panel__header">
       <div>
-        <p class="panel__eyebrow">Tabela umów</p>
+        <p class="panel__eyebrow">Tabela umow</p>
         <h2>Wszystkie kontrakty</h2>
       </div>
-      <span class="badge badge--neutral">Legenda płatności</span>
     </div>
 
     <div class="table-wrap">
@@ -47,17 +96,95 @@
             <th>Harmonogram</th>
             <th>Podpisana</th>
             <th>Status</th>
+            <th>Akcje</th>
           </tr>
         </thead>
         <tbody>
-          @for (contract of contracts; track contract.vendor) {
+          @for (contract of contractsService.contracts(); track contract.id) {
             <tr>
-              <td><strong>{{ contract.vendor }}</strong></td>
-              <td>{{ contract.category }}</td>
-              <td>{{ contract.amount }}</td>
-              <td>{{ contract.schedule }}</td>
-              <td>{{ contract.signed }}</td>
-              <td><span class="badge {{ contract.statusClass }}">{{ contract.status }}</span></td>
+              <td><strong>{{ contract.vendorName || '-' }}</strong></td>
+              <td>{{ categoryLabel(contract.category) }}</td>
+              <td>{{ money(contract.totalAmount) }}</td>
+              <td>{{ contract.paidCount }}/{{ contract.totalCount }} oplacone</td>
+              <td>{{ contract.signedDate || '-' }}</td>
+              <td>
+                <span class="badge {{ contractStatusClass(contract) }}">
+                  {{ contractStatusLabel(contract) }}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="button-like button-like--ghost"
+                  (click)="removeContract(contract.id)"
+                >
+                  Usun
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="7">
+                <div class="list">
+                  @for (payment of contract.payments; track payment.id) {
+                    <div class="list-item">
+                      <div>
+                        <p class="list-item__title">
+                          {{ paymentKindLabel(payment.kind) }} · {{ money(payment.amount) }}
+                        </p>
+                        <p class="list-item__meta">{{ payment.dueDate }}</p>
+                      </div>
+                      <div class="toolbar">
+                        <select
+                          class="inline-select"
+                          [ngModel]="payment.status"
+                          (ngModelChange)="setPaymentStatus(contract, payment, $event)"
+                        >
+                          <option value="planned">planned</option>
+                          <option value="paid">paid</option>
+                          <option value="overdue">overdue</option>
+                        </select>
+                        <span class="badge {{ paymentStatusClass(payment.status) }}">{{ payment.status }}</span>
+                        <button
+                          type="button"
+                          class="button-like button-like--ghost"
+                          (click)="removePayment(contract.id, payment.id)"
+                        >
+                          Usun
+                        </button>
+                      </div>
+                    </div>
+                  }
+                  <form class="toolbar" (ngSubmit)="addPayment(contract.id)">
+                    <select
+                      name="paymentKind-{{ contract.id }}"
+                      [ngModel]="paymentDraft(contract.id).kind"
+                      (ngModelChange)="updatePaymentDraft(contract.id, { kind: $event })"
+                    >
+                      @for (kind of paymentKindOptions; track kind.value) {
+                        <option [value]="kind.value">{{ kind.label }}</option>
+                      }
+                    </select>
+                    <input
+                      name="paymentDue-{{ contract.id }}"
+                      type="date"
+                      [ngModel]="paymentDraft(contract.id).dueDate"
+                      (ngModelChange)="updatePaymentDraft(contract.id, { dueDate: $event })"
+                    />
+                    <input
+                      name="paymentAmount-{{ contract.id }}"
+                      type="number"
+                      min="0"
+                      [ngModel]="paymentDraft(contract.id).amount"
+                      (ngModelChange)="updatePaymentDraft(contract.id, { amount: +$event })"
+                    />
+                    <button type="submit" class="button-like button-like--secondary">Dodaj platnosc</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7">Brak umow.</td>
             </tr>
           }
         </tbody>

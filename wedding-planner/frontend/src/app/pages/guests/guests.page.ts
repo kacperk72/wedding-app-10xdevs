@@ -10,8 +10,10 @@ import {
   RSVP_LABELS,
   Relation,
   RsvpStatus,
+  UpdateGuestDto,
 } from '../../core/models/guest.model';
 import { GuestsService } from '../../core/services/guests.service';
+import { MealOptionsService } from '../../core/services/meal-options.service';
 import { TablesService } from '../../core/services/tables.service';
 import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
@@ -30,10 +32,17 @@ const RSVP_STATUSES = Object.keys(RSVP_LABELS) as RsvpStatus[];
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GuestsPage implements OnInit {
-  protected readonly guestsService = inject(GuestsService);
+  private readonly guestsService = inject(GuestsService);
+  protected readonly mealOptionsService = inject(MealOptionsService);
   protected readonly tablesService = inject(TablesService);
   private readonly weddingService = inject(WeddingService);
   private readonly toast = inject(ToastService);
+
+  protected readonly guests = this.guestsService.guests;
+  protected readonly filters = this.guestsService.filters;
+  protected readonly filteredGuests = this.guestsService.filteredGuests;
+  protected readonly aggregates = this.guestsService.aggregates;
+  protected readonly groupedByRelation = this.guestsService.groupedByRelation;
 
   protected readonly relationOptions = RELATIONS.map((value) => ({
     value,
@@ -51,7 +60,7 @@ export class GuestsPage implements OnInit {
   });
 
   protected readonly aggregateCards = computed(() => {
-    const a = this.guestsService.aggregates();
+    const a = this.aggregates();
     return [
       ['Zaproszonych', a.invited.toString()],
       ['Potwierdzonych', a.confirmed.toString()],
@@ -83,8 +92,12 @@ export class GuestsPage implements OnInit {
   }
 
   private loadResources(weddingId: string): void {
-    forkJoin([this.guestsService.list(weddingId), this.tablesService.list(weddingId)]).subscribe({
-      error: () => this.toast.error('Nie udalo sie pobrac gosci.'),
+    forkJoin([
+      this.guestsService.list(weddingId),
+      this.mealOptionsService.list(weddingId),
+      this.tablesService.list(weddingId),
+    ]).subscribe({
+      error: () => this.toast.error('Nie udalo sie pobrac danych gosci.'),
     });
   }
 
@@ -144,7 +157,7 @@ export class GuestsPage implements OnInit {
       });
   }
 
-  protected updateGuest(guest: Guest, patch: Partial<Guest>): void {
+  protected updateGuest(guest: Guest, patch: UpdateGuestDto): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
     this.guestsService.update(weddingId, guest.id, patch).subscribe({

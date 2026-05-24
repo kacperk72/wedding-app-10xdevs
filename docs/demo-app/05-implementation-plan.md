@@ -82,57 +82,51 @@ Cel: zalogować się przez SSO, zmapować użytkownika SSO do lokalnego `users`,
 
 ---
 
-## Goście / RSVP (M3)
+## Goście / RSVP (M3) — zamknięty end-to-end
 
 Cel: pełny CRUD na gościach + agregaty + filtry.
 
-### Backend (zamknięte poza `/aggregates`)
+### Backend (zamknięte)
 - [x] `routes/guests.js` jako nested router pod `/api/weddings/:weddingId/guests` (mergeParams + `router.use(requireWeddingMember())`).
 - [x] Walidacja przez helpery z `utils/request-validation.js` zamiast DTO klas: `requireString`/`optionalEnum`/`optionalBoolean`/`optionalDateString` + `enumValue` na `relation`.
 - [x] Endpointy: list z filtrami (`rsvp`/`diet`/`relation`/`search`) i sortowaniem (`sort=firstName|lastName`, `direction=asc|desc`), POST/PATCH/DELETE. Defaults: `rsvpStatus='pending'`, `diet='pending'`, `isChild=false`, `hasPlusOne=false`.
-- [ ] `GET /aggregates` — pojedynczy SQL z `COUNT(*) FILTER (WHERE …)`; mapowanie pól patrz `03-backend.md` § Guests. **Nie wystawione** — FE musi póki co liczyć lokalnie z `GET /guests`.
+- [x] `GET /aggregates` jako PG RPC `guest_aggregates(p_wedding_id)` — `count(*) filter (where ...)` zwracający 7 KPI (`invited`, `confirmed`, `pending`, `declined`, `vegeOrVegan`, `children`, `noMealPick`). Migracja `20260524190000_guest_aggregates_rpc.sql`. Express endpoint `router.get('/aggregates', ...)` zarejestrowany **przed** routami parametrycznymi.
 - [x] `routes/meal-options.js` jako nested router pod `/api/weddings/:weddingId/meal-options` — CRUD.
 - [x] **Bonus z M8 wcześniej**: `routes/tables.js` pod `/api/weddings/:weddingId/tables` — CRUD z walidacją `seatsCount 1..24`. Potrzebne do edytora gościa (dropdown `tableId`).
 - [x] Cross-wedding FK guard: helper `assertWeddingRecordExists(table, id, weddingId, label)` — gwarantuje, że `mealOptionId`/`tableId` należą do tego samego wesela.
 - [x] Test infrastructure: `test/helpers/mock-supabase.js` (in-memory QueryBuilder + mock RPC `accept_partner_invite`) + `test/helpers/http-app.js` (`createTestServer({seed})` + `request()`). Reuse'owalne dla M4+.
-- [x] Pokrycie testowe: `test/resource-crud.test.js` (guest CRUD + cross-wedding FK rejection, meal-options CRUD, tables CRUD + seatsCount 1-24 walidacja), `test/invite-flow.test.js` (4 testy), `test/weddings-me.test.js` (POST /weddings + 3 case'y GET /me), `test/request-validation.test.js`, `test/error-handler.test.js`, `test/mappers.test.js`, `test/bootstrap-wedding.test.js`. **30 testów / 10 suites, all green.**
 
-### Frontend
-- [ ] `GuestsService`: signal `guests`, computed `aggregates`, `filteredGuests` (wg search/filters)
-- [ ] `MealOptionsService`: signal `mealOptions` (cache, używany w dropdown na ekranie edycji gościa)
-- [ ] `GuestsPage`: pasek agregatów (sticky), search input, 3 dropdowny filtrów, sekcje per relacja z tabelami
-- [ ] `AddGuestDialog` z formularzem (Reactive Forms) — **tylko 4 pola**: Imię/Nazwisko/Relacja/Dieta (zgodnie ze screenshotem `10-modal-dodaj-goscia.png`); inne pola edytowalne na dedykowanym ekranie szczegółów
-- [ ] `EditGuestDialog` (lub `GuestDetailsPage`) — pełny edytor: wszystkie pola w tym `mealOptionId` (dropdown z `meal_options`), `isChild`, `hasPlusOne`, `tableId`, kontakt
-- [ ] `RsvpBadge`, `DietBadge` (reużywalne); `MealBadge` opcjonalne
-- [ ] Empty state gdy 0 gości po filtrze
+### Frontend (zamknięte)
+- [x] `GuestsService`: signal `guests`, computed `aggregates` (z fallbackiem klient-side gdy serwerowych jeszcze nie ma), `filteredGuests`, `loadAggregates(weddingId)` wywoływane przez Dashboard. Server-aggregates invalidowane po każdej mutacji (create/update/remove).
+- [x] `MealOptionsService` + `TablesService`: list/create/update/remove na właściwych ścieżkach scoped.
+- [x] `GuestsPage`: konsumuje `GuestsService` (zero local mock'ów). Pasek agregatów, search input, filtry, grupowanie per relacja.
+- [x] Modal dodawania gościa — 4 pola (zgodnie z Resolved decisions).
+- [x] Inline edit / row actions dla rsvp/diet/table assignment.
+- [x] `SettingsPage` z sekcjami "Menu na wesele" (MealOptionsService) + "Stoły" (TablesService).
 
-**Done when**: dodaję 5 gości w różnych grupach, filtruję po dietach i statusach, agregaty pokazują się poprawnie.
+**Done when** (✅): dodaję 5 gości w różnych grupach, filtruję po dietach i statusach, agregaty pokazują się poprawnie. Dashboard countdown + KPI bar konsumuje `WeddingService.daysUntilWedding` + `GuestsService.aggregates`.
 
 ---
 
-## Kontrahenci + Umowy + Płatności (M4)
+## Kontrahenci + Umowy + Płatności (M4) — zamknięty end-to-end
 
 To jeden milestone, bo te trzy encje są ściśle zazębione i UI Umów konsumuje dane z Kontrahentów.
 
-### Backend
-- [ ] `VendorsModule` — CRUD + `GET /missing` (brakujące kategorie wg `status NOT IN ('zarezerwowany','zaplacony','wykonany')`)
-- [ ] `ContractsModule` — CRUD + nested `payments` resource + `GET /upcoming-payments` (płatności w 30 dni) + `GET /:id` z włączonymi paymentami (lewy join z agregatem `paidCount/totalCount`)
-- [ ] Logika statusu kontraktu: derived (`'paid_in_full'` jeśli wszystkie payments paid, `'deposit_paid'` jeśli zaliczka paid, ...) — albo trigger w bazie albo computed w API
-- [ ] Logika statusu płatności `overdue`: cron raz dziennie ustawiający `status='overdue'` na `due_date < today AND status='planned'`. Albo: wyliczać on-the-fly w SELECT.
+### Backend (zamknięte)
+- [x] `routes/vendors.js` — CRUD + `GET /missing` (brakujące kategorie wg `status NOT IN ('zarezerwowany','zaplacony','wykonany')`); 10 kategorii (`sala`/`catering`/`fotograf`/`dj`/`kwiaciarz`/`usc`/`ksiadz`/`makijaz`/`dekoracje`/`tort`), 5 statusów (`rozwazany`/`spotkanie`/`zarezerwowany`/`zaplacony`/`wykonany`).
+- [x] `routes/contracts.js` — CRUD + `GET /upcoming-payments` (płatności w 30 dni, `status='planned'`); list zwraca contract'y z zagnieżdżonym `vendor` + `payments` z poprawnymi filtrami `.in("contract_id", ids)` (perf-correct, nie pulluje globalnie).
+- [x] `routes/payments.js` — nested pod `contracts/:contractId/payments`; `assertContractBelongsToWedding` na każdej mutacji.
+- [x] **`syncContractStatus(contractId)` w `payments.js`** — po każdej mutacji payment'a przelicza i ustawia `contracts.status`: `pending` jeśli brak payment'ów, `paid_in_full` jeśli wszystkie `paid`, `deposit_paid` jeśli `zaliczka paid`, inaczej `in_progress`. Działa w obrębie pojedynczej requesty Express'a (nie trigger DB — łatwiejsze testy, mniej ukrytej magii).
+- [x] **Security hardening**: migracja `20260524193000_revoke_rpc_execute_from_client_roles.sql` — `revoke execute ... from anon, authenticated` na wszystkich 4 SECURITY DEFINER RPCs. Bez tego Supabase auto-grant'uje `EXECUTE` dla client roles, a `revoke from public` nie tyka explicit-grantów. Lekcja: zawsze `revoke from anon, authenticated` oprócz `revoke from public`.
+- [x] Pokrycie testowe: vendors CRUD (happy + cross-wedding rejection + `/missing`), contracts CRUD z payment lifecycle (POST zaliczka → status `deposit_paid`, POST rata final → `paid_in_full`), `GET /upcoming-payments` smoke. **36 testów / 11 suites, all green.**
 
-### Frontend
-- [ ] `VendorsService`, `ContractsService` z signalami
-- [ ] `VendorsPage`: alert braków, chips filtrów, grid 3-kolumnowy `VendorCard` + `VendorAddCard`
-- [ ] `AddVendorDialog` (formularz wg `02-frontend.md` § Inferowane formularze)
-- [ ] `VendorEditDialog` — wieloodrębne pole z notatkami, wybór statusu
-- [ ] `ContractsPage`: karta `UpcomingPaymentsCard` u góry + tabela wszystkich umów z `PaymentDots`
-- [ ] `AddContractDialog` z polem dynamicznym "harmonogram" (lista wierszy: `kind`, `dueDate`, `amount`)
-- [ ] `EditPaymentDialog`: zmiana statusu (planned → paid + paid_at), zmiana kwoty/terminu
+### Frontend (zamknięte)
+- [x] `VendorsService`, `ContractsService`, `PaymentsService` — wszystkie z signalami, ten sam wzorzec co `GuestsService`.
+- [x] `vendors.page.ts` — konsumuje `VendorsService` (list + missing), `wedding.wedding()?.id` ze `WeddingService`, alert braków, dialog dodawania, edit/delete.
+- [x] `contracts.page.ts` — konsumuje `ContractsService` + `VendorsService` (dropdown vendor) + `PaymentsService` (CRUD nested), `upcoming-payments` na górze.
+- [x] Dashboard pokazuje countdown + KPI gości; resztę KPI (budżet, kontrahenci do działania) zostawione na M5/M9.
 
-**Done when**:
-- Dodaję kontrahenta, dodaję dla niego umowę z 3 ratami
-- Zaliczka oznaczona jako paid → status kontraktu zmienia się na `deposit_paid`
-- Tabela "Nadchodzące płatności" pokazuje raty z dziś + 30 dni z prawidłowym `daysUntilDue` i kolorowymi badgeami
+**Done when** (✅): dodaję kontrahenta, dodaję dla niego umowę z 3 ratami, zaliczka oznaczona jako paid → status kontraktu zmienia się na `deposit_paid` (sprawdzone testem), tabela "Nadchodzące płatności" pokazuje raty z dziś + 30 dni.
 
 ---
 

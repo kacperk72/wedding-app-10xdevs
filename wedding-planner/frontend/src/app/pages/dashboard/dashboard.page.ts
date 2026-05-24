@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { PageHeader } from '../../shared/ui/page-header/page-header';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
+import { GuestsService } from '../../core/services/guests.service';
+import { ToastService } from '../../core/services/toast.service';
+import { WeddingService } from '../../core/services/wedding.service';
 import { Icon, IconName } from '../../shared/ui/icon/icon';
 
 interface Kpi {
@@ -13,58 +15,83 @@ interface Kpi {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [Icon, PageHeader],
+  imports: [Icon],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardPage {
-  protected readonly kpis: Kpi[] = [
-    {
-      label: 'Goście',
-      value: '87 / 120',
-      meta: '24 oczekuje · 9 odmów',
-      progress: 72,
-      tone: 'ok',
-      icon: 'users',
-    },
-    {
-      label: 'Budżet',
-      value: '65 000 zł',
-      meta: '83% estymacji końcowej',
-      progress: 83,
-      tone: 'warning',
-      icon: 'wallet',
-    },
-    {
-      label: 'Płatności',
-      value: '15 200 zł',
-      meta: '3 pozycje w 30 dni',
-      progress: 44,
-      tone: 'warning',
-      icon: 'calendar-days',
-    },
-    {
-      label: 'Zadania',
-      value: '8',
-      meta: '2 opóźnione',
-      progress: 68,
-      tone: 'danger',
-      icon: 'list-checks',
-    },
-  ];
+export class DashboardPage implements OnInit {
+  protected readonly weddingService = inject(WeddingService);
+  private readonly guestsService = inject(GuestsService);
+  private readonly toast = inject(ToastService);
 
-  protected readonly attention = [
-    'Potwierdzić repertuar z DJ-em',
-    'Zamknąć listę noclegów',
-    'Wpłacić zaliczkę dla Sound Garden',
-  ];
+  protected readonly wedding = this.weddingService.wedding;
+  protected readonly coupleLabel = this.weddingService.coupleLabel;
+  protected readonly daysUntilWedding = this.weddingService.daysUntilWedding;
 
-  protected readonly meetings = [
-    { day: '28', month: 'MAJ', title: 'Spotkanie z DJ-em', meta: '18:00 · online' },
-    { day: '04', month: 'CZE', title: 'Degustacja menu', meta: '17:30 · Pałac Polanka' },
-    { day: '10', month: 'CZE', title: 'Przymiarka sukni', meta: '12:00 · atelier' },
-  ];
+  protected readonly kpis = computed<Kpi[]>(() => {
+    const guests = this.guestsService.aggregates();
+    const invitedProgress = guests.invited
+      ? Math.round((guests.confirmed / guests.invited) * 100)
+      : 0;
+
+    return [
+      {
+        label: 'Goscie',
+        value: `${guests.confirmed} / ${guests.invited}`,
+        meta: `${guests.pending} oczekuje · ${guests.declined} odmow`,
+        progress: invitedProgress,
+        tone: guests.pending > 0 ? 'warning' : 'ok',
+        icon: 'users',
+      },
+      {
+        label: 'Budzet',
+        value: '—',
+        meta: 'Dostepne od M5',
+        progress: 0,
+        tone: 'ok',
+        icon: 'wallet',
+      },
+      {
+        label: 'Platnosci',
+        value: '—',
+        meta: 'Dostepne od M4',
+        progress: 0,
+        tone: 'ok',
+        icon: 'calendar-days',
+      },
+      {
+        label: 'Zadania',
+        value: '—',
+        meta: 'Dostepne od M7',
+        progress: 0,
+        tone: 'ok',
+        icon: 'list-checks',
+      },
+    ];
+  });
+
+  protected readonly attention = ['—'];
+  protected readonly meetings: Array<{ day: string; month: string; title: string; meta: string }> = [];
+
+  ngOnInit(): void {
+    const weddingId = this.wedding()?.id;
+    if (weddingId) {
+      this.loadGuests(weddingId);
+      return;
+    }
+
+    this.weddingService.loadCurrent().subscribe({
+      next: (wedding) => {
+        if (wedding) {
+          this.loadGuests(wedding.id);
+          return;
+        }
+        this.toast.error('Najpierw skonfiguruj wesele.');
+      },
+      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
+    });
+  }
 
   protected barClass(tone: Kpi['tone']): string {
     return {
@@ -72,5 +99,11 @@ export class DashboardPage {
       warning: 'progress__bar--warning',
       danger: 'progress__bar--danger',
     }[tone];
+  }
+
+  private loadGuests(weddingId: string): void {
+    this.guestsService.loadAggregates(weddingId).subscribe({
+      error: () => this.toast.error('Nie udalo sie pobrac agregatow gosci.'),
+    });
   }
 }

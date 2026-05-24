@@ -44,6 +44,22 @@ describe("scoped wedding resource CRUD", () => {
           contact_email: null,
         },
       ],
+      vendors: [
+        {
+          id: "vendor-1",
+          wedding_id: "wedding-1",
+          category: "dj",
+          company_name: "Sound Garden",
+          contact_person: "Michal",
+          phone: "+48 500 100 200",
+          email: "dj@example.com",
+          status: "spotkanie",
+          contract_amount: 5800,
+          notes: null,
+        },
+      ],
+      contracts: [],
+      payments: [],
     });
     db = app.db;
     server = app.server;
@@ -88,7 +104,9 @@ describe("scoped wedding resource CRUD", () => {
     assert.equal(aggregates.status, 200);
     assert.equal(aggregates.body.invited, 2);
     assert.equal(aggregates.body.confirmed, 0);
+    assert.equal(aggregates.body.pending, 1);
     assert.equal(aggregates.body.declined, 1);
+    assert.equal(aggregates.body.noMealPick, 1);
 
     const removed = await request(
       server,
@@ -187,5 +205,192 @@ describe("scoped wedding resource CRUD", () => {
       `/api/weddings/wedding-1/tables/${created.body.id}`,
     );
     assert.equal(removed.status, 204);
+  });
+
+  it("creates, updates, lists, and deletes vendors", async () => {
+    const created = await request(server, "POST", "/api/weddings/wedding-1/vendors", {
+      category: "fotograf",
+      companyName: "Kadr i Swiatlo",
+      contactPerson: "Tomasz",
+      phone: "+48 500 300 400",
+      email: "foto@example.com",
+      status: "rozwazany",
+      contractAmount: 8500,
+    });
+
+    assert.equal(created.status, 201);
+    assert.equal(created.body.companyName, "Kadr i Swiatlo");
+    assert.equal(created.body.hasContract, false);
+
+    const updated = await request(
+      server,
+      "PATCH",
+      `/api/weddings/wedding-1/vendors/${created.body.id}`,
+      { status: "zarezerwowany", notes: "Podpis do potwierdzenia" },
+    );
+    assert.equal(updated.status, 200);
+    assert.equal(updated.body.status, "zarezerwowany");
+
+    const list = await request(server, "GET", "/api/weddings/wedding-1/vendors?status=zarezerwowany");
+    assert.equal(list.status, 200);
+    assert.equal(list.body.length, 1);
+
+    const missing = await request(server, "GET", "/api/weddings/wedding-1/vendors/missing");
+    assert.equal(missing.status, 200);
+    assert.equal(missing.body.includes("fotograf"), false);
+
+    const removed = await request(
+      server,
+      "DELETE",
+      `/api/weddings/wedding-1/vendors/${created.body.id}`,
+    );
+    assert.equal(removed.status, 204);
+  });
+
+  it("does not mutate vendors from another wedding", async () => {
+    db.vendors.push({
+      id: "foreign-vendor",
+      wedding_id: "wedding-2",
+      category: "dj",
+      company_name: "Foreign DJ",
+      status: "rozwazany",
+      contract_amount: 1000,
+    });
+
+    const updated = await request(
+      server,
+      "PATCH",
+      "/api/weddings/wedding-1/vendors/foreign-vendor",
+      { status: "zarezerwowany" },
+    );
+    assert.equal(updated.status, 404);
+
+    const removed = await request(
+      server,
+      "DELETE",
+      "/api/weddings/wedding-1/vendors/foreign-vendor",
+    );
+    assert.equal(removed.status, 404);
+    assert.equal(db.vendors.find((vendor) => vendor.id === "foreign-vendor").status, "rozwazany");
+  });
+
+  it("creates contracts and nested payments with status sync", async () => {
+    const contract = await request(server, "POST", "/api/weddings/wedding-1/contracts", {
+      vendorId: "vendor-1",
+      totalAmount: 5800,
+      signedDate: "2026-05-24",
+    });
+
+    assert.equal(contract.status, 201);
+    assert.equal(contract.body.vendorName, "Sound Garden");
+    assert.equal(contract.body.totalAmount, 5800);
+
+    const deposit = await request(
+      server,
+      "POST",
+      `/api/weddings/wedding-1/contracts/${contract.body.id}/payments`,
+      {
+        kind: "zaliczka",
+        dueDate: "2026-05-30",
+        amount: 1500,
+      },
+    );
+    assert.equal(deposit.status, 201);
+
+    const finalPayment = await request(
+      server,
+      "POST",
+      `/api/weddings/wedding-1/contracts/${contract.body.id}/payments`,
+      {
+        kind: "final",
+        dueDate: "2026-06-15",
+        amount: 4300,
+      },
+    );
+    assert.equal(finalPayment.status, 201);
+
+    const paidDeposit = await request(
+      server,
+      "PATCH",
+      `/api/weddings/wedding-1/contracts/${contract.body.id}/payments/${deposit.body.id}`,
+      { status: "paid", paidAt: "2026-05-24" },
+    );
+    assert.equal(paidDeposit.status, 200);
+
+    const list = await request(server, "GET", "/api/weddings/wedding-1/contracts");
+    assert.equal(list.status, 200);
+    assert.equal(list.body[0].status, "deposit_paid");
+    assert.equal(list.body[0].paidCount, 1);
+    assert.equal(list.body[0].totalCount, 2);
+
+    const paidFinal = await request(
+      server,
+      "PATCH",
+      `/api/weddings/wedding-1/contracts/${contract.body.id}/payments/${finalPayment.body.id}`,
+      { status: "paid", paidAt: "2026-06-01" },
+    );
+    assert.equal(paidFinal.status, 200);
+
+    const paidInFullList = await request(server, "GET", "/api/weddings/wedding-1/contracts");
+    assert.equal(paidInFullList.status, 200);
+    assert.equal(paidInFullList.body[0].status, "paid_in_full");
+    assert.equal(paidInFullList.body[0].paidCount, 2);
+
+    const upcoming = await request(server, "GET", "/api/weddings/wedding-1/contracts/upcoming-payments");
+    assert.equal(upcoming.status, 200);
+    assert.equal(upcoming.body.length, 0);
+
+    const removed = await request(
+      server,
+      "DELETE",
+      `/api/weddings/wedding-1/contracts/${contract.body.id}/payments/${deposit.body.id}`,
+    );
+    assert.equal(removed.status, 204);
+  });
+
+  it("rejects contracts for vendors from another wedding", async () => {
+    db.vendors.push({
+      id: "foreign-vendor",
+      wedding_id: "wedding-2",
+      category: "dj",
+      company_name: "Foreign DJ",
+      status: "rozwazany",
+    });
+
+    const response = await request(server, "POST", "/api/weddings/wedding-1/contracts", {
+      vendorId: "foreign-vendor",
+      totalAmount: 1000,
+    });
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error, "vendorId does not belong to this wedding");
+  });
+
+  it("rejects nested payment writes through contracts from another wedding", async () => {
+    db.vendors.push({
+      id: "foreign-vendor",
+      wedding_id: "wedding-2",
+      category: "dj",
+      company_name: "Foreign DJ",
+      status: "rozwazany",
+    });
+    db.contracts.push({
+      id: "foreign-contract",
+      wedding_id: "wedding-2",
+      vendor_id: "foreign-vendor",
+      total_amount: 1000,
+      signed_date: null,
+      status: "pending",
+    });
+
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/contracts/foreign-contract/payments",
+      { kind: "zaliczka", dueDate: "2026-05-30", amount: 500 },
+    );
+
+    assert.equal(response.status, 404);
+    assert.equal(db.payments.some((payment) => payment.contract_id === "foreign-contract"), false);
   });
 });

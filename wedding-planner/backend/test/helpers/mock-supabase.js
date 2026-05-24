@@ -23,6 +23,7 @@ function clone(row) {
 function rowMatches(row, filters) {
   return filters.every((filter) => {
     if (filter.operator === "neq") return row[filter.column] !== filter.value;
+    if (filter.operator === "in") return filter.values.includes(row[filter.column]);
     return row[filter.column] === filter.value;
   });
 }
@@ -50,6 +51,11 @@ class QueryBuilder {
 
   neq(column, value) {
     this.filters.push({ column, value, operator: "neq" });
+    return this;
+  }
+
+  in(column, values) {
+    this.filters.push({ column, values, operator: "in" });
     return this;
   }
 
@@ -276,6 +282,19 @@ function createWeddingWithBootstrap(
   };
 }
 
+function guestAggregates(db, { p_wedding_id: weddingId }) {
+  const guests = db.guests.filter((guest) => guest.wedding_id === weddingId);
+  return {
+    invited: guests.length,
+    confirmed: guests.filter((guest) => guest.rsvp_status === "confirmed").length,
+    pending: guests.filter((guest) => guest.rsvp_status === "pending").length,
+    declined: guests.filter((guest) => guest.rsvp_status === "declined").length,
+    vegeOrVegan: guests.filter((guest) => guest.diet === "vege" || guest.diet === "vegan").length,
+    children: guests.filter((guest) => guest.is_child).length,
+    noMealPick: guests.filter((guest) => guest.meal_option_id === null).length,
+  };
+}
+
 function createMockSupabase(seed = {}) {
   const db = {
     users: [],
@@ -309,6 +328,12 @@ function createMockSupabase(seed = {}) {
         if (name === "create_wedding_with_bootstrap") {
           return Promise.resolve({
             data: createWeddingWithBootstrap(db, params),
+            error: null,
+          });
+        }
+        if (name === "guest_aggregates") {
+          return Promise.resolve({
+            data: guestAggregates(db, params),
             error: null,
           });
         }

@@ -22,7 +22,7 @@
         <input
           id="guestSearch"
           placeholder="Imie lub nazwisko"
-          [ngModel]="guestsService.filters().search"
+          [ngModel]="filters().search"
           (ngModelChange)="setSearch($event)"
         />
       </div>
@@ -30,7 +30,7 @@
         <label for="rsvpFilter">Status RSVP</label>
         <select
           id="rsvpFilter"
-          [ngModel]="guestsService.filters().rsvp"
+          [ngModel]="filters().rsvp"
           (ngModelChange)="setRsvpFilter($event)"
         >
           <option value="all">Wszystkie</option>
@@ -43,7 +43,7 @@
         <label for="dietFilter">Dieta</label>
         <select
           id="dietFilter"
-          [ngModel]="guestsService.filters().diet"
+          [ngModel]="filters().diet"
           (ngModelChange)="setDietFilter($event)"
         >
           <option value="all">Wszystkie</option>
@@ -56,7 +56,7 @@
         <label for="relationFilter">Relacja</label>
         <select
           id="relationFilter"
-          [ngModel]="guestsService.filters().relation"
+          [ngModel]="filters().relation"
           (ngModelChange)="setRelationFilter($event)"
         >
           <option value="all">Wszystkie</option>
@@ -69,7 +69,7 @@
         <label for="sortFilter">Sortowanie</label>
         <select
           id="sortFilter"
-          [ngModel]="guestsService.filters().sort"
+          [ngModel]="filters().sort"
           (ngModelChange)="setSort($event)"
         >
           <option value="lastName">Nazwisko</option>
@@ -79,13 +79,13 @@
     </div>
   </section>
 
-  @if (guestsService.groupedByRelation().length === 0) {
+  @if (groupedByRelation().length === 0) {
     <section class="empty-state">
       <p>Brak gosci pasujacych do wybranych filtrow.</p>
     </section>
   }
 
-  @for (group of guestsService.groupedByRelation(); track group[0]) {
+  @for (group of groupedByRelation(); track group[0]) {
     <section class="surface panel">
       <div class="panel__header">
         <div>
@@ -102,6 +102,7 @@
               <th>Imie i nazwisko</th>
               <th>RSVP</th>
               <th>Dieta</th>
+              <th>Danie</th>
               <th>Stol</th>
               <th>Akcje</th>
             </tr>
@@ -129,6 +130,18 @@
                   >
                     @for (option of dietOptions; track option.value) {
                       <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <select
+                    class="inline-select"
+                    [ngModel]="guest.mealOptionId"
+                    (ngModelChange)="updateGuest(guest, { mealOptionId: $event || null })"
+                  >
+                    <option [ngValue]="null">-</option>
+                    @for (option of mealOptionsService.mealOptions(); track option.id) {
+                      <option [value]="option.id">{{ option.label }}</option>
                     }
                   </select>
                 </td>

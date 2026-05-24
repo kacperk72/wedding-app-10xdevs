@@ -13,6 +13,9 @@ const weddingsRouter = require("./routes/weddings");
 const guestsRouter = require("./routes/guests");
 const mealOptionsRouter = require("./routes/meal-options");
 const tablesRouter = require("./routes/tables");
+const vendorsRouter = require("./routes/vendors");
+const contractsRouter = require("./routes/contracts");
+const paymentsRouter = require("./routes/payments");
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -32,6 +35,9 @@ app.use("/api/me", requireSsoAuth, meRouter);
 app.use("/api/weddings/:weddingId/guests", requireSsoAuth, guestsRouter);
 app.use("/api/weddings/:weddingId/meal-options", requireSsoAuth, mealOptionsRouter);
 app.use("/api/weddings/:weddingId/tables", requireSsoAuth, tablesRouter);
+app.use("/api/weddings/:weddingId/vendors", requireSsoAuth, vendorsRouter);
+app.use("/api/weddings/:weddingId/contracts/:contractId/payments", requireSsoAuth, paymentsRouter);
+app.use("/api/weddings/:weddingId/contracts", requireSsoAuth, contractsRouter);
 app.use("/api/weddings", requireSsoAuth, weddingsRouter);
 
 app.use((_req, res) => {

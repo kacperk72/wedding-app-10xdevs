@@ -1,33 +1,33 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { CreateTableDto, UpdateTableDto, WeddingTable } from '../models/table.model';
+import { CreateTableDto, Table, UpdateTableDto } from '../models/table.model';
 import { apiUrl } from '../http/api-url';
 
 @Injectable({ providedIn: 'root' })
 export class TablesService {
   private readonly http = inject(HttpClient);
 
-  private readonly _tables = signal<WeddingTable[]>([]);
+  private readonly _tables = signal<Table[]>([]);
   readonly tables = this._tables.asReadonly();
 
-  list(weddingId: string): Observable<WeddingTable[]> {
+  list(weddingId: string): Observable<Table[]> {
     return this.http
-      .get<WeddingTable[]>(apiUrl(`/weddings/${weddingId}/tables`))
+      .get<Table[]>(apiUrl(`/weddings/${weddingId}/tables`))
       .pipe(tap((tables) => this._tables.set(tables)));
   }
 
-  create(weddingId: string, dto: CreateTableDto): Observable<WeddingTable> {
+  create(weddingId: string, dto: CreateTableDto): Observable<Table> {
     this.assertSeatsCount(dto.seatsCount);
     return this.http
-      .post<WeddingTable>(apiUrl(`/weddings/${weddingId}/tables`), dto)
+      .post<Table>(apiUrl(`/weddings/${weddingId}/tables`), dto)
       .pipe(tap((created) => this._tables.update((list) => [...list, created])));
   }
 
-  update(weddingId: string, id: string, patch: UpdateTableDto): Observable<WeddingTable> {
+  update(weddingId: string, id: string, patch: UpdateTableDto): Observable<Table> {
     if (patch.seatsCount !== undefined) this.assertSeatsCount(patch.seatsCount);
     return this.http
-      .patch<WeddingTable>(apiUrl(`/weddings/${weddingId}/tables/${id}`), patch)
+      .patch<Table>(apiUrl(`/weddings/${weddingId}/tables/${id}`), patch)
       .pipe(
         tap((updated) =>
           this._tables.update((list) =>

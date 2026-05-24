@@ -24,6 +24,8 @@ export interface Guest {
   tableId: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
+  mealOptionLabel?: string | null;
+  tableName?: string | null;
 }
 
 export interface CreateGuestDto {

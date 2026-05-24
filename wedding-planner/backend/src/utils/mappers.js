@@ -63,9 +63,63 @@ function mapTable(table) {
   };
 }
 
+function mapVendor(vendor) {
+  return {
+    id: vendor.id,
+    weddingId: vendor.wedding_id,
+    category: vendor.category,
+    companyName: vendor.company_name,
+    contactPerson: vendor.contact_person,
+    phone: vendor.phone,
+    email: vendor.email,
+    status: vendor.status,
+    contractAmount: vendor.contract_amount == null ? null : Number(vendor.contract_amount),
+    notes: vendor.notes,
+    hasContract: Boolean(vendor.contracts?.length || vendor.has_contract),
+  };
+}
+
+function mapPayment(payment, vendor = null) {
+  const due = new Date(`${payment.due_date}T00:00:00.000Z`);
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  return {
+    id: payment.id,
+    contractId: payment.contract_id,
+    kind: payment.kind,
+    dueDate: payment.due_date,
+    amount: Number(payment.amount),
+    status: payment.status,
+    paidAt: payment.paid_at,
+    vendorName: vendor?.company_name || payment.contracts?.vendors?.company_name || null,
+    daysUntilDue: Math.ceil((due.getTime() - today.getTime()) / 86400000),
+  };
+}
+
+function mapContract(contract) {
+  const payments = (contract.payments || []).map((payment) => mapPayment(payment));
+  return {
+    id: contract.id,
+    weddingId: contract.wedding_id,
+    vendorId: contract.vendor_id,
+    vendorName: contract.vendors?.company_name || null,
+    category: contract.vendors?.category || null,
+    totalAmount: contract.total_amount == null ? null : Number(contract.total_amount),
+    signedDate: contract.signed_date,
+    status: contract.status,
+    payments,
+    paidCount: payments.filter((payment) => payment.status === "paid").length,
+    totalCount: payments.length,
+  };
+}
+
 module.exports = {
+  mapContract,
   mapGuest,
   mapMealOption,
+  mapPayment,
   mapTable,
+  mapVendor,
   mapWedding,
 };

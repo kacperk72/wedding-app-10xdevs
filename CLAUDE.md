@@ -69,13 +69,18 @@ When asked to start implementation:
 2. Backend implementation uses Express routes/services, Supabase JS service-role client, and JWKS auth middleware. Do not add Sequelize/MySQL to wedding-planner; MySQL belongs to SSO only.
 3. The data model in `04-database.md` (25 tables including the catering subsystem) is the contract. Schema changes must round-trip into the Supabase migration and that doc.
 
-**Backend implementation state (last reviewed at commit `46ec7fd`):**
+**Implementation state:**
 - M0/M1: complete (scaffold, schema, RLS lockdown, seed)
 - M2: complete (SSO mapping via `services/users.js`, wedding bootstrap, invite/accept-invite flow as atomic PG RPCs, membership guard `middleware/wedding-member.js`)
-- M3 backend: complete (guests / meal-options / tables CRUD as nested routers under `/api/weddings/:weddingId/*`)
-- M3 frontend: **not started** — vertical slice not closed
-- M4+ (vendors / contracts / payments / budget / catering / tasks / seating / dashboard): **not started**
-- Test suite: 30 tests across 10 suites (validation helpers, mappers with injected clock, error handler, invite flow, resource CRUD, wedding/me payload). Mock-Supabase + HTTP test harness in `test/helpers/`.
+- M3: complete end-to-end — backend (guests / meal-options / tables CRUD + `guest_aggregates` RPC) and frontend (login → SSO redirect → wedding-setup → guests page wired to `GuestsService`, settings page with meal-options + tables CRUD, dashboard with countdown + KPI bar from aggregates)
+- M4: complete end-to-end — backend (vendors / contracts / payments routes with `syncContractStatus` business logic, `/upcoming-payments` and `vendors/missing` aggregate endpoints) and frontend (`VendorsService`, `ContractsService`, `PaymentsService`, vendors and contracts pages wired)
+- M5+ (budget / catering / tasks / seating / dashboard polish / export): **not started**
+- Test suite: **36 tests across 11 suites** (validation helpers, mappers with injected clock, error handler, invite flow, resource CRUD covering guests/meal-options/tables/vendors/contracts/payments with cross-wedding rejection + payment status sync, wedding/me payload). Mock-Supabase + HTTP test harness in `test/helpers/`.
+
+**Frontend wiring conventions:**
+- `WeddingService` is the canonical source for `weddingId` — pages call `wedding.wedding()?.id` to scope subsequent API calls. `WeddingService.loadCurrent()` is idempotent and pulls from `GET /api/weddings/:id` after `AuthService.me()` resolves the membership.
+- Per-resource services follow `GuestsService` shape: signal of cached list, `list/create/update/remove` returning Observable that updates the signal via `tap()`. Aggregates (`GuestsService.loadAggregates`) call dedicated backend endpoint and fall back to client-side derivation only until the server response arrives.
+- Cross-resource FK checks on the BE (e.g. `contracts.vendor_id`) are enforced via `assertWeddingRecordExists` helper. **Always filter cross-table joins by IDs (`.in("vendor_id", ids)`) — never `select *` without filter on a globally-scoped table**, even with `service_role`. Two perf bugs of this shape existed in M4 first iteration and were fixed; pattern is now consistent.
 
 **Convention for new resources** (replicate this pattern when adding vendors / contracts / payments etc.):
 1. New file `wedding-planner/backend/src/routes/<resource>.js` with `express.Router({ mergeParams: true })` and `router.use(requireWeddingMember())` at the top.
@@ -87,11 +92,13 @@ When asked to start implementation:
 **Migrations** (`wedding-planner/backend/supabase/migrations/`):
 - `20260523233000_m1_schema_and_seed.sql` — full schema (25 tables, indexes, triggers, `bootstrap_wedding` / initial `create_wedding_with_bootstrap` RPCs, `task_templates` seed)
 - `20260524090000_rls_lockdown.sql` — RLS enabled on all 25 public tables (deny-all for `anon`/`authenticated`), `search_path` pinned on all 8 custom functions
-- `20260524093000_revoke_security_definer_from_public.sql` — `EXECUTE` revoked from `PUBLIC` on both SECURITY DEFINER RPCs
+- `20260524093000_revoke_security_definer_from_public.sql` — `EXECUTE` revoked from `PUBLIC` on both initial SECURITY DEFINER RPCs
 - `20260524120000_accept_partner_invite_rpc.sql` — atomic invite-acceptance RPC (`SELECT ... FOR UPDATE` on `partner_invitations`, `unique_violation` handler), returns jsonb `{status, error}` or success payload
 - `20260524123000_create_wedding_with_bootstrap_json_errors.sql` — rewrites `create_wedding_with_bootstrap` to return the same jsonb `{status, error}` shape on failure instead of raising — Express handler keys off `data.error` consistently across both RPCs
+- `20260524190000_guest_aggregates_rpc.sql` — `guest_aggregates(p_wedding_id)` RPC with `count(*) filter (where ...)` for KPI bar; consumed by `GET /api/weddings/:id/guests/aggregates` and `GuestsService.loadAggregates` on the dashboard
+- `20260524193000_revoke_rpc_execute_from_client_roles.sql` — security hardening: `revoke execute ... from anon, authenticated` on all 4 SECURITY DEFINER RPCs. Required because Supabase auto-grants `EXECUTE` to `anon`/`authenticated` on every newly created function in `public` (for PostgREST `/rest/v1/rpc/*`); `revoke from public` alone doesn't undo those explicit role grants — without this migration, anyone with a publishable key could call sensitive RPCs directly
 
-Confirm what's actually on remote with MCP `list_migrations` before assuming — drift between repo and remote happens (write migration → forget `db push`).
+**Drift check (do this every session):** `mcp list_migrations` vs `ls wedding-planner/backend/supabase/migrations/`. Writing a migration without `npx supabase db push` is the most common mistake in this repo — it has happened on 4 of 7 migrations. If counts disagree, the missing migration(s) need to be pushed before any code that depends on them is exercised.
 
 To add a new migration: `npx supabase migration new <name>` from `wedding-planner/backend/`, write SQL, then `npx supabase db push`. The Supabase MCP plugin lets agents iterate via `execute_sql` and verify with `get_advisors` before committing to a migration file. **Do not use `apply_migration` MCP tool for iterative work — it writes history on every call and conflicts with `db pull`.**
 

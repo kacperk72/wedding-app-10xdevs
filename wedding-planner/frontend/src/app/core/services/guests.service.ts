@@ -26,6 +26,8 @@ export class GuestsService {
   private readonly _guests = signal<Guest[]>([]);
   readonly guests = this._guests.asReadonly();
 
+  private readonly _serverAggregates = signal<GuestAggregates | null>(null);
+
   private readonly _filters = signal<GuestFilters>(DEFAULT_FILTERS);
   readonly filters = this._filters.asReadonly();
 
@@ -34,6 +36,9 @@ export class GuestsService {
   }
 
   readonly aggregates = computed<GuestAggregates>(() => {
+    const serverAggregates = this._serverAggregates();
+    if (serverAggregates) return serverAggregates;
+
     const list = this._guests();
     return {
       invited: list.length,
@@ -77,13 +82,29 @@ export class GuestsService {
   list(weddingId: string): Observable<Guest[]> {
     return this.http
       .get<Guest[]>(apiUrl(`/weddings/${weddingId}/guests`))
-      .pipe(tap((guests) => this._guests.set(guests)));
+      .pipe(
+        tap((guests) => {
+          this._serverAggregates.set(null);
+          this._guests.set(guests);
+        }),
+      );
+  }
+
+  loadAggregates(weddingId: string): Observable<GuestAggregates> {
+    return this.http
+      .get<GuestAggregates>(apiUrl(`/weddings/${weddingId}/guests/aggregates`))
+      .pipe(tap((aggregates) => this._serverAggregates.set(aggregates)));
   }
 
   create(weddingId: string, dto: CreateGuestDto): Observable<Guest> {
     return this.http
       .post<Guest>(apiUrl(`/weddings/${weddingId}/guests`), dto)
-      .pipe(tap((created) => this._guests.update((list) => [...list, created])));
+      .pipe(
+        tap((created) => {
+          this._serverAggregates.set(null);
+          this._guests.update((list) => [...list, created]);
+        }),
+      );
   }
 
   update(weddingId: string, id: string, patch: UpdateGuestDto): Observable<Guest> {
@@ -91,7 +112,10 @@ export class GuestsService {
       .patch<Guest>(apiUrl(`/weddings/${weddingId}/guests/${id}`), patch)
       .pipe(
         tap((updated) =>
-          this._guests.update((list) => list.map((g) => (g.id === id ? updated : g))),
+          this._guests.update((list) => {
+            this._serverAggregates.set(null);
+            return list.map((g) => (g.id === id ? updated : g));
+          }),
         ),
       );
   }
@@ -99,6 +123,11 @@ export class GuestsService {
   remove(weddingId: string, id: string): Observable<void> {
     return this.http
       .delete<void>(apiUrl(`/weddings/${weddingId}/guests/${id}`))
-      .pipe(tap(() => this._guests.update((list) => list.filter((g) => g.id !== id))));
+      .pipe(
+        tap(() => {
+          this._serverAggregates.set(null);
+          this._guests.update((list) => list.filter((g) => g.id !== id));
+        }),
+      );
   }
 }

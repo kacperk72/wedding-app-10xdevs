@@ -1,4 +1,4 @@
-export interface WeddingTable {
+export interface Table {
   id: string;
   weddingId: string;
   name: string;

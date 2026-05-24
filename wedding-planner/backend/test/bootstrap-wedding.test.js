@@ -136,3 +136,26 @@ describe("Create wedding RPC migration", () => {
     }
   });
 });
+
+describe("RPC execute grants hardening migration", () => {
+  const migrationPath = join(
+    __dirname,
+    "..",
+    "supabase",
+    "migrations",
+    "20260524193000_revoke_rpc_execute_from_client_roles.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8");
+
+  it("revokes SECURITY DEFINER RPC execution from client roles", () => {
+    for (const fragment of [
+      "revoke execute on function public.accept_partner_invite(text, uuid)",
+      "revoke execute on function public.guest_aggregates(uuid)",
+      "revoke execute on function public.bootstrap_wedding(uuid, uuid)",
+      "revoke execute on function public.create_wedding_with_bootstrap(uuid, text, text, date, text)",
+      "from anon, authenticated",
+    ]) {
+      assert.ok(sql.includes(fragment), `${fragment} is present`);
+    }
+  });
+});

@@ -1,8 +1,5 @@
-<app-page-header
-  title="Kontrahenci"
-  subtitle="Firmy i osoby, które pomagają dowieźć dzień ślubu"
->
-  <span class="button-like">Dodaj kontrahenta</span>
+<app-page-header title="Kontrahenci" subtitle="Firmy i osoby, ktore pomagaja dowiezc dzien slubu">
+  <button type="button" class="button-like" (click)="addVendor()">Dodaj kontrahenta</button>
 </app-page-header>
 
 <div class="page-stack">
@@ -10,61 +7,158 @@
     <div class="panel__header">
       <div>
         <p class="panel__eyebrow">Wymaga uwagi</p>
-        <h2>Brakujący kontrahenci na 63 dni przed ślubem</h2>
+        <h2>Brakujace kategorie</h2>
       </div>
-      <span class="badge badge--warning">3 kategorie</span>
+      <span class="badge badge--warning">{{ vendorsService.missingCategories().length }} kategorii</span>
     </div>
-    <p class="muted">Do potwierdzenia zostały: makijaż, dekoracje stołów i transport gości.</p>
+    <p class="muted">
+      @if (vendorsService.missingCategories().length) {
+        Do potwierdzenia: {{ vendorsService.missingCategories().join(', ') }}.
+      } @else {
+        Najwazniejsze kategorie sa zabezpieczone.
+      }
+    </p>
   </section>
 
-  <div class="toolbar" aria-label="Filtry statusów">
-    @for (status of statuses; track status) {
-      <span class="chip">{{ status }}</span>
-    }
-  </div>
-
-  <div class="toolbar" aria-label="Filtry kategorii">
-    @for (category of categories; track category) {
-      <span class="chip">{{ category }}</span>
-    }
-  </div>
+  <section class="surface panel">
+    <form class="form-grid" (ngSubmit)="addVendor()">
+      <div class="field">
+        <label for="newCategory">Kategoria</label>
+        <select
+          id="newCategory"
+          name="newCategory"
+          [ngModel]="newVendor().category"
+          (ngModelChange)="updateNewVendor({ category: $event })"
+        >
+          @for (category of categoryOptions; track category.value) {
+            <option [value]="category.value">{{ category.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="newCompany">Firma</label>
+        <input
+          id="newCompany"
+          name="newCompany"
+          required
+          [ngModel]="newVendor().companyName"
+          (ngModelChange)="updateNewVendor({ companyName: $event })"
+        />
+      </div>
+      <div class="field">
+        <label for="newStatus">Status</label>
+        <select
+          id="newStatus"
+          name="newStatus"
+          [ngModel]="newVendor().status"
+          (ngModelChange)="updateNewVendor({ status: $event })"
+        >
+          @for (status of statusOptions; track status.value) {
+            <option [value]="status.value">{{ status.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="newAmount">Kwota</label>
+        <input
+          id="newAmount"
+          name="newAmount"
+          type="number"
+          min="0"
+          [ngModel]="newVendor().contractAmount"
+          (ngModelChange)="updateNewVendor({ contractAmount: $event === '' ? null : +$event })"
+        />
+      </div>
+      <button type="submit" class="button-like" style="grid-column: 1 / -1">Dodaj</button>
+    </form>
+  </section>
 
   <section class="section-grid">
-    @for (vendor of vendors; track vendor.company) {
+    @for (vendor of vendorsService.vendors(); track vendor.id) {
       <article class="surface panel">
-        <div class="panel__header">
-          <div>
-            <p class="panel__eyebrow">{{ vendor.category }}</p>
-            <h3>{{ vendor.company }}</h3>
+        @if (editingVendorId() === vendor.id) {
+          <form class="form-grid" (ngSubmit)="saveVendor(vendor.id)">
+            <div class="field">
+              <label>Kategoria</label>
+              <select
+                [ngModel]="editingVendor().category"
+                name="editCategory"
+                (ngModelChange)="updateEditingVendor({ category: $event })"
+              >
+                @for (category of categoryOptions; track category.value) {
+                  <option [value]="category.value">{{ category.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>Firma</label>
+              <input
+                [ngModel]="editingVendor().companyName"
+                name="editCompany"
+                (ngModelChange)="updateEditingVendor({ companyName: $event })"
+              />
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <select
+                [ngModel]="editingVendor().status"
+                name="editStatus"
+                (ngModelChange)="updateEditingVendor({ status: $event })"
+              >
+                @for (status of statusOptions; track status.value) {
+                  <option [value]="status.value">{{ status.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>Kwota</label>
+              <input
+                type="number"
+                min="0"
+                [ngModel]="editingVendor().contractAmount"
+                name="editAmount"
+                (ngModelChange)="updateEditingVendor({ contractAmount: $event === '' ? null : +$event })"
+              />
+            </div>
+            <div class="toolbar" style="grid-column: 1 / -1">
+              <button type="submit" class="button-like">Zapisz</button>
+              <button type="button" class="button-like button-like--ghost" (click)="editingVendorId.set(null)">
+                Anuluj
+              </button>
+            </div>
+          </form>
+        } @else {
+          <div class="panel__header">
+            <div>
+              <p class="panel__eyebrow">{{ categoryLabel(vendor.category) }}</p>
+              <h3>{{ vendor.companyName }}</h3>
+            </div>
+            <span class="badge {{ statusClass(vendor.status) }}">{{ statusLabel(vendor.status) }}</span>
           </div>
-          <span class="badge {{ statusClass(vendor.status) }}">
-            {{ statusLabel(vendor.status) }}
-          </span>
-        </div>
-        <div class="list">
-          <div>
-            <p class="list-item__title">{{ vendor.contact }}</p>
-            <p class="list-item__meta">{{ vendor.phone }}</p>
+          <div class="list">
+            <div>
+              <p class="list-item__title">{{ vendor.contactPerson || '-' }}</p>
+              <p class="list-item__meta">{{ vendor.phone || '-' }}</p>
+            </div>
+            <div>
+              <p class="list-item__meta">{{ vendor.email || '-' }}</p>
+              <p class="list-item__title">{{ money(vendor.contractAmount) }}</p>
+            </div>
           </div>
-          <div>
-            <p class="list-item__meta">{{ vendor.email }}</p>
-            <p class="list-item__title">{{ vendor.amount }}</p>
+          <div class="toolbar">
+            <button type="button" class="button-like button-like--secondary" (click)="startEdit(vendor)">
+              Edytuj
+            </button>
+            <button type="button" class="button-like button-like--ghost" (click)="removeVendor(vendor.id)">
+              Usun
+            </button>
           </div>
-        </div>
-        <div class="toolbar">
-          <span class="button-like button-like--secondary">Edytuj</span>
-          <span class="button-like button-like--secondary">Zobacz umowę</span>
-        </div>
+        }
       </article>
+    } @empty {
+      <section class="empty-state">
+        <p>Brak kontrahentow.</p>
+      </section>
     }
-
-    <article class="surface panel">
-      <div>
-        <p class="panel__eyebrow">Nowy wpis</p>
-        <h3>Dodaj kontrahenta</h3>
-      </div>
-      <p class="muted">Kategoria, kontakt, status rozmów i szacowana kwota trafią później do budżetu.</p>
-      <span class="button-like">Dodaj</span>
-    </article>
   </section>
 </div>
