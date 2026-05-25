@@ -1,101 +1,169 @@
 <app-page-header title="Zadania" subtitle="Lista spraw z automatycznej osi czasu i własnych notatek">
-  <span class="button-like">Dodaj zadanie</span>
+  <button type="button" class="button-like" (click)="isAddDialogOpen.set(true)">
+    <app-icon name="plus" [size]="16" />
+    Dodaj zadanie
+  </button>
 </app-page-header>
 
 <div class="page-stack">
-  <div class="toolbar">
-    <span class="chip badge--success">Lista</span>
-    <span class="chip">Kalendarz</span>
-  </div>
-
-  <section class="kanban-section kanban-section--danger">
-    <div class="panel__header">
-      <h2>Opóźnione</h2>
-      <span class="badge badge--danger">{{ overdue().length }}</span>
-    </div>
-    <div class="list">
-      @for (task of overdue(); track task.id) {
-        <div class="list-item">
-          <div>
-            <p class="list-item__title">
-              <input type="checkbox" [checked]="task.done" (change)="toggleDone(task.id)" />
-              {{ task.title }}
-            </p>
-            <p class="list-item__meta">{{ task.due }} · {{ task.category }}</p>
-          </div>
-          @if (task.auto) {
-            <span class="badge badge--neutral">auto</span>
-          }
-        </div>
-      }
+  <section class="surface panel">
+    <div class="toolbar">
+      <button type="button" class="button-like" (click)="isAddDialogOpen.set(true)">
+        <app-icon name="plus" [size]="16" />
+        Dodaj zadanie
+      </button>
+      <button type="button" class="button-like button-like--secondary" (click)="regenerateAuto()">
+        <app-icon name="sparkles" [size]="16" />
+        Regeneruj auto
+      </button>
     </div>
   </section>
 
-  <section class="kanban-section kanban-section--warning">
-    <div class="panel__header">
-      <h2>W tym tygodniu</h2>
-      <span class="badge badge--warning">{{ thisWeek().length }}</span>
-    </div>
-    <div class="list">
-      @for (task of thisWeek(); track task.id) {
-        <div class="list-item">
-          <div>
-            <p class="list-item__title">
-              <input type="checkbox" [checked]="task.done" (change)="toggleDone(task.id)" />
-              {{ task.title }}
-            </p>
-            <p class="list-item__meta">{{ task.due }} · {{ task.category }}</p>
-          </div>
-          @if (task.auto) {
-            <span class="badge badge--neutral">auto</span>
-          }
-        </div>
-      }
-    </div>
-  </section>
-
-  <section class="kanban-section kanban-section--future">
-    <div class="panel__header">
-      <h2>W przyszłości</h2>
-      <span class="badge badge--info">{{ future().length }}</span>
-    </div>
-    <div class="list">
-      @for (task of future(); track task.id) {
-        <div class="list-item">
-          <div>
-            <p class="list-item__title">
-              <input type="checkbox" [checked]="task.done" (change)="toggleDone(task.id)" />
-              {{ task.title }}
-            </p>
-            <p class="list-item__meta">{{ task.due }} · {{ task.category }}</p>
-          </div>
-          @if (task.auto) {
-            <span class="badge badge--neutral">auto</span>
-          }
-        </div>
-      }
-    </div>
-  </section>
-
-  @if (completed().length > 0) {
-    <section class="surface panel">
+  @for (section of sections(); track section.id) {
+    <section class="kanban-section {{ section.tone }}">
       <div class="panel__header">
-        <div>
-          <p class="panel__eyebrow">Zrobione</p>
-          <h2>Ukończone zadania</h2>
+        <button type="button" class="section-toggle" (click)="toggleSection(section.id)">
+          <app-icon name="list-checks" [size]="18" />
+          <span>{{ section.title }}</span>
+        </button>
+        <div class="toolbar">
+          <span class="badge {{ section.countClass }}">{{ section.tasks.length }}</span>
+          <button
+            type="button"
+            class="button-like button-like--ghost button-like--compact"
+            (click)="toggleSection(section.id)"
+          >
+            {{ isCollapsed(section.id) ? 'Pokaż' : 'Ukryj' }}
+          </button>
         </div>
-        <span class="badge badge--success">{{ completed().length }}</span>
       </div>
-      <div class="list">
-        @for (task of completed(); track task.id) {
-          <div class="list-item">
-            <p class="list-item__title">{{ task.title }}</p>
-            <button type="button" class="button-like button-like--secondary" (click)="toggleDone(task.id)">
-              Cofnij
-            </button>
+
+      @if (!isCollapsed(section.id)) {
+        @if (section.tasks.length === 0) {
+          <div class="empty-state empty-state--compact">
+            <app-icon name="sparkles" [size]="22" />
+            <p>{{ section.emptyText }}</p>
+          </div>
+        } @else {
+          <div class="list">
+            @for (task of section.tasks; track task.id) {
+              <div class="list-item task-row">
+                <label class="task-row__main">
+                  <input
+                    type="checkbox"
+                    [checked]="task.done"
+                    (change)="toggleDone(task, $any($event.target).checked)"
+                  />
+                  <span>
+                    <strong class="list-item__title">{{ task.title }}</strong>
+                    <span class="list-item__meta">
+                      {{ formatDate(task.dueDate) }}
+                      @if (task.description) {
+                        · {{ task.description }}
+                      }
+                    </span>
+                  </span>
+                </label>
+
+                <div class="task-row__meta">
+                  <span class="badge {{ categoryClass(task.category) }}">
+                    {{ categoryLabel(task.category) }}
+                  </span>
+                  @if (task.isAuto) {
+                    <span class="badge badge--neutral">auto</span>
+                  }
+                  <button
+                    type="button"
+                    class="button-like button-like--ghost button-like--icon"
+                    aria-label="Usuń zadanie"
+                    (click)="removeTask(task)"
+                  >
+                    <app-icon name="x" [size]="16" />
+                  </button>
+                </div>
+              </div>
+            }
           </div>
         }
-      </div>
+      }
     </section>
   }
 </div>
+
+@if (isAddDialogOpen()) {
+  <div class="modal-backdrop" role="presentation" (click)="isAddDialogOpen.set(false)">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addTaskTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Nowe zadanie</p>
+          <h2 id="addTaskTitle">Dodaj zadanie</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="isAddDialogOpen.set(false)">
+          Zamknij
+        </button>
+      </div>
+
+      <form class="form-grid" (ngSubmit)="addTask()">
+        <div class="field">
+          <label for="taskTitle">Tytuł</label>
+          <input
+            id="taskTitle"
+            name="taskTitle"
+            required
+            [ngModel]="newTask().title"
+            (ngModelChange)="updateNewTask({ title: $event })"
+          />
+        </div>
+
+        <div class="field">
+          <label for="taskCategory">Kategoria</label>
+          <select
+            id="taskCategory"
+            name="taskCategory"
+            [ngModel]="newTask().category"
+            (ngModelChange)="setNewTaskCategory($event)"
+          >
+            @for (option of categoryOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="taskDueDate">Termin</label>
+          <input
+            id="taskDueDate"
+            name="taskDueDate"
+            type="date"
+            required
+            [ngModel]="newTask().dueDate"
+            (ngModelChange)="updateNewTask({ dueDate: $event })"
+          />
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="taskDescription">Opis</label>
+          <textarea
+            id="taskDescription"
+            name="taskDescription"
+            [ngModel]="newTask().description"
+            (ngModelChange)="updateNewTask({ description: $event })"
+          ></textarea>
+        </div>
+
+        <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+          <button type="button" class="button-like button-like--secondary" (click)="isAddDialogOpen.set(false)">
+            Anuluj
+          </button>
+          <button type="submit" class="button-like">Dodaj</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

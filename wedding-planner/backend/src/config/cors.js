@@ -1,6 +1,8 @@
 require("dotenv").config();
 
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:4200")
+const defaultOrigins = ["http://localhost:4200", "https://wedding-planner-kubitk.pl"];
+
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || defaultOrigins.join(","))
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);

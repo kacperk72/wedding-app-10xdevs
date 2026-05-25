@@ -13,14 +13,11 @@ Cel: istniejący katalog `wedding-planner/` buduje frontend i backend, a backend
 - [x] Frontend scaffold: `wedding-planner/frontend` — Angular standalone + SCSS.
 - [x] Backend scaffold: `wedding-planner/backend` — Express.
 - [ ] Konfiguracja Prettier (100 chars, single quotes — zgodnie z konwencją repo) + ESLint w obu apkach
-- [ ] Tailwind opcjonalnie — *jeśli preferujesz utility classes*; w przeciwnym razie tokeny do SCSS variables (zalecam SCSS, bo `CLAUDE.md` mówi "SCSS scoped")
 - [x] Backend: `dotenv`, helmet, CORS allowlist, JSON body parser.
 - [x] Backend: Supabase service-role client w `src/config/database.js`.
 - [x] Backend: JWKS auth middleware w `src/middleware/jwks-auth.js`.
-- [ ] Frontend: `provideRouter`, `provideHttpClient(withInterceptors([authInterceptor]))`, `provideAnimations`
 - [ ] Wspólne DTO / typy można dodać później, jeśli backend i frontend zaczną duplikować kontrakty.
 - [x] Supabase project: `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` w `.env` (gitignored, `.env.example` jako template).
-- [ ] CI: lint + typecheck + test na push (rekomenduję GitHub Actions, ale zostaw to elastyczne)
 - [x] Setup design tokens w `wedding-planner/frontend/src/styles/_tokens.scss`.
 
 **Done when**: frontend działa na `:4200`, backend na `:3000`/`:3001`, `/api/health` zwraca status procesu i reachability Supabase.
@@ -76,6 +73,7 @@ Cel: zalogować się przez SSO, zmapować użytkownika SSO do lokalnego `users`,
 - [ ] `MobileBottomNav` (variant pod `<768px`)
 
 **Done when**:
+
 - Mogę zalogować się przez SSO, wejść do wedding-plannera, utworzyć wesele i zobaczyć Dashboard z licznikiem dni.
 - W Supabase powstają `users`, `weddings`, `wedding_members`, budżet startowy, stoły i auto-zadania.
 - Mogę zaprosić partnera mailem (na MVP — sprawdzam logi); po zalogowaniu przez SSO wpada do tego samego wesela.
@@ -87,6 +85,7 @@ Cel: zalogować się przez SSO, zmapować użytkownika SSO do lokalnego `users`,
 Cel: pełny CRUD na gościach + agregaty + filtry.
 
 ### Backend (zamknięte)
+
 - [x] `routes/guests.js` jako nested router pod `/api/weddings/:weddingId/guests` (mergeParams + `router.use(requireWeddingMember())`).
 - [x] Walidacja przez helpery z `utils/request-validation.js` zamiast DTO klas: `requireString`/`optionalEnum`/`optionalBoolean`/`optionalDateString` + `enumValue` na `relation`.
 - [x] Endpointy: list z filtrami (`rsvp`/`diet`/`relation`/`search`) i sortowaniem (`sort=firstName|lastName`, `direction=asc|desc`), POST/PATCH/DELETE. Defaults: `rsvpStatus='pending'`, `diet='pending'`, `isChild=false`, `hasPlusOne=false`.
@@ -97,6 +96,7 @@ Cel: pełny CRUD na gościach + agregaty + filtry.
 - [x] Test infrastructure: `test/helpers/mock-supabase.js` (in-memory QueryBuilder + mock RPC `accept_partner_invite`) + `test/helpers/http-app.js` (`createTestServer({seed})` + `request()`). Reuse'owalne dla M4+.
 
 ### Frontend (zamknięte)
+
 - [x] `GuestsService`: signal `guests`, computed `aggregates` (z fallbackiem klient-side gdy serwerowych jeszcze nie ma), `filteredGuests`, `loadAggregates(weddingId)` wywoływane przez Dashboard. Server-aggregates invalidowane po każdej mutacji (create/update/remove).
 - [x] `MealOptionsService` + `TablesService`: list/create/update/remove na właściwych ścieżkach scoped.
 - [x] `GuestsPage`: konsumuje `GuestsService` (zero local mock'ów). Pasek agregatów, search input, filtry, grupowanie per relacja.
@@ -113,6 +113,7 @@ Cel: pełny CRUD na gościach + agregaty + filtry.
 To jeden milestone, bo te trzy encje są ściśle zazębione i UI Umów konsumuje dane z Kontrahentów.
 
 ### Backend (zamknięte)
+
 - [x] `routes/vendors.js` — CRUD + `GET /missing` (brakujące kategorie wg `status NOT IN ('zarezerwowany','zaplacony','wykonany')`); 10 kategorii (`sala`/`catering`/`fotograf`/`dj`/`kwiaciarz`/`usc`/`ksiadz`/`makijaz`/`dekoracje`/`tort`), 5 statusów (`rozwazany`/`spotkanie`/`zarezerwowany`/`zaplacony`/`wykonany`).
 - [x] `routes/contracts.js` — CRUD + `GET /upcoming-payments` (płatności w 30 dni, `status='planned'`); list zwraca contract'y z zagnieżdżonym `vendor` + `payments` z poprawnymi filtrami `.in("contract_id", ids)` (perf-correct, nie pulluje globalnie).
 - [x] `routes/payments.js` — nested pod `contracts/:contractId/payments`; `assertContractBelongsToWedding` na każdej mutacji.
@@ -121,6 +122,7 @@ To jeden milestone, bo te trzy encje są ściśle zazębione i UI Umów konsumuj
 - [x] Pokrycie testowe: vendors CRUD (happy + cross-wedding rejection + `/missing`), contracts CRUD z payment lifecycle (POST zaliczka → status `deposit_paid`, POST rata final → `paid_in_full`), `GET /upcoming-payments` smoke. **36 testów / 11 suites, all green.**
 
 ### Frontend (zamknięte)
+
 - [x] `VendorsService`, `ContractsService`, `PaymentsService` — wszystkie z signalami, ten sam wzorzec co `GuestsService`.
 - [x] `vendors.page.ts` — konsumuje `VendorsService` (list + missing), `wedding.wedding()?.id` ze `WeddingService`, alert braków, dialog dodawania, edit/delete.
 - [x] `contracts.page.ts` — konsumuje `ContractsService` + `VendorsService` (dropdown vendor) + `PaymentsService` (CRUD nested), `upcoming-payments` na górze.
@@ -135,11 +137,13 @@ To jeden milestone, bo te trzy encje są ściśle zazębione i UI Umów konsumuj
 Cel: 3 KPI, 15 kategorii, możliwość edycji planu i dodawania wydatków.
 
 ### Backend
+
 - [ ] `BudgetModule`: `GET /summary` (3 wyliczane sumy), `GET /categories` (z `spent_amount` z aggregat na expenses), `GET /categories/:id/transactions`, `PATCH /categories/:id`, `POST /expenses`, `PATCH/DELETE /expenses/:id`
 - [ ] `summary.reservedFromContracts` = suma `payments.amount` gdzie `status IN ('planned')` (czyli zarezerwowane ale jeszcze nieopłacone)
 - [ ] `summary.spent` = suma `expenses.amount` + suma opłaconych `payments.amount`. **Decyzja**: czy płatności do kontrahentów liczą się jako `expenses` automatycznie? Jeśli tak — proste, ale wymaga upsert z paymentu. Jeśli nie — wydatki i płatności to osobne strumienie i `spent` to ich suma. Zalecam drugą opcję, prostsze i mapuje 1:1 z UI
 
 ### Frontend
+
 - [ ] `BudgetService`: signals `summary`, `categories`, `transactionsByCategory` (lazy load)
 - [ ] `BudgetPage` z `BudgetSummary` + lista `BudgetCategoryRow` z chevronem rozwijającym
 - [ ] `AddExpenseDialog`: kategoria (combobox), data, opis, kwota
@@ -190,6 +194,7 @@ Cel: para wprowadza ofertę swojej sali, wybiera pakiet, konfiguruje menu, zazna
   - Dla user-foundera: aktywne `wedding_catering_selection` z Pakietem Złotym, 100 gości, 8 picks bufetu zimnego, 3 picks sałatek, 1 pick zupy, 1 pick dania głównego
 
 **Done when**:
+
 - Wprowadzam ofertę z PDFa (lub używam zaseedowanej) → wybieram Pakiet Złoty, klikam 8 z 20 pozycji bufetu, zaznaczam Pokrowce + Wiejski stół.
 - `PriceSummary` pokazuje "374 × 100 + 800 + 1500 = 39 100 zł".
 - Klikam "Synchronizuj z RSVP" → przy edycji gościa pojawia się dropdown "Wybór dania głównego" z 3 opcjami.
@@ -203,6 +208,7 @@ Cel: para wprowadza ofertę swojej sali, wybiera pakiet, konfiguruje menu, zazna
 Cel: lista z 3 sekcjami (Opóźnione / W tym tygodniu / W przyszłości) + auto-generowanie z templates.
 
 ### Backend
+
 - [ ] `TasksModule`: CRUD + `POST /regenerate-auto`
 - [ ] `regenerate-auto` algorytm:
   1. Pobierz `weddings.wedding_date`
@@ -213,6 +219,7 @@ Cel: lista z 3 sekcjami (Opóźnione / W tym tygodniu / W przyszłości) + auto-
 - [ ] Po `PATCH /api/weddings/:id` ze zmianą `wedding_date` → wywołaj z parametrem `force` (po potwierdzeniu na froncie)
 
 ### Frontend
+
 - [ ] `TasksService`: signal `tasks`, computed `overdueTasks`, `thisWeekTasks`, `futureTasks`
 - [ ] `TasksPage`: toggle Lista/Kalendarz, 3 sekcje (każda z `TaskGroupSection`)
 - [ ] `TaskRow` z checkboxem (toggle `done`), data, badge kategorii, badge `auto`
@@ -229,10 +236,12 @@ Cel: lista z 3 sekcjami (Opóźnione / W tym tygodniu / W przyszłości) + auto-
 Cel: drag-and-drop działa, konflikty są wykrywane.
 
 ### Backend
+
 - [ ] `SeatingModule`: CRUD na `tables`, endpointy `assign/unassign`, CRUD na `seating_conflicts`, `GET /stats`
 - [ ] `POST /tables/:id/assign`: walidacja — nie przekroczyć `seats_count`; opcjonalnie: ostrzeżenie gdy gość w konflikcie z kimś już przy stole (zwracaj `warnings: [...]` w response)
 
 ### Frontend
+
 - [ ] `SeatingService`: signals `tables`, `unassignedGuests` (z `guests` filtered), `conflicts`, computed `stats`
 - [ ] `SeatingPage` 3-kolumnowy layout
 - [ ] Drag-and-drop: użyj `@angular/cdk/drag-drop` z `cdkDrag` na kartach gości i `cdkDropList` na każdym `RoundTable`
@@ -261,7 +270,7 @@ Cel: domknięcie aplikacji.
 ### Ustawienia
 
 - [ ] `SettingsPage` z 5 sekcjami: profil, **menu na wesele**, połączone konto, bezpieczeństwo, eksport
-- [ ] `CoupleProfileForm` — `PATCH /api/weddings/:id`; przy zmianie daty otwórz dialog "Czy przesunąć zadania auto?". Trigger `tg_weddings_shift_auto_tasks` zrobi to atomowo na bazie; dialog jedynie wyświetla *konsekwencje* przed `PATCH`.
+- [ ] `CoupleProfileForm` — `PATCH /api/weddings/:id`; przy zmianie daty otwórz dialog "Czy przesunąć zadania auto?". Trigger `tg_weddings_shift_auto_tasks` zrobi to atomowo na bazie; dialog jedynie wyświetla _konsekwencje_ przed `PATCH`.
 - [ ] **`MealOptionsCard` (nowy)** — lista `meal_options` per wesele, inline add/edit/delete + drag-handle do `sortOrder`. Zasila dropdown na ekranie edycji gościa (M3).
 - [ ] `LinkedAccountCard` — pokazuje partnera (lub stan "Nie zaproszono"); przycisk "Wyślij zaproszenie ponownie" (jeśli `partner_invitations.status='pending'` lub `'expired'`); founder widzi dodatkowo przycisk "Usuń wesele" (`DELETE /api/weddings/:id`) z double-confirm
 - [ ] `ChangePasswordForm` — `POST /api/auth/change-password`

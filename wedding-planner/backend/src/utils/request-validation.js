@@ -62,6 +62,10 @@ function dateString(value, key) {
   return value;
 }
 
+function requireDateString(body, key) {
+  return dateString(requireString(body, key), key);
+}
+
 function optionalDateString(body, key) {
   if (!body || body[key] === undefined) return undefined;
   if (body[key] === null) return null;
@@ -85,5 +89,6 @@ module.exports = {
   optionalNonEmptyString,
   optionalString,
   requireAtLeastOne,
+  requireDateString,
   requireString,
 };

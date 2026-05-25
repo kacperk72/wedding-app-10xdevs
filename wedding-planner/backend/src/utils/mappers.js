@@ -114,12 +114,30 @@ function mapContract(contract) {
   };
 }
 
+function mapTask(task) {
+  return {
+    id: task.id,
+    weddingId: task.wedding_id,
+    title: task.title,
+    description: task.description,
+    category: task.category,
+    dueDate: task.due_date,
+    done: task.done,
+    doneAt: task.done_at,
+    isAuto: task.is_auto,
+    templateId: task.template_id,
+    createdAt: task.created_at,
+    updatedAt: task.updated_at,
+  };
+}
+
 module.exports = {
   mapContract,
   mapGuest,
   mapMealOption,
   mapPayment,
   mapTable,
+  mapTask,
   mapVendor,
   mapWedding,
 };

@@ -25,12 +25,26 @@
         </div>
         <div class="field">
           <label>Data slubu</label>
-          <input [value]="w.weddingDate" readonly />
+          <input
+            type="date"
+            [ngModel]="weddingDateDraft()"
+            (ngModelChange)="weddingDateDraft.set($event)"
+          />
         </div>
         <div class="field">
           <label>Miejsce ceremonii</label>
           <input [value]="w.ceremonyLocation || '-'" readonly />
         </div>
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button
+          type="button"
+          class="button-like button-like--secondary"
+          [disabled]="!weddingDateDraft() || weddingDateDraft() === w.weddingDate"
+          (click)="saveWeddingDate()"
+        >
+          Zapisz date
+        </button>
       </div>
     }
   </section>

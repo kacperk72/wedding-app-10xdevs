@@ -308,6 +308,8 @@ function createMockSupabase(seed = {}) {
       },
     ],
     partner_invitations: [],
+    tasks: [],
+    task_templates: [],
     ...seed,
   };
 

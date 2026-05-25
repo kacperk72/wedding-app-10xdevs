@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from './auth.service';
-import { CreateWeddingDto, Wedding } from '../models/wedding.model';
+import { CreateWeddingDto, UpdateWeddingDto, Wedding } from '../models/wedding.model';
 import { apiUrl } from '../http/api-url';
 
 const MS_PER_DAY = 86_400_000;
@@ -58,5 +58,11 @@ export class WeddingService {
       tap((w) => this._wedding.set(w)),
       switchMap((w) => this.auth.me().pipe(map(() => w))),
     );
+  }
+
+  update(id: string, patch: UpdateWeddingDto): Observable<Wedding> {
+    return this.http
+      .patch<Wedding>(apiUrl(`/weddings/${id}`), patch)
+      .pipe(tap((w) => this._wedding.set(w)));
   }
 }

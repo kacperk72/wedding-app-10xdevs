@@ -15,3 +15,5 @@ export interface CreateWeddingDto {
   weddingDate: string;
   ceremonyLocation: string | null;
 }
+
+export type UpdateWeddingDto = Partial<CreateWeddingDto>;
