@@ -125,8 +125,6 @@ function mapTask(task) {
     dueDate: task.due_date,
     done: task.done,
     doneAt: task.done_at,
-    isAuto: task.is_auto,
-    templateId: task.template_id,
     createdAt: task.created_at,
     updatedAt: task.updated_at,
   };

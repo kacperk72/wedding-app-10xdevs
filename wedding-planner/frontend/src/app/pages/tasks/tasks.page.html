@@ -1,4 +1,4 @@
-<app-page-header title="Zadania" subtitle="Lista spraw z automatycznej osi czasu i własnych notatek">
+<app-page-header title="Zadania" subtitle="Lista TODO z terminami — żeby niczego nie przegapić">
   <button type="button" class="button-like" (click)="isAddDialogOpen.set(true)">
     <app-icon name="plus" [size]="16" />
     Dodaj zadanie
@@ -6,18 +6,6 @@
 </app-page-header>
 
 <div class="page-stack">
-  <section class="surface panel">
-    <div class="toolbar">
-      <button type="button" class="button-like" (click)="isAddDialogOpen.set(true)">
-        <app-icon name="plus" [size]="16" />
-        Dodaj zadanie
-      </button>
-      <button type="button" class="button-like button-like--secondary" (click)="regenerateAuto()">
-        <app-icon name="sparkles" [size]="16" />
-        Regeneruj auto
-      </button>
-    </div>
-  </section>
 
   @for (section of sections(); track section.id) {
     <section class="kanban-section {{ section.tone }}">
@@ -66,9 +54,6 @@
                   <span class="badge {{ categoryClass(task.category) }}">
                     {{ categoryLabel(task.category) }}
                   </span>
-                  @if (task.isAuto) {
-                    <span class="badge badge--neutral">auto</span>
-                  }
                   <button
                     type="button"
                     class="button-like button-like--ghost button-like--icon"

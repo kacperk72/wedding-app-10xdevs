@@ -6,7 +6,6 @@ import { PartnerInvitation } from '../../core/models/wedding.model';
 import { AuthService } from '../../core/services/auth.service';
 import { MealOptionsService } from '../../core/services/meal-options.service';
 import { TablesService } from '../../core/services/tables.service';
-import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
@@ -23,7 +22,6 @@ export class SettingsPage implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly mealOptions = inject(MealOptionsService);
   protected readonly tables = inject(TablesService);
-  private readonly tasks = inject(TasksService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
@@ -77,10 +75,9 @@ export class SettingsPage implements OnInit {
     forkJoin([
       this.mealOptions.list(weddingId),
       this.tables.list(weddingId),
-      this.tasks.loadTasks(weddingId),
       this.wedding.exportJson(weddingId),
     ]).subscribe({
-      next: ([, , , exported]) => {
+      next: ([, , exported]) => {
         this.pendingInvitation.set(
           exported.partnerInvitations.find((invitation) => invitation.status === 'pending') ?? null,
         );
@@ -95,21 +92,8 @@ export class SettingsPage implements OnInit {
     const nextDate = this.weddingDateDraft();
     if (!weddingId || !currentWedding || !nextDate || nextDate === currentWedding.weddingDate) return;
 
-    const shiftDays = this.daysBetween(currentWedding.weddingDate, nextDate);
-    const autoActiveCount = this.tasks.tasks().filter((task) => task.isAuto && !task.done).length;
-    const confirmed = window.confirm(
-      `Zmieniasz date slubu. ${autoActiveCount} nieukonczonych zadan automatycznych zostanie przesunietych o ${shiftDays} dni. Manualne i ukonczone - bez zmian.`,
-    );
-    if (!confirmed) {
-      this.weddingDateDraft.set(currentWedding.weddingDate);
-      return;
-    }
-
     this.wedding.update(weddingId, { weddingDate: nextDate }).subscribe({
-      next: () => {
-        this.tasks.loadTasks(weddingId).subscribe();
-        this.toast.success('Data slubu zostala zapisana.');
-      },
+      next: () => this.toast.success('Data slubu zostala zapisana.'),
       error: () => this.toast.error('Nie udalo sie zapisac daty slubu.'),
     });
   }
@@ -276,9 +260,4 @@ export class SettingsPage implements OnInit {
     return id;
   }
 
-  private daysBetween(from: string, to: string): number {
-    const fromDate = new Date(`${from}T00:00:00.000Z`);
-    const toDate = new Date(`${to}T00:00:00.000Z`);
-    return Math.round((toDate.getTime() - fromDate.getTime()) / 86_400_000);
-  }
 }

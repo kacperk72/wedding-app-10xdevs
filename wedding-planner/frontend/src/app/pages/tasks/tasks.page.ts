@@ -170,25 +170,11 @@ export class TasksPage implements OnInit {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
 
-    const message = task.isAuto
-      ? 'Usunąć automatyczne zadanie? Wróci po kliknięciu „Regeneruj auto”.'
-      : 'Usunąć to zadanie?';
-    if (!window.confirm(message)) return;
+    if (!window.confirm('Usunąć to zadanie?')) return;
 
     this.tasksService.removeTask(weddingId, task.id).subscribe({
       next: () => this.toast.success('Zadanie zostało usunięte.'),
       error: () => this.toast.error('Nie udało się usunąć zadania.'),
-    });
-  }
-
-  protected regenerateAuto(): void {
-    const weddingId = this.requireWeddingId();
-    if (!weddingId) return;
-    if (!window.confirm('Dosiać brakujące zadania automatyczne z szablonów?')) return;
-
-    this.tasksService.regenerateAuto(weddingId).subscribe({
-      next: (result) => this.toast.success(`Dodano ${result.created} brakujących zadań.`),
-      error: () => this.toast.error('Nie udało się zregenerować zadań.'),
     });
   }
 

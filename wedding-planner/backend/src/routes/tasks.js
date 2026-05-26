@@ -25,12 +25,6 @@ function parseDoneFilter(value) {
   throw new BadRequestError("done must be true or false");
 }
 
-function addDays(dateOnly, days) {
-  const date = new Date(`${dateOnly}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 function buildTaskPatch(body, currentTask) {
   body = body || {};
   const patch = {};
@@ -102,8 +96,6 @@ router.post("/", async (req, res, next) => {
       description: optionalString(req.body, "description") ?? null,
       done: false,
       done_at: null,
-      is_auto: false,
-      template_id: null,
     };
 
     const { data, error } = await supabase.from("tasks").insert(insert).select("*").single();
@@ -146,59 +138,6 @@ router.delete("/:taskId", async (req, res, next) => {
     if (error) throw error;
     if (!data) throw new NotFoundError("Task not found");
     res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.post("/regenerate-auto", async (req, res, next) => {
-  try {
-    const { data: wedding, error: weddingError } = await supabase
-      .from("weddings")
-      .select("wedding_date")
-      .eq("id", req.params.weddingId)
-      .single();
-    if (weddingError) throw weddingError;
-    if (!wedding) throw new NotFoundError("Wedding not found");
-
-    const { data: templates, error: templatesError } = await supabase
-      .from("task_templates")
-      .select("id, title, category, days_before_wedding")
-      .order("sort_order", { ascending: true });
-    if (templatesError) throw templatesError;
-
-    const { data: existingTasks, error: tasksError } = await supabase
-      .from("tasks")
-      .select("template_id")
-      .eq("wedding_id", req.params.weddingId)
-      .neq("template_id", null);
-    if (tasksError) throw tasksError;
-
-    const existingTemplateIds = new Set(existingTasks.map((task) => task.template_id));
-    let created = 0;
-
-    for (const template of templates) {
-      if (existingTemplateIds.has(template.id)) continue;
-
-      const { error } = await supabase.from("tasks").insert({
-        wedding_id: req.params.weddingId,
-        title: template.title,
-        category: template.category,
-        due_date: addDays(wedding.wedding_date, -template.days_before_wedding),
-        done: false,
-        done_at: null,
-        is_auto: true,
-        template_id: template.id,
-      });
-      if (error) {
-        if (error.code === "23505") continue;
-        throw error;
-      }
-      existingTemplateIds.add(template.id);
-      created += 1;
-    }
-
-    res.json({ created, skipped: templates.length - created });
   } catch (err) {
     next(err);
   }

@@ -32,14 +32,14 @@ Cel: schema zaaplikowana do Supabase, seed globalny i atomiczny bootstrap nowego
 - [x] Migracja M1 `20260523233000_m1_schema_and_seed.sql` — DDL 25 tabel, indeksy, triggery i funkcje.
 - [x] PG function `bootstrap_wedding(p_wedding_id, p_creator_user_id)` — seeduje `wedding_members`, 15 `budget_categories`, 12 stołów i auto-zadania.
 - [x] PG function `create_wedding_with_bootstrap(...)` — atomowo tworzy wesele i odpala bootstrap.
-- [x] Seed `task_templates` w migracji + `npm run db:seed` jako idempotentny upsert.
+- [x] ~~Seed `task_templates` w migracji + `npm run db:seed` jako idempotentny upsert.~~ Wycofane w 2026-05-26 stripie (`20260526150000_strip_task_auto`).
 - [x] Migracje wykonane na zdalnym projekcie przez `npx supabase link` + `npx supabase db push` (z `wedding-planner/backend/`).
 - [x] RLS lockdown jako osobna migracja `20260524090000_rls_lockdown` — RLS deny-all na wszystkich 25 tabelach `public`, `search_path` zapinane na 8 funkcjach. Backend (service_role) omija RLS; `anon`/`authenticated` bez polityk = każdy ich request to 0 wierszy.
 - [x] Lockdown SECURITY DEFINER RPCs — migracja `20260524093000_revoke_security_definer_from_public` (revoke EXECUTE od PUBLIC na `bootstrap_wedding` i `create_wedding_with_bootstrap`). Tylko `service_role` może je wywołać.
 - [x] `supabase get_advisors` (security): 0 ERROR, 1 zaakceptowany WARN (`citext` w `public` — przeniesienie wymaga drop'a `users.email`).
 - [ ] Seed dev danych domenowych: 1 user SSO-mapowany przez `sso_user_id`, 1 wesele "Weronika & Kacper" 25.07.2026, goście, meal_options, kontrahenci, umowy, stoły, konflikty, spotkania.
 
-**Done when**: świeża baza Supabase po migracji ma schemat M1, `task_templates`, a `POST /api/weddings` tworzy wesele z kategoriami budżetu, stołami i auto-zadaniami.
+**Done when**: świeża baza Supabase po migracji ma schemat M1, a `POST /api/weddings` tworzy wesele z 15 kategoriami budżetu i 12 stołami (auto-zadania usunięte w 2026-05-26 stripie).
 
 ---
 
@@ -205,31 +205,26 @@ Cel: para wprowadza ofertę swojej sali, wybiera pakiet, konfiguruje menu, zazna
 
 ---
 
-## Zadania + auto-timeline (M7)
+## Zadania (M7) — manualna lista TODO
 
-Cel: lista z 3 sekcjami (Opóźnione / W tym tygodniu / W przyszłości) + auto-generowanie z templates.
+> **2026-05-26 rework:** auto-timeline / regenerate-auto / template_id usunięte (migracja `20260526150000_strip_task_auto`). Zadania = czysta manualna lista TODO z terminami.
 
-### Backend
+Cel: lista z 3 sekcjami aktywnymi (Opóźnione / W tym tygodniu / W przyszłości) + sekcją Zrobione (collapsible).
 
-- [ ] `TasksModule`: CRUD + `POST /regenerate-auto`
-- [ ] `regenerate-auto` algorytm:
-  1. Pobierz `weddings.wedding_date`
-  2. Pobierz `task_templates`
-  3. Dla każdego template'u: jeśli istnieje `tasks(wedding_id, template_id)` → zaktualizuj `due_date = wedding_date - days_before_wedding` (jeśli nie został zmodyfikowany ręcznie); jeśli nie istnieje → wstaw nowy
-  4. Idempotentne — powtórne wywołanie nie tworzy duplikatów
-- [ ] Po `POST /api/weddings` → automatycznie wywołaj `regenerate-auto` (raz, na utworzenie)
-- [ ] Po `PATCH /api/weddings/:id` ze zmianą `wedding_date` → wywołaj z parametrem `force` (po potwierdzeniu na froncie)
+### Backend (zamknięte)
 
-### Frontend
+- [x] `routes/tasks.js` — CRUD pod `/api/weddings/:weddingId/tasks`, filter `?done=true`, walidacja `category` z 5-elementowego enum.
+- [x] `mapTask` bez pól `isAuto`/`templateId` po stripie.
+- [x] `bootstrap_wedding` PG function nie tworzy już żadnych zadań przy nowym weselu — user dodaje wszystko ręcznie.
 
-- [ ] `TasksService`: signal `tasks`, computed `overdueTasks`, `thisWeekTasks`, `futureTasks`
-- [ ] `TasksPage`: toggle Lista/Kalendarz, 3 sekcje (każda z `TaskGroupSection`)
-- [ ] `TaskRow` z checkboxem (toggle `done`), data, badge kategorii, badge `auto`
-- [ ] `AddTaskDialog`: tytuł, kategoria, deadline, opis
-- [ ] `TasksCalendarView`: miesięczny grid (uznanie, jak wygodnie zaimplementować — `@angular/cdk` ma narzędzia, można też prostą bibliotekę)
-- [ ] Confirm-dialog przy zmianie daty ślubu w Ustawieniach: "Czy przenieść też zadania auto?"
+### Frontend (zamknięte)
 
-**Done when**: utworzenie wesela z datą `2026-07-25` automatycznie generuje 25+ auto-tasków rozłożonych w czasie. Zaznaczenie checkboxa migruje task'a z "Opóźnione" do "Zrobione" (lub usuwa z listy — decyzja UX).
+- [x] `TasksService`: signal `tasks`, computed `overdueTasks` / `thisWeekTasks` / `futureTasks` / `completedTasks` na podstawie `dueDate`.
+- [x] `TasksPage`: 4 sekcje collapsible (3 aktywne + Zrobione), bez toggle Lista/Kalendarz w MVP.
+- [x] `TaskRow` z checkboxem `done`, badge kategorii (bez badge `auto`).
+- [x] `AddTaskDialog`: tytuł / kategoria / deadline / opis.
+
+**Done when** (✅): user dodaje zadanie z terminem, zaznacza checkbox → task wędruje do "Zrobione". Zmiana daty wesela w Ustawieniach nie dotyka zadań (manualnie zarządzane).
 
 ---
 

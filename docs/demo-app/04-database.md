@@ -244,25 +244,12 @@ Indexes: `category_id`, `wedding_id`, `(wedding_id, spent_on desc)`, `vendor_id`
 | due_date         | date                                                                                     | NO   |                      | Observed   |                                |
 | done             | boolean                                                                                  | NO   | `false`              | Observed   | Checkbox w wierszu             |
 | done_at          | timestamptz                                                                              | YES  |                      | Inferred   |                                |
-| is_auto          | boolean                                                                                  | NO   | `false`              | Observed   | Badge "auto"                   |
-| template_id      | uuid FK → task_templates(id) ON DELETE SET NULL                                          | YES  |                      | Inferred   | Tylko dla `is_auto=true`       |
 | created_at       | timestamptz                                                                              | NO   | `now()`              | Recommended|                                |
 | updated_at       | timestamptz                                                                              | NO   | `now()`              | Recommended|                                |
 
 Indexes: `wedding_id`, `(wedding_id, done, due_date)`, `(wedding_id, due_date)`.
 
-### `task_templates`
-
-Globalna tabela (poza weselem) — zestaw "checkpointów" do auto-generowania zadań.
-
-| Column                | Type                                                                          | Null | Default | Confidence | Notes                                       |
-| --------------------- | ----------------------------------------------------------------------------- | ---- | ------- | ---------- | ------------------------------------------- |
-| id                    | uuid PK                                                                       | NO   |         | Inferred   |                                             |
-| title                 | text                                                                          | NO   |         | Observed   | "Spotkanie z DJ-em — wybór wykonawcy"       |
-| category              | text CHECK (category IN ('stroj','kontrahent','goscie','formalnosci','inne'))| NO   |         | Observed   |                                             |
-| days_before_wedding   | integer                                                                       | NO   |         | Observed   | "8 mc przed" → ~240 dni                     |
-| sort_order            | integer                                                                       | NO   | `0`     | Recommended|                                             |
-| created_at            | timestamptz                                                                   | NO   | `now()` | Recommended|                                             |
+> **2026-05-26 rework:** kolumny `is_auto`, `template_id`, tabela `task_templates`, trigger `tg_weddings_shift_auto_tasks` i funkcja `shift_auto_tasks_on_wedding_date_change` zostały usunięte (migracja `20260526150000_strip_task_auto`). Zadania to teraz wyłącznie manualna lista TODO. `bootstrap_wedding` nie tworzy już żadnych zadań — tylko `wedding_members`, 15 `budget_categories` i 12 `tables`.
 
 ### `tables` (rozsadzenie — stoły)
 

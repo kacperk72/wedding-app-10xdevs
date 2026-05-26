@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, map, switchMap, tap } from 'rxjs';
+import { Observable, forkJoin, map, tap } from 'rxjs';
 import { apiUrl } from '../http/api-url';
 
 export type TaskCategory = 'stroj' | 'kontrahent' | 'goscie' | 'formalnosci' | 'inne';
@@ -14,8 +14,6 @@ export interface Task {
   dueDate: string;
   done: boolean;
   doneAt: string | null;
-  isAuto: boolean;
-  templateId: string | null;
 }
 
 export interface CreateTaskDto {
@@ -28,11 +26,6 @@ export interface CreateTaskDto {
 export type UpdateTaskDto = Partial<CreateTaskDto> & {
   done?: boolean;
 };
-
-export interface RegenerateAutoTasksResult {
-  created: number;
-  skipped: number;
-}
 
 const MS_PER_DAY = 86_400_000;
 
@@ -96,14 +89,6 @@ export class TasksService {
         this._tasks.update((tasks) => tasks.filter((task) => task.id !== id));
       }),
     );
-  }
-
-  regenerateAuto(weddingId: string): Observable<RegenerateAutoTasksResult> {
-    return this.http
-      .post<RegenerateAutoTasksResult>(apiUrl(`/weddings/${weddingId}/tasks/regenerate-auto`), {})
-      .pipe(
-        switchMap((result) => this.loadTasks(weddingId).pipe(map(() => result))),
-      );
   }
 
   private activeTasks(): Task[] {

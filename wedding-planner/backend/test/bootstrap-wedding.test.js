@@ -2,14 +2,10 @@ const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 const { readFileSync } = require("node:fs");
 const { join } = require("node:path");
-const {
-  addDays,
-  buildBootstrapRows,
-} = require("../src/services/bootstrap-wedding");
+const { buildBootstrapRows } = require("../src/services/bootstrap-wedding");
 const {
   DEFAULT_BUDGET_CATEGORIES,
   DEFAULT_TABLES,
-  TASK_TEMPLATES,
 } = require("../src/seed/defaults");
 
 describe("wedding bootstrap seed", () => {
@@ -17,33 +13,17 @@ describe("wedding bootstrap seed", () => {
     const rows = buildBootstrapRows({
       weddingId: "wedding-1",
       creatorUserId: "user-1",
-      weddingDate: "2026-07-25",
-      templates: [
-        {
-          id: "template-1",
-          title: "Wybor menu z cateringiem",
-          category: "kontrahent",
-          days_before_wedding: 90,
-        },
-      ],
     });
 
     assert.equal(rows.member.role, "partner_a");
     assert.equal(rows.budgetCategories.length, DEFAULT_BUDGET_CATEGORIES.length);
     assert.equal(rows.tables.length, DEFAULT_TABLES.length);
-    assert.equal(rows.tasks.length, 1);
-    assert.equal(rows.tasks[0].due_date, "2026-04-26");
-    assert.equal(rows.tasks[0].is_auto, true);
+    assert.equal(rows.tasks, undefined);
   });
 
   it("keeps the default seed size stable", () => {
     assert.equal(DEFAULT_BUDGET_CATEGORIES.length, 15);
     assert.equal(DEFAULT_TABLES.length, 12);
-    assert.ok(TASK_TEMPLATES.length >= 10);
-  });
-
-  it("subtracts days in UTC date-only form", () => {
-    assert.equal(addDays("2026-03-01", -1), "2026-02-28");
   });
 });
 
@@ -78,11 +58,9 @@ describe("Supabase migration", () => {
 
   it("keeps critical database guards in SQL", () => {
     for (const fragment of [
-      "tg_weddings_shift_auto_tasks",
       "tg_seating_conflict_check",
       "tg_catering_course_dish_same_offer",
       "tg_wcdp_consistency",
-      "on conflict (title) do update",
     ]) {
       assert.ok(sql.includes(fragment), `${fragment} is present`);
     }
@@ -154,6 +132,31 @@ describe("RPC execute grants hardening migration", () => {
       "revoke execute on function public.bootstrap_wedding(uuid, uuid)",
       "revoke execute on function public.create_wedding_with_bootstrap(uuid, text, text, date, text)",
       "from anon, authenticated",
+    ]) {
+      assert.ok(sql.includes(fragment), `${fragment} is present`);
+    }
+  });
+});
+
+describe("Strip task auto migration", () => {
+  const migrationPath = join(
+    __dirname,
+    "..",
+    "supabase",
+    "migrations",
+    "20260526150000_strip_task_auto.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8");
+
+  it("drops the auto-task machinery", () => {
+    for (const fragment of [
+      "drop trigger if exists tg_weddings_shift_auto_tasks",
+      "drop function if exists shift_auto_tasks_on_wedding_date_change",
+      "drop index if exists uq_tasks_wedding_template_auto",
+      "alter table tasks drop column if exists template_id",
+      "alter table tasks drop column if exists is_auto",
+      "drop table if exists task_templates",
+      "create or replace function bootstrap_wedding",
     ]) {
       assert.ok(sql.includes(fragment), `${fragment} is present`);
     }
