@@ -65,7 +65,7 @@
           <div>
             <p class="list-item__title">{{ payment.vendorName || '-' }}</p>
             <p class="list-item__meta">
-              {{ paymentKindLabel(payment.kind) }} · {{ payment.dueDate }} · {{ payment.daysUntilDue }} dni
+              {{ paymentKindLabel(payment.kind) }} · {{ payment.dueDate }} · {{ payment.daysUntilDue }} dni · {{ paymentMethodLabel(payment.method) }}
             </p>
           </div>
           <strong>{{ money(payment.amount) }}</strong>
@@ -131,7 +131,7 @@
                         <p class="list-item__title">
                           {{ paymentKindLabel(payment.kind) }} · {{ money(payment.amount) }}
                         </p>
-                        <p class="list-item__meta">{{ payment.dueDate }}</p>
+                        <p class="list-item__meta">{{ payment.dueDate }} · {{ paymentMethodLabel(payment.method) }}</p>
                       </div>
                       <div class="toolbar">
                         <select

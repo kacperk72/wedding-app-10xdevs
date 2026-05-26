@@ -19,15 +19,16 @@ const VENDOR_CATEGORIES = [
   "catering",
   "fotograf",
   "dj",
-  "kwiaciarz",
-  "usc",
-  "ksiadz",
+  "dekoratorka",
+  "kosciol",
   "makijaz",
   "dekoracje",
-  "tort",
+  "slodki_stol_tort",
+  "ciasta_pozegnalne",
 ];
 const VENDOR_STATUSES = ["rozwazany", "spotkanie", "zarezerwowany", "zaplacony", "wykonany"];
 const SECURED_STATUSES = ["zarezerwowany", "zaplacony", "wykonany"];
+const PAYMENT_METHODS = ["gotowka", "przelew"];
 
 function optionalAmount(body, key) {
   if (!body || body[key] === undefined) return undefined;
@@ -36,6 +37,112 @@ function optionalAmount(body, key) {
     throw new BadRequestError(`${key} must be a non-negative number`);
   }
   return body[key];
+}
+
+function requireAmount(value, key) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new BadRequestError(`${key} must be a non-negative number`);
+  }
+  return value;
+}
+
+function parsePaymentLeg(input, label) {
+  if (!input || typeof input !== "object") {
+    throw new BadRequestError(`${label} must be an object`);
+  }
+  const amount = requireAmount(input.amount, `${label}.amount`);
+  const dueDate = requireString(input, "dueDate");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    throw new BadRequestError(`${label}.dueDate must be YYYY-MM-DD`);
+  }
+  const method = input.method;
+  if (!PAYMENT_METHODS.includes(method)) {
+    throw new BadRequestError(`${label}.method must be one of: ${PAYMENT_METHODS.join(", ")}`);
+  }
+  return { amount, dueDate, method };
+}
+
+// Optional contract bundle: { totalAmount, signedDate?, deposit?, finalPayment? }
+// At least one of deposit/finalPayment must be present when contract is provided.
+function parseContractBundle(body) {
+  if (!body || body.contract === undefined) return null;
+  const raw = body.contract;
+  if (!raw || typeof raw !== "object") {
+    throw new BadRequestError("contract must be an object");
+  }
+  const totalAmount = requireAmount(raw.totalAmount, "contract.totalAmount");
+  const signedDate = raw.signedDate || null;
+  if (signedDate && !/^\d{4}-\d{2}-\d{2}$/.test(signedDate)) {
+    throw new BadRequestError("contract.signedDate must be YYYY-MM-DD");
+  }
+
+  const deposit = raw.deposit !== undefined && raw.deposit !== null
+    ? parsePaymentLeg(raw.deposit, "contract.deposit")
+    : null;
+  const finalPayment = raw.finalPayment !== undefined && raw.finalPayment !== null
+    ? parsePaymentLeg(raw.finalPayment, "contract.finalPayment")
+    : null;
+
+  if (!deposit && !finalPayment) {
+    throw new BadRequestError("contract requires at least one of deposit / finalPayment");
+  }
+
+  const sum = (deposit?.amount || 0) + (finalPayment?.amount || 0);
+  if (Math.abs(sum - totalAmount) > 0.01) {
+    throw new BadRequestError(
+      `contract.deposit.amount + contract.finalPayment.amount must equal contract.totalAmount`,
+    );
+  }
+
+  return { totalAmount, signedDate, deposit, finalPayment };
+}
+
+async function createContractWithPayments(weddingId, vendorId, bundle) {
+  const contractInsert = {
+    wedding_id: weddingId,
+    vendor_id: vendorId,
+    total_amount: bundle.totalAmount,
+    signed_date: bundle.signedDate,
+    status: "pending",
+  };
+  const { data: contract, error: contractError } = await supabase
+    .from("contracts")
+    .insert(contractInsert)
+    .select("*")
+    .single();
+  if (contractError) throw contractError;
+
+  const paymentRows = [];
+  if (bundle.deposit) {
+    paymentRows.push({
+      contract_id: contract.id,
+      kind: "zaliczka",
+      due_date: bundle.deposit.dueDate,
+      amount: bundle.deposit.amount,
+      status: "planned",
+      method: bundle.deposit.method,
+    });
+  }
+  if (bundle.finalPayment) {
+    paymentRows.push({
+      contract_id: contract.id,
+      kind: "final",
+      due_date: bundle.finalPayment.dueDate,
+      amount: bundle.finalPayment.amount,
+      status: "planned",
+      method: bundle.finalPayment.method,
+    });
+  }
+
+  if (paymentRows.length > 0) {
+    const { error: paymentError } = await supabase.from("payments").insert(paymentRows);
+    if (paymentError) {
+      await supabase.from("contracts").delete().eq("id", contract.id);
+      throw paymentError;
+    }
+  }
+
+  return contract.id;
 }
 
 function buildVendorPatch(body) {
@@ -118,6 +225,9 @@ router.get("/", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
   try {
+    const contractBundle = parseContractBundle(req.body);
+    // If contract bundle present, mirror totalAmount onto vendors.contract_amount
+    // for the denormalized card view (per resolved decision 2026-05-26).
     const insert = {
       wedding_id: req.params.weddingId,
       category: enumValue(requireString(req.body, "category"), VENDOR_CATEGORIES, "category"),
@@ -127,12 +237,25 @@ router.post("/", async (req, res, next) => {
       email: optionalString(req.body, "email") ?? null,
       // New leads start as considered until the couple books or rejects them.
       status: optionalEnum(req.body, "status", VENDOR_STATUSES) ?? "rozwazany",
-      contract_amount: optionalAmount(req.body, "contractAmount") ?? null,
+      contract_amount:
+        contractBundle?.totalAmount ?? optionalAmount(req.body, "contractAmount") ?? null,
       notes: optionalString(req.body, "notes") ?? null,
     };
 
     const { data, error } = await supabase.from("vendors").insert(insert).select("*").single();
     if (error) throw error;
+
+    if (contractBundle) {
+      try {
+        await createContractWithPayments(req.params.weddingId, data.id, contractBundle);
+      } catch (bundleErr) {
+        // Rollback: contract+payments cleanup happens inside createContractWithPayments;
+        // vendor we just inserted has to be undone here.
+        await supabase.from("vendors").delete().eq("id", data.id);
+        throw bundleErr;
+      }
+    }
+
     res.status(201).json(mapVendor((await attachContractFlags([data]))[0]));
   } catch (err) {
     next(err);

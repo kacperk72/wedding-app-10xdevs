@@ -15,6 +15,7 @@ const router = express.Router({ mergeParams: true });
 
 const PAYMENT_KINDS = ["zaliczka", "rata", "final", "ofiara"];
 const PAYMENT_STATUSES = ["planned", "paid", "overdue"];
+const PAYMENT_METHODS = ["gotowka", "przelew"];
 
 function optionalAmount(body, key) {
   if (!body || body[key] === undefined) return undefined;
@@ -45,12 +46,14 @@ function buildPaymentPatch(body) {
   const amount = optionalAmount(body, "amount");
   const status = optionalEnum(body, "status", PAYMENT_STATUSES);
   const paidAt = optionalDateString(body, "paidAt");
+  const method = optionalEnum(body, "method", PAYMENT_METHODS);
 
   if (kind !== undefined) patch.kind = kind;
   if (dueDate !== undefined) patch.due_date = dueDate;
   if (amount !== undefined) patch.amount = amount;
   if (status !== undefined) patch.status = status;
   if (paidAt !== undefined) patch.paid_at = paidAt;
+  if (method !== undefined) patch.method = method;
 
   return requireAtLeastOne(patch);
 }
@@ -87,6 +90,7 @@ router.post("/", async (req, res, next) => {
       amount: optionalAmount(req.body, "amount") ?? 0,
       status: optionalEnum(req.body, "status", PAYMENT_STATUSES) ?? "planned",
       paid_at: optionalDateString(req.body, "paidAt") ?? null,
+      method: optionalEnum(req.body, "method", PAYMENT_METHODS) ?? "przelew",
     };
 
     const { data, error } = await supabase.from("payments").insert(insert).select("*").single();

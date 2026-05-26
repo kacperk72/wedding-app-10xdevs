@@ -1,4 +1,4 @@
-import { VendorCategory } from './vendor.model';
+import { PaymentMethod, VendorCategory } from './vendor.model';
 
 export type ContractStatus = 'pending' | 'in_progress' | 'deposit_paid' | 'paid_in_full';
 export type PaymentKind = 'zaliczka' | 'rata' | 'final' | 'ofiara';
@@ -12,6 +12,7 @@ export interface Payment {
   amount: number;
   status: PaymentStatus;
   paidAt: string | null;
+  method: PaymentMethod;
   vendorName?: string | null;
   daysUntilDue?: number;
 }
@@ -45,6 +46,7 @@ export interface CreatePaymentDto {
   amount: number;
   status?: PaymentStatus;
   paidAt?: string | null;
+  method?: PaymentMethod;
 }
 
 export type UpdatePaymentDto = Partial<CreatePaymentDto>;

@@ -12,7 +12,7 @@ import {
   PaymentKind,
   PaymentStatus,
 } from '../../core/models/contract.model';
-import { VENDOR_CATEGORY_LABELS } from '../../core/models/vendor.model';
+import { PAYMENT_METHOD_LABELS, PaymentMethod, VENDOR_CATEGORY_LABELS } from '../../core/models/vendor.model';
 import { ContractsService } from '../../core/services/contracts.service';
 import { PaymentsService } from '../../core/services/payments.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -196,6 +196,10 @@ export class ContractsPage implements OnInit {
 
   protected paymentKindLabel(kind: PaymentKind): string {
     return PAYMENT_KIND_LABELS[kind];
+  }
+
+  protected paymentMethodLabel(method: PaymentMethod | undefined): string {
+    return method ? PAYMENT_METHOD_LABELS[method] : PAYMENT_METHOD_LABELS.przelew;
   }
 
   protected categoryLabel(category: string | null): string {

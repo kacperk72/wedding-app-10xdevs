@@ -59,17 +59,121 @@
         </select>
       </div>
       <div class="field">
-        <label for="newAmount">Kwota</label>
+        <label for="newTotal">Kwota calkowita</label>
         <input
-          id="newAmount"
-          name="newAmount"
+          id="newTotal"
+          name="newTotal"
           type="number"
           min="0"
-          [ngModel]="newVendor().contractAmount"
-          (ngModelChange)="updateNewVendor({ contractAmount: $event === '' ? null : +$event })"
+          step="0.01"
+          [ngModel]="newTotal()"
+          (ngModelChange)="setNewTotal($event === '' ? null : +$event)"
         />
       </div>
-      <button type="submit" class="button-like" style="grid-column: 1 / -1">Dodaj</button>
+
+      <label class="field" style="grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 8px">
+        <input
+          type="checkbox"
+          name="newContractEnabled"
+          [ngModel]="newContractEnabled()"
+          (ngModelChange)="toggleContract($event)"
+        />
+        <span>Dodaj harmonogram platnosci (zaliczka + kwota do zaplaty)</span>
+      </label>
+
+      @if (newContractEnabled() && (newTotal() ?? 0) > 0) {
+        <fieldset class="surface panel" style="grid-column: 1 / -1">
+          <legend class="panel__eyebrow">Zaliczka</legend>
+          <div class="form-grid">
+            <div class="field">
+              <label for="depositAmount">Kwota</label>
+              <input
+                id="depositAmount"
+                name="depositAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="newDeposit().amount"
+                (ngModelChange)="updateNewDeposit({ amount: $event === '' ? 0 : +$event })"
+              />
+            </div>
+            <div class="field">
+              <label for="depositDue">Do kiedy</label>
+              <input
+                id="depositDue"
+                name="depositDue"
+                type="date"
+                [ngModel]="newDeposit().dueDate"
+                (ngModelChange)="updateNewDeposit({ dueDate: $event })"
+              />
+            </div>
+            <div class="field">
+              <label for="depositMethod">Metoda</label>
+              <select
+                id="depositMethod"
+                name="depositMethod"
+                [ngModel]="newDeposit().method"
+                (ngModelChange)="updateNewDeposit({ method: $event })"
+              >
+                @for (method of paymentMethodOptions; track method.value) {
+                  <option [value]="method.value">{{ method.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="surface panel" style="grid-column: 1 / -1">
+          <legend class="panel__eyebrow">Kwota do zaplaty</legend>
+          <div class="form-grid">
+            <div class="field">
+              <label for="finalAmount">Kwota</label>
+              <input
+                id="finalAmount"
+                name="finalAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="newFinal().amount"
+                (ngModelChange)="updateNewFinal({ amount: $event === '' ? 0 : +$event })"
+              />
+            </div>
+            <div class="field">
+              <label for="finalDue">Do kiedy</label>
+              <input
+                id="finalDue"
+                name="finalDue"
+                type="date"
+                [ngModel]="newFinal().dueDate"
+                (ngModelChange)="updateNewFinal({ dueDate: $event })"
+              />
+            </div>
+            <div class="field">
+              <label for="finalMethod">Metoda</label>
+              <select
+                id="finalMethod"
+                name="finalMethod"
+                [ngModel]="newFinal().method"
+                (ngModelChange)="updateNewFinal({ method: $event })"
+              >
+                @for (method of paymentMethodOptions; track method.value) {
+                  <option [value]="method.value">{{ method.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        @if (newSumMismatch()) {
+          <p class="muted" style="grid-column: 1 / -1; color: #b91c1c">
+            Suma zaliczki i kwoty do zaplaty musi rownac sie kwocie calkowitej ({{ money(newTotal()) }}).
+          </p>
+        }
+      }
+
+      <button type="submit" class="button-like" style="grid-column: 1 / -1" [disabled]="newSumMismatch()">
+        Dodaj
+      </button>
     </form>
   </section>
 
@@ -156,9 +260,11 @@
         }
       </article>
     } @empty {
-      <section class="empty-state">
-        <p>Brak kontrahentow.</p>
-      </section>
+      <app-empty-state
+        icon="store"
+        title="Brak kontrahentow"
+        description="Dodaj pierwszego kontrahenta, zeby monitorowac status i umowy."
+      />
     }
   </section>
 </div>

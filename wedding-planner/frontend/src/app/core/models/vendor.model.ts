@@ -3,14 +3,29 @@ export type VendorCategory =
   | 'catering'
   | 'fotograf'
   | 'dj'
-  | 'kwiaciarz'
-  | 'usc'
-  | 'ksiadz'
+  | 'dekoratorka'
+  | 'kosciol'
   | 'makijaz'
   | 'dekoracje'
-  | 'tort';
+  | 'slodki_stol_tort'
+  | 'ciasta_pozegnalne';
 
 export type VendorStatus = 'rozwazany' | 'spotkanie' | 'zarezerwowany' | 'zaplacony' | 'wykonany';
+
+export type PaymentMethod = 'gotowka' | 'przelew';
+
+export interface PaymentLegInput {
+  amount: number;
+  dueDate: string;
+  method: PaymentMethod;
+}
+
+export interface ContractBundleInput {
+  totalAmount: number;
+  signedDate?: string | null;
+  deposit?: PaymentLegInput | null;
+  finalPayment?: PaymentLegInput | null;
+}
 
 export interface Vendor {
   id: string;
@@ -35,21 +50,22 @@ export interface CreateVendorDto {
   status?: VendorStatus;
   contractAmount?: number | null;
   notes?: string | null;
+  contract?: ContractBundleInput;
 }
 
-export type UpdateVendorDto = Partial<CreateVendorDto>;
+export type UpdateVendorDto = Partial<Omit<CreateVendorDto, 'contract'>>;
 
 export const VENDOR_CATEGORY_LABELS: Record<VendorCategory, string> = {
   sala: 'Sala',
   catering: 'Catering',
   fotograf: 'Fotograf',
   dj: 'DJ',
-  kwiaciarz: 'Kwiaciarz',
-  usc: 'USC',
-  ksiadz: 'Ksiadz',
+  dekoratorka: 'Dekoratorka',
+  kosciol: 'Kosciol',
   makijaz: 'Makijaz',
   dekoracje: 'Dekoracje',
-  tort: 'Tort',
+  slodki_stol_tort: 'Slodki stol + tort',
+  ciasta_pozegnalne: 'Ciasta na pozegnanie',
 };
 
 export const VENDOR_STATUS_LABELS: Record<VendorStatus, string> = {
@@ -58,4 +74,9 @@ export const VENDOR_STATUS_LABELS: Record<VendorStatus, string> = {
   zarezerwowany: 'zarezerwowany',
   zaplacony: 'zaplacony',
   wykonany: 'wykonany',
+};
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  gotowka: 'Gotowka',
+  przelew: 'Przelew',
 };

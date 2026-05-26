@@ -152,7 +152,7 @@ Indexes: `wedding_id`, `(wedding_id, rsvp_status)`, `(wedding_id, table_id)`, `(
 | ---------------- | -------------------------------------------------------------------------- | ---- | -------------------- | ---------- | ---------------------------------------------- |
 | id               | uuid PK                                                                    | NO   | `gen_random_uuid()`  | Observed   |                                                |
 | wedding_id       | uuid FK → weddings(id) ON DELETE CASCADE                                   | NO   |                      | Inferred   |                                                |
-| category         | text CHECK (category IN ('sala','catering','fotograf','dj','kwiaciarz','usc','ksiadz','makijaz','dekoracje','tort')) | NO |  | Observed | 10 kategorii widocznych w UI |
+| category         | text CHECK (category IN ('sala','catering','fotograf','dj','dekoratorka','kosciol','makijaz','dekoracje','slodki_stol_tort','ciasta_pozegnalne')) | NO |  | Observed | 10 kategorii w UI (2026-05-26 rework: kwiaciarz→dekoratorka, ksiadz→kosciol, tort→slodki_stol_tort, +ciasta_pozegnalne, −usc; migracja `20260526120000_vendor_categories_rework`) |
 | company_name     | text                                                                       | NO   |                      | Observed   | "Pałac Pod Lipami"                             |
 | contact_person   | text                                                                       | YES  |                      | Observed   | "Joanna Wójcik"                                |
 | phone            | text                                                                       | YES  |                      | Observed   | "+48 600 100 200"                              |
@@ -191,6 +191,7 @@ Indexes: `wedding_id`, `vendor_id` (unique).
 | amount        | numeric(12,2)                                                       | NO   |                      | Observed   |                                         |
 | status        | text CHECK (status IN ('planned','paid','overdue'))                 | NO   | `'planned'`          | Observed   | Kropki w pasku harmonogramu — 3 trzymane wartości (🟢 paid, 🔴 overdue, ⚪/🟣 planned). 🟡 "due_soon" (`due_date` w 30 dniach) wyliczany dynamicznie w queries — patrz uwaga niżej. |
 | paid_at       | date                                                                | YES  |                      | Inferred   | Pole wymagane do wyróżnienia "opłacone" |
+| method        | text CHECK (method IN ('gotowka','przelew'))                        | NO   | `'przelew'`          | Observed   | Metoda płatności wybierana przy dodawaniu kontrahenta (zaliczka + final). Migracja `20260526120500_payments_method`. |
 | created_at    | timestamptz                                                         | NO   | `now()`              | Recommended|                                         |
 | updated_at    | timestamptz                                                         | NO   | `now()`              | Recommended|                                         |
 
@@ -585,7 +586,7 @@ CREATE TABLE vendors (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   wedding_id        uuid NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
   category          text NOT NULL CHECK (category IN
-    ('sala','catering','fotograf','dj','kwiaciarz','usc','ksiadz','makijaz','dekoracje','tort')),
+    ('sala','catering','fotograf','dj','dekoratorka','kosciol','makijaz','dekoracje','slodki_stol_tort','ciasta_pozegnalne')),
   company_name      text NOT NULL,
   contact_person    text,
   phone             text,
@@ -623,6 +624,7 @@ CREATE TABLE payments (
   status        text NOT NULL DEFAULT 'planned' CHECK (status IN
     ('planned','paid','overdue')),
   paid_at       date,
+  method        text NOT NULL DEFAULT 'przelew' CHECK (method IN ('gotowka','przelew')),
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );

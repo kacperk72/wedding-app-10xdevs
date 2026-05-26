@@ -1,9 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { formatPLN } from '../../core/format/currency.format';
 import {
+  ContractBundleInput,
   CreateVendorDto,
+  PAYMENT_METHOD_LABELS,
+  PaymentMethod,
   VENDOR_CATEGORY_LABELS,
   VENDOR_STATUS_LABELS,
   Vendor,
@@ -13,14 +16,30 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { VendorsService } from '../../core/services/vendors.service';
 import { WeddingService } from '../../core/services/wedding.service';
+import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 
 const CATEGORIES = Object.keys(VENDOR_CATEGORY_LABELS) as VendorCategory[];
 const STATUSES = Object.keys(VENDOR_STATUS_LABELS) as VendorStatus[];
+const PAYMENT_METHODS = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[];
+
+interface PaymentLegState {
+  amount: number;
+  dueDate: string;
+  method: PaymentMethod;
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function emptyLeg(): PaymentLegState {
+  return { amount: 0, dueDate: todayIso(), method: 'przelew' };
+}
 
 @Component({
   selector: 'app-vendors-page',
-  imports: [FormsModule, PageHeader],
+  imports: [EmptyState, FormsModule, PageHeader],
   templateUrl: './vendors.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,12 +56,34 @@ export class VendorsPage implements OnInit {
     value,
     label: VENDOR_STATUS_LABELS[value],
   }));
+  protected readonly paymentMethodOptions = PAYMENT_METHODS.map((value) => ({
+    value,
+    label: PAYMENT_METHOD_LABELS[value],
+  }));
 
   protected readonly newVendor = signal<CreateVendorDto>({
     category: 'dj',
     companyName: '',
     status: 'rozwazany',
   });
+  protected readonly newContractEnabled = signal(true);
+  protected readonly newTotal = signal<number | null>(null);
+  protected readonly newDeposit = signal<PaymentLegState>(emptyLeg());
+  protected readonly newFinal = signal<PaymentLegState>(emptyLeg());
+
+  protected readonly newFinalSuggested = computed(() => {
+    const total = this.newTotal() ?? 0;
+    const deposit = this.newDeposit().amount || 0;
+    return Math.max(0, +(total - deposit).toFixed(2));
+  });
+  protected readonly newSumMismatch = computed(() => {
+    if (!this.newContractEnabled()) return false;
+    const total = this.newTotal() ?? 0;
+    if (total <= 0) return false;
+    const sum = (this.newDeposit().amount || 0) + (this.newFinal().amount || 0);
+    return Math.abs(sum - total) > 0.01;
+  });
+
   protected readonly editingVendorId = signal<string | null>(null);
   protected readonly editingVendor = signal<CreateVendorDto>({
     category: 'dj',
@@ -74,9 +115,21 @@ export class VendorsPage implements OnInit {
     const dto = this.cleanVendorDto(this.newVendor());
     if (!weddingId || !dto.companyName) return;
 
+    const total = this.newTotal();
+    if (this.newContractEnabled() && total && total > 0) {
+      if (this.newSumMismatch()) {
+        this.toast.error('Suma zaliczki i kwoty do zaplaty musi rownac sie kwocie calkowitej.');
+        return;
+      }
+      const bundle = this.buildBundle(total);
+      if (!bundle) return;
+      dto.contract = bundle;
+      dto.contractAmount = total;
+    }
+
     this.vendorsService.create(weddingId, dto).subscribe({
       next: () => {
-        this.newVendor.set({ category: 'dj', companyName: '', status: 'rozwazany' });
+        this.resetNewForm();
         this.refreshMissing(weddingId);
         this.toast.success('Kontrahent zostal dodany.');
       },
@@ -134,6 +187,28 @@ export class VendorsPage implements OnInit {
     this.editingVendor.update((current) => ({ ...current, ...patch }));
   }
 
+  protected updateNewDeposit(patch: Partial<PaymentLegState>): void {
+    this.newDeposit.update((current) => ({ ...current, ...patch }));
+    if (patch.amount !== undefined) {
+      this.newFinal.update((current) => ({ ...current, amount: this.newFinalSuggested() }));
+    }
+  }
+
+  protected updateNewFinal(patch: Partial<PaymentLegState>): void {
+    this.newFinal.update((current) => ({ ...current, ...patch }));
+  }
+
+  protected setNewTotal(value: number | null): void {
+    this.newTotal.set(value);
+    if (value !== null && value > 0) {
+      this.newFinal.update((current) => ({ ...current, amount: this.newFinalSuggested() }));
+    }
+  }
+
+  protected toggleContract(enabled: boolean): void {
+    this.newContractEnabled.set(enabled);
+  }
+
   protected categoryLabel(category: VendorCategory): string {
     return VENDOR_CATEGORY_LABELS[category];
   }
@@ -154,6 +229,40 @@ export class VendorsPage implements OnInit {
 
   protected money(value: number | null): string {
     return formatPLN(value);
+  }
+
+  private buildBundle(total: number): ContractBundleInput | null {
+    const deposit = this.newDeposit();
+    const final = this.newFinal();
+
+    const hasDeposit = deposit.amount > 0;
+    const hasFinal = final.amount > 0;
+    if (!hasDeposit && !hasFinal) {
+      this.toast.error('Podaj kwote zaliczki lub kwote do zaplaty.');
+      return null;
+    }
+    if (hasDeposit && !deposit.dueDate) {
+      this.toast.error('Podaj termin zaliczki.');
+      return null;
+    }
+    if (hasFinal && !final.dueDate) {
+      this.toast.error('Podaj termin kwoty do zaplaty.');
+      return null;
+    }
+
+    return {
+      totalAmount: total,
+      deposit: hasDeposit ? { ...deposit } : null,
+      finalPayment: hasFinal ? { ...final } : null,
+    };
+  }
+
+  private resetNewForm(): void {
+    this.newVendor.set({ category: 'dj', companyName: '', status: 'rozwazany' });
+    this.newContractEnabled.set(true);
+    this.newTotal.set(null);
+    this.newDeposit.set(emptyLeg());
+    this.newFinal.set(emptyLeg());
   }
 
   private loadResources(weddingId: string): void {
