@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: '/api',
+  apiBaseUrl: 'https://deeppink-mole-431102.hostingersite.com/api',
 } as const;
