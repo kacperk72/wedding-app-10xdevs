@@ -87,6 +87,7 @@ Encja "wesele" — pojedyncze wydarzenie, do którego należą wszyscy goście, 
 | wedding_date          | date                                            | NO   |                      | Observed    | "25.07.2026"                                           |
 | ceremony_location     | text                                            | YES  |                      | Observed    | "Kościół św. Marcina, Wrocław"                         |
 | created_by_user_id    | uuid FK → users(id) ON DELETE RESTRICT          | NO   |                      | Recommended | "Founder" — jedyny user, który może hard-delete całe wesele. Inne uprawnienia są symetryczne między partnerami. |
+| budget_total          | numeric(12,2)                                  | YES  |                      | Observed    | Estymata calkowita budzetu. Migracja `20260526160000`. |
 | created_at            | timestamptz                                     | NO   | `now()`              | Recommended |                                                        |
 | updated_at            | timestamptz                                     | NO   | `now()`              | Recommended |                                                        |
 
@@ -206,7 +207,7 @@ Indexes: `contract_id`, `(contract_id, due_date)`, `(due_date)` dla agregatu "Na
 | id               | uuid PK                                    | NO   | `gen_random_uuid()`  | Observed   |                                        |
 | wedding_id       | uuid FK → weddings(id) ON DELETE CASCADE   | NO   |                      | Inferred   |                                        |
 | name             | text                                       | NO   |                      | Observed   | "Sala weselna", "Catering", …          |
-| planned_amount   | numeric(12,2)                              | NO   | `0`                  | Observed   | "est. 32 000 zł"                       |
+| ~~planned_amount~~ | ~~numeric(12,2)~~                         | ~~NO~~ | ~~`0`~~             | Removed    | Usuniete 2026-05-26 migracja `20260526160500`; estymata jest teraz w `weddings.budget_total`. |
 | sort_order       | integer                                    | NO   | `0`                  | Recommended| Kolejność wyświetlania                 |
 | created_at       | timestamptz                                | NO   | `now()`              | Recommended|                                        |
 | updated_at       | timestamptz                                | NO   | `now()`              | Recommended|                                        |
@@ -535,6 +536,7 @@ CREATE TABLE weddings (
   partner_b_name        text NOT NULL,
   wedding_date          date NOT NULL,
   ceremony_location     text,
+  budget_total          numeric(12,2),
   created_by_user_id    uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   created_at            timestamptz NOT NULL DEFAULT now(),
   updated_at            timestamptz NOT NULL DEFAULT now()
@@ -691,7 +693,6 @@ CREATE TABLE budget_categories (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   wedding_id        uuid NOT NULL REFERENCES weddings(id) ON DELETE CASCADE,
   name              text NOT NULL,
-  planned_amount    numeric(12,2) NOT NULL DEFAULT 0,
   sort_order        integer NOT NULL DEFAULT 0,
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),

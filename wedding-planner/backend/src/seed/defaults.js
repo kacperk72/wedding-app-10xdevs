@@ -16,7 +16,6 @@ const DEFAULT_BUDGET_CATEGORIES = [
   "Zaproszenia i papeteria",
 ].map((name, sortOrder) => ({
   name,
-  planned_amount: 0,
   sort_order: sortOrder + 1,
 }));
 

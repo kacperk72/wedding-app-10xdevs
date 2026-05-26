@@ -14,6 +14,7 @@ describe("dashboard aggregate", () => {
           partner_b_name: "Jan",
           wedding_date: "2026-07-25",
           ceremony_location: null,
+          budget_total: 10000,
           created_by_user_id: "user-a",
         },
       ],
@@ -21,9 +22,6 @@ describe("dashboard aggregate", () => {
         { id: "guest-1", wedding_id: "wedding-1", rsvp_status: "confirmed" },
         { id: "guest-2", wedding_id: "wedding-1", rsvp_status: "pending" },
         { id: "guest-3", wedding_id: "wedding-1", rsvp_status: "declined" },
-      ],
-      budget_categories: [
-        { id: "budget-1", wedding_id: "wedding-1", planned_amount: 10000 },
       ],
       expenses: [{ id: "expense-1", wedding_id: "wedding-1", amount: 2500 }],
       vendors: [

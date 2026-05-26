@@ -23,7 +23,7 @@ const {
 const router = express.Router();
 
 const WEDDING_SELECT =
-  "id, partner_a_name, partner_b_name, wedding_date, ceremony_location, created_by_user_id, wedding_members(user_id, role, linked_at, users(email, first_name, last_name))";
+  "id, partner_a_name, partner_b_name, wedding_date, ceremony_location, budget_total, created_by_user_id, wedding_members(user_id, role, linked_at, users(email, first_name, last_name))";
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const VENDOR_CATEGORIES = [
   "sala",
@@ -60,13 +60,24 @@ function buildWeddingPatch(body) {
   const partnerBName = optionalNonEmptyString(body, "partnerBName");
   const weddingDate = optionalDateString(body, "weddingDate");
   const ceremonyLocation = optionalString(body, "ceremonyLocation");
+  const budgetTotal = optionalAmount(body, "budgetTotal");
 
   if (partnerAName !== undefined) patch.partner_a_name = partnerAName;
   if (partnerBName !== undefined) patch.partner_b_name = partnerBName;
   if (weddingDate !== undefined) patch.wedding_date = weddingDate;
   if (ceremonyLocation !== undefined) patch.ceremony_location = ceremonyLocation;
+  if (budgetTotal !== undefined) patch.budget_total = budgetTotal;
 
   return requireAtLeastOne(patch);
+}
+
+function optionalAmount(body, key) {
+  if (!body || body[key] === undefined) return undefined;
+  if (body[key] === null) return null;
+  if (typeof body[key] !== "number" || !Number.isFinite(body[key]) || body[key] < 0) {
+    throw new BadRequestError(`${key} must be a non-negative number`);
+  }
+  return body[key];
 }
 
 function dateOnly(date = new Date()) {
@@ -122,7 +133,7 @@ async function buildDashboard(weddingId) {
     guests,
     tasks,
     vendors,
-    budgetCategories,
+    wedding,
     expenses,
     meetings,
     contractsAndPayments,
@@ -130,13 +141,14 @@ async function buildDashboard(weddingId) {
     listWeddingRows("guests", weddingId),
     listWeddingRows("tasks", weddingId),
     listWeddingRows("vendors", weddingId),
-    listWeddingRows("budget_categories", weddingId),
+    supabase.from("weddings").select("budget_total").eq("id", weddingId).single(),
     listWeddingRows("expenses", weddingId),
     listWeddingRows("meetings", weddingId),
     loadContractsAndPayments(weddingId),
   ]);
 
   const { contracts, payments } = contractsAndPayments;
+  if (wedding.error) throw wedding.error;
   const contractsById = new Map(contracts.map((contract) => [contract.id, contract]));
   const vendorsById = new Map(vendors.map((vendor) => [vendor.id, vendor]));
   const activeTasks = tasks.filter((task) => !task.done);
@@ -193,7 +205,7 @@ async function buildDashboard(weddingId) {
         declined: guests.filter((guest) => guest.rsvp_status === "declined").length,
       },
       budget: {
-        plannedTotal: sum(budgetCategories, "planned_amount"),
+        plannedTotal: wedding.data?.budget_total == null ? 0 : Number(wedding.data.budget_total),
         spentTotal: sum(expenses, "amount"),
       },
       payments: {

@@ -1,119 +1,240 @@
-<app-page-header title="Budżet" subtitle="Plan, wydatki i rezerwacje z umów">
-  <button type="button" class="button-like" (click)="isExpenseDialogOpen.set(true)">
-    Dodaj wydatek
-  </button>
-  <span class="button-like button-like--secondary">Edytuj plan</span>
+<app-page-header title="Budzet" subtitle="Estymata calkowita i lista wydatkow">
+  <button type="button" class="button-like" (click)="startBudgetEdit()">Edytuj budzet</button>
 </app-page-header>
 
 <div class="page-stack">
-  <section class="section-grid">
-    <article class="surface panel metric">
-      <p class="panel__eyebrow">Wydane</p>
-      <p class="metric__value">{{ money(spentTotal()) }}</p>
-      <p class="metric__meta">Suma opłaconych wydatków i płatności</p>
-    </article>
-    <article class="surface panel metric">
-      <p class="panel__eyebrow">Zarezerwowane</p>
-      <p class="metric__value">{{ money(reservedTotal()) }}</p>
-      <p class="metric__meta">Umowy i pozycje zaplanowane do zapłaty</p>
-    </article>
-    <article class="surface panel metric">
-      <p class="panel__eyebrow">Estymacja końcowa</p>
-      <p class="metric__value">{{ money(estimateTotal()) }}</p>
-      <p class="metric__meta">Suma planów we wszystkich kategoriach</p>
-    </article>
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Podsumowanie</p>
+        <h2>Budzet wesela</h2>
+      </div>
+      <span class="badge badge--info">{{ budget.summary()?.expensesCount || 0 }} wydatkow</span>
+    </div>
+
+    <div class="section-grid">
+      <article class="metric">
+        <p class="panel__eyebrow">Estymata koncowa</p>
+        @if (isBudgetEditOpen()) {
+          <div class="toolbar">
+            <input
+              type="number"
+              min="0"
+              [ngModel]="budgetTotalDraft()"
+              (ngModelChange)="setBudgetDraft($event)"
+            />
+            <button type="button" class="button-like" (click)="saveBudgetTotal()">Zapisz</button>
+            <button type="button" class="button-like button-like--ghost" (click)="isBudgetEditOpen.set(false)">
+              Anuluj
+            </button>
+          </div>
+        } @else {
+          <p class="metric__value">{{ money(budget.summary()?.budgetTotal) }}</p>
+        }
+      </article>
+      <article class="metric">
+        <p class="panel__eyebrow">Wydane</p>
+        <p class="metric__value">{{ money(budget.summary()?.spent) }}</p>
+      </article>
+      <article class="metric">
+        <p class="panel__eyebrow">Pozostalo</p>
+        <p class="metric__value">{{ money(budget.summary()?.remaining) }}</p>
+      </article>
+    </div>
+
+    <div class="progress">
+      <div
+        class="progress__bar {{ barClass(progressTone()) }}"
+        [style.width.%]="progress() > 100 ? 100 : progress()"
+      ></div>
+    </div>
+    <p class="metric__meta">{{ progress() }}% estymaty wykorzystane</p>
+  </section>
+
+  <section class="surface panel">
+    <div>
+      <p class="panel__eyebrow">Nowy wydatek</p>
+      <h2>Dodaj pozycje</h2>
+    </div>
+
+    <form class="form-grid" (ngSubmit)="addExpense()">
+      <div class="field">
+        <label for="expenseCategory">Kategoria</label>
+        <select
+          id="expenseCategory"
+          name="expenseCategory"
+          [ngModel]="newExpense().categoryId"
+          (ngModelChange)="updateNewExpense({ categoryId: $event })"
+        >
+          @for (category of budget.categories(); track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="expenseSpentOn">Data</label>
+        <input
+          id="expenseSpentOn"
+          name="expenseSpentOn"
+          type="date"
+          [ngModel]="newExpense().spentOn"
+          (ngModelChange)="updateNewExpense({ spentOn: $event })"
+        />
+      </div>
+      <div class="field">
+        <label for="expenseAmount">Kwota</label>
+        <input
+          id="expenseAmount"
+          name="expenseAmount"
+          type="number"
+          min="1"
+          [ngModel]="newExpense().amount"
+          (ngModelChange)="setNewAmount($event)"
+        />
+      </div>
+      <div class="field">
+        <label for="expenseVendor">Kontrahent</label>
+        <select
+          id="expenseVendor"
+          name="expenseVendor"
+          [ngModel]="newExpense().vendorId"
+          (ngModelChange)="updateNewExpense({ vendorId: $event || null })"
+        >
+          <option [ngValue]="null">Bez kontrahenta</option>
+          @for (vendor of vendors.vendors(); track vendor.id) {
+            <option [value]="vendor.id">{{ vendor.companyName }}</option>
+          }
+        </select>
+      </div>
+      <div class="field" style="grid-column: 1 / -1">
+        <label for="expenseDescription">Opis</label>
+        <input
+          id="expenseDescription"
+          name="expenseDescription"
+          [ngModel]="newExpense().description"
+          (ngModelChange)="updateNewExpense({ description: $event })"
+        />
+      </div>
+      <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+        <button type="submit" class="button-like">Dodaj wydatek</button>
+      </div>
+    </form>
   </section>
 
   <section class="surface panel">
     <div class="panel__header">
       <div>
-        <p class="panel__eyebrow">Kategorie</p>
-        <h2>Kontrola planu</h2>
+        <p class="panel__eyebrow">Wydatki</p>
+        <h2>Lista pozycji</h2>
       </div>
-      <span class="badge badge--info">15 kategorii</span>
     </div>
 
-    <div class="list">
-      @for (category of categories(); track category.name) {
-        <div class="list-item">
-          <div>
-            <p class="list-item__title">{{ category.name }}</p>
-            <p class="list-item__meta">
-              {{ money(category.spent) }} wydane · est. {{ money(category.estimate) }} ·
-              {{ category.percent }}%
-            </p>
-          </div>
-          <div class="progress" style="min-width: 220px">
-            <div
-              class="progress__bar {{ barClass(category.tone) }}"
-              [style.width.%]="category.percent"
-            ></div>
-          </div>
-        </div>
+    <div class="toolbar">
+      <button
+        type="button"
+        class="chip"
+        [class.badge--success]="selectedCategoryId() === null"
+        (click)="setCategoryFilter(null)"
+      >
+        Wszystkie
+      </button>
+      @for (category of budget.categories(); track category.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.badge--success]="selectedCategoryId() === category.id"
+          (click)="setCategoryFilter(category.id)"
+        >
+          {{ category.name }}
+        </button>
       }
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Kategoria</th>
+            <th>Opis</th>
+            <th>Kontrahent</th>
+            <th>Kwota</th>
+            <th>Akcje</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (expense of budget.expenses(); track expense.id) {
+            <tr>
+              @if (editingExpenseId() === expense.id) {
+                <td>
+                  <input
+                    type="date"
+                    [ngModel]="editingExpense().spentOn"
+                    (ngModelChange)="updateEditingExpense({ spentOn: $event })"
+                  />
+                </td>
+                <td>
+                  <select
+                    [ngModel]="editingExpense().categoryId"
+                    (ngModelChange)="updateEditingExpense({ categoryId: $event })"
+                  >
+                    @for (category of budget.categories(); track category.id) {
+                      <option [value]="category.id">{{ category.name }}</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <input
+                    [ngModel]="editingExpense().description"
+                    (ngModelChange)="updateEditingExpense({ description: $event })"
+                  />
+                </td>
+                <td>
+                  <select
+                    [ngModel]="editingExpense().vendorId"
+                    (ngModelChange)="updateEditingExpense({ vendorId: $event || null })"
+                  >
+                    <option [ngValue]="null">-</option>
+                    @for (vendor of vendors.vendors(); track vendor.id) {
+                      <option [value]="vendor.id">{{ vendor.companyName }}</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min="1"
+                    [ngModel]="editingExpense().amount"
+                    (ngModelChange)="setEditingAmount($event)"
+                  />
+                </td>
+                <td>
+                  <div class="toolbar">
+                    <button type="button" class="button-like" (click)="saveExpense(expense.id)">Zapisz</button>
+                    <button type="button" class="button-like button-like--ghost" (click)="editingExpenseId.set(null)">Anuluj</button>
+                  </div>
+                </td>
+              } @else {
+                <td>{{ date(expense.spentOn) }}</td>
+                <td><span class="badge badge--neutral">{{ categoryName(expense.categoryId) }}</span></td>
+                <td><strong>{{ expense.description }}</strong></td>
+                <td>{{ expense.vendorName || '-' }}</td>
+                <td>{{ money(expense.amount) }}</td>
+                <td>
+                  <div class="toolbar">
+                    <button type="button" class="button-like button-like--secondary" (click)="startEdit(expense)">Edytuj</button>
+                    <button type="button" class="button-like button-like--ghost" (click)="removeExpense(expense.id)">Usun</button>
+                  </div>
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">Brak wydatkow w wybranym filtrze.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
   </section>
 </div>
-
-@if (isExpenseDialogOpen()) {
-  <div class="modal-backdrop" role="presentation" (click)="isExpenseDialogOpen.set(false)">
-    <section
-      class="modal surface panel"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="addExpenseTitle"
-      (click)="$event.stopPropagation()"
-    >
-      <div class="panel__header">
-        <div>
-          <p class="panel__eyebrow">Nowy wydatek</p>
-          <h2 id="addExpenseTitle">Dodaj wydatek</h2>
-        </div>
-        <button type="button" class="button-like button-like--ghost" (click)="isExpenseDialogOpen.set(false)">
-          Zamknij
-        </button>
-      </div>
-      <form class="form-grid" (ngSubmit)="addExpense()">
-        <div class="field">
-          <label for="expenseCategory">Kategoria</label>
-          <select
-            id="expenseCategory"
-            name="expenseCategory"
-            [ngModel]="expenseCategory()"
-            (ngModelChange)="expenseCategory.set($event)"
-          >
-            @for (category of categories(); track category.name) {
-              <option [value]="category.name">{{ category.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="field">
-          <label for="expenseAmount">Kwota</label>
-          <input
-            id="expenseAmount"
-            name="expenseAmount"
-            type="number"
-            min="1"
-            [ngModel]="expenseAmount()"
-            (ngModelChange)="setExpenseAmount($event)"
-          />
-        </div>
-        <div class="field" style="grid-column: 1 / -1">
-          <label for="expenseDescription">Opis</label>
-          <input
-            id="expenseDescription"
-            name="expenseDescription"
-            [ngModel]="expenseDescription()"
-            (ngModelChange)="expenseDescription.set($event)"
-          />
-        </div>
-        <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
-          <button type="button" class="button-like button-like--secondary" (click)="isExpenseDialogOpen.set(false)">
-            Anuluj
-          </button>
-          <button type="submit" class="button-like">Dodaj</button>
-        </div>
-      </form>
-    </section>
-  </div>
-}

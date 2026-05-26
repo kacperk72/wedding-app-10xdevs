@@ -7,6 +7,7 @@ export interface Wedding {
   weddingDate: string;
   ceremonyLocation: string | null;
   createdByUserId: string;
+  budgetTotal: number | null;
   members?: WeddingMember[];
 }
 
@@ -55,4 +56,6 @@ export interface CreateWeddingDto {
   ceremonyLocation: string | null;
 }
 
-export type UpdateWeddingDto = Partial<CreateWeddingDto>;
+export type UpdateWeddingDto = Partial<CreateWeddingDto> & {
+  budgetTotal?: number | null;
+};

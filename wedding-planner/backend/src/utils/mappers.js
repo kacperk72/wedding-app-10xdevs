@@ -10,6 +10,7 @@ function mapWedding(wedding, { now = new Date() } = {}) {
     weddingDate: wedding.wedding_date,
     ceremonyLocation: wedding.ceremony_location,
     createdByUserId: wedding.created_by_user_id,
+    budgetTotal: wedding.budget_total == null ? null : Number(wedding.budget_total),
     daysUntilWedding,
     members: (wedding.wedding_members || []).map((weddingMember) => ({
       userId: weddingMember.user_id,
@@ -19,6 +20,30 @@ function mapWedding(wedding, { now = new Date() } = {}) {
       role: weddingMember.role,
       linkedAt: weddingMember.linked_at,
     })),
+  };
+}
+
+function mapBudgetCategory(category) {
+  return {
+    id: category.id,
+    weddingId: category.wedding_id,
+    name: category.name,
+    sortOrder: category.sort_order,
+  };
+}
+
+function mapExpense(expense, vendor = null) {
+  return {
+    id: expense.id,
+    weddingId: expense.wedding_id,
+    categoryId: expense.category_id,
+    vendorId: expense.vendor_id,
+    vendorName: vendor?.company_name || expense.vendors?.company_name || null,
+    description: expense.description,
+    amount: Number(expense.amount),
+    spentOn: expense.spent_on,
+    createdAt: expense.created_at,
+    updatedAt: expense.updated_at,
   };
 }
 
@@ -145,7 +170,9 @@ function mapMeeting(meeting, vendor = null) {
 }
 
 module.exports = {
+  mapBudgetCategory,
   mapContract,
+  mapExpense,
   mapGuest,
   mapMealOption,
   mapMeeting,

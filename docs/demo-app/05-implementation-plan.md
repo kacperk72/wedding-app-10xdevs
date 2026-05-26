@@ -136,23 +136,28 @@ To jeden milestone, bo te trzy encje są ściśle zazębione i UI Umów konsumuj
 
 ## Budżet (M5)
 
-Cel: 3 KPI, 15 kategorii, możliwość edycji planu i dodawania wydatków.
+> **2026-05-26 rework:** moduł uproszczony decyzją PO. Nie ma estymat per kategoria ani `summary.reservedFromContracts`. Jedna estymata końcowa żyje na `weddings.budget_total`; wydatki to wyłącznie manualne `expenses`; `payments` z umów nie są scalane z budżetem.
+
+Cel: jedna estymata całkowita, globalny pasek postępu i płaski feed wydatków.
 
 ### Backend
 
-- [ ] `BudgetModule`: `GET /summary` (3 wyliczane sumy), `GET /categories` (z `spent_amount` z aggregat na expenses), `GET /categories/:id/transactions`, `PATCH /categories/:id`, `POST /expenses`, `PATCH/DELETE /expenses/:id`
-- [ ] `summary.reservedFromContracts` = suma `payments.amount` gdzie `status IN ('planned')` (czyli zarezerwowane ale jeszcze nieopłacone)
-- [ ] `summary.spent` = suma `expenses.amount` + suma opłaconych `payments.amount`. **Decyzja**: czy płatności do kontrahentów liczą się jako `expenses` automatycznie? Jeśli tak — proste, ale wymaga upsert z paymentu. Jeśli nie — wydatki i płatności to osobne strumienie i `spent` to ich suma. Zalecam drugą opcję, prostsze i mapuje 1:1 z UI
+- [x] Migracja `20260526160000_wedding_budget_total.sql`: `weddings.budget_total numeric(12,2) NULL`.
+- [x] Migracja `20260526160500_drop_budget_planned_amount.sql`: drop `budget_categories.planned_amount`, rewrite `bootstrap_wedding` bez kwot per kategoria, re-assert revokes.
+- [x] `PATCH /api/weddings/:id` obsługuje `budgetTotal` (`number >= 0` lub `null`).
+- [x] `GET /api/weddings/:weddingId/budget/summary` → `{ budgetTotal, spent, remaining, expensesCount }`, gdzie `spent = SUM(expenses.amount)`.
+- [x] `GET /api/weddings/:weddingId/budget/categories` → 15 kategorii jako etykiety/dropdown (`id`, `name`, `sortOrder`), bez kwot.
+- [x] `/api/weddings/:weddingId/expenses` CRUD: flat feed sortowany po `spent_on DESC`, filtr `?categoryId=`, opcjonalny `vendorId`, cross-wedding guard na `categoryId` i `vendorId`.
 
 ### Frontend
 
-- [ ] `BudgetService`: signals `summary`, `categories`, `transactionsByCategory` (lazy load)
-- [ ] `BudgetPage` z `BudgetSummary` + lista `BudgetCategoryRow` z chevronem rozwijającym
-- [ ] `AddExpenseDialog`: kategoria (combobox), data, opis, kwota
-- [ ] `EditCategoryPlanDialog`: lista wszystkich kategorii z polami estymowanej kwoty (zapisuje hurtem)
-- [ ] Pasek postępu z 4 kolorami (zielony/żółty/czerwony/szary) wg progu
+- [x] `BudgetService`: signals `summary`, `categories`, `expenses`.
+- [x] `BudgetPage`: karta podsumowania z inline edit `budgetTotal`, `spent`, `remaining`, globalny pasek `spent / budgetTotal`.
+- [x] Formularz dodawania wydatku: kategoria, data, kwota, opis, opcjonalny kontrahent.
+- [x] Lista wydatków: Data / Kategoria / Opis / Kontrahent / Kwota / Akcje edit/delete.
+- [x] Chip-filter po kategorii: "Wszystkie" + 15 kategorii.
 
-**Done when**: dodaję wydatek "Pierścionek 4200 zł" do "Obrączki" → kategoria pokazuje 100% paska + KPI "wydane" rośnie o 4200; estymowana kwota końcowa zostaje (bo plan nie zmieniony).
+**Done when**: ustawiam budżet końcowy, dodaję wydatek "Pierścionek 4200 zł" do "Obrączki" → `spent` rośnie o 4200, `remaining` maleje, globalny pasek postępu aktualizuje się; filtr po kategorii pokazuje tylko wydatki z tej kategorii.
 
 ---
 
@@ -169,7 +174,7 @@ Cel: para wprowadza ofertę swojej sali, wybiera pakiet, konfiguruje menu, zazna
 - [ ] `POST /catering/selection/sync-meal-options` — idempotentny: dla każdego `course` z `selection_mode='guest_picks'` i wybranymi dish_picks → upsert do `meal_options`. Zwraca `{ created, updated, deleted }`
 - [ ] `POST /catering/selection/freeze-into-contract` — tworzy `contracts` z `total_amount = computed_price`, ustawia `wedding_catering_selection_id`, generuje payments wg body
 - [ ] Trigger PG `enforce_catering_pick_consistency` (z 04-database.md) i `enforce_catering_course_dish_same_offer` muszą być częścią migracji 0002_triggers.sql
-- [ ] Aktualizacja `BudgetService.summary` — kwota z `wedding_catering_selection.total_price` (jeśli istnieje, a brak `contract` → wlicz do `reservedFromContracts`; jeśli `contract` istnieje, zwykła droga `reservedFromContracts` przez `payments`)
+- [ ] Budżet pozostaje manualny: catering pokazuje wycenę w `PriceSummary`, a po freeze tworzy `contract`/`payments`; para dodaje realny wydatek do Budżetu jako osobny `expense`.
 
 ### Frontend
 
@@ -201,7 +206,7 @@ Cel: para wprowadza ofertę swojej sali, wybiera pakiet, konfiguruje menu, zazna
 - `PriceSummary` pokazuje "374 × 100 + 800 + 1500 = 39 100 zł".
 - Klikam "Synchronizuj z RSVP" → przy edycji gościa pojawia się dropdown "Wybór dania głównego" z 3 opcjami.
 - Klikam "Zamroź w umowie" → vendor "Pałac Pod Lipami" (kategoria sala), 4 płatności (zaliczka 10 000 + 3 raty po 9 700) → tworzy się `contracts` z linkiem do selection.
-- W Budżecie (`/app/budzet`) kategoria "Sala weselna" pokazuje `+39 100 zł` w `reservedFromContracts`, KPI "Zarezerwowane (umowy)" rośnie.
+- W Budżecie (`/app/budzet`) po dodaniu manualnego wydatku na salę widać wpis `39 100 zł` w płaskiej liście expenses i globalny pasek postępu aktualizuje wykorzystanie estymaty.
 
 ---
 
