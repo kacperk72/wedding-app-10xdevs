@@ -40,10 +40,7 @@
 
       @if (!isCollapsed(section.id)) {
         @if (section.tasks.length === 0) {
-          <div class="empty-state empty-state--compact">
-            <app-icon name="sparkles" [size]="22" />
-            <p>{{ section.emptyText }}</p>
-          </div>
+          <app-empty-state icon="sparkles" [title]="section.emptyText" />
         } @else {
           <div class="list">
             @for (task of section.tasks; track task.id) {

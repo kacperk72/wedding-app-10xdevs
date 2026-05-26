@@ -1,27 +1,35 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { PartnerInvitation } from '../../core/models/wedding.model';
+import { AuthService } from '../../core/services/auth.service';
 import { MealOptionsService } from '../../core/services/meal-options.service';
 import { TablesService } from '../../core/services/tables.service';
 import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
+import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, PageHeader],
+  imports: [EmptyState, FormsModule, PageHeader],
   templateUrl: './settings.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SettingsPage implements OnInit {
   protected readonly wedding = inject(WeddingService);
+  protected readonly auth = inject(AuthService);
   protected readonly mealOptions = inject(MealOptionsService);
   protected readonly tables = inject(TablesService);
   private readonly tasks = inject(TasksService);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
   protected readonly weddingDateDraft = signal('');
+  protected readonly partnerEmail = signal('');
+  protected readonly pendingInvitation = signal<PartnerInvitation | null>(null);
 
   protected readonly newMealLabel = signal('');
   protected readonly editingMealId = signal<string | null>(null);
@@ -33,7 +41,18 @@ export class SettingsPage implements OnInit {
   protected readonly editingTableName = signal('');
   protected readonly editingTableSeats = signal(8);
 
+  protected readonly partnerMember = computed(() =>
+    this.wedding.wedding()?.members?.find((member) => member.role === 'partner_b') ?? null,
+  );
+
+  protected readonly isFounder = computed(() => {
+    const current = this.auth.user();
+    const wedding = this.wedding.wedding();
+    return Boolean(current && wedding && current.id === wedding.createdByUserId);
+  });
+
   ngOnInit(): void {
+    this.auth.ensureUser().subscribe();
     const currentWedding = this.wedding.wedding();
     if (currentWedding) {
       this.weddingDateDraft.set(currentWedding.weddingDate);
@@ -59,7 +78,13 @@ export class SettingsPage implements OnInit {
       this.mealOptions.list(weddingId),
       this.tables.list(weddingId),
       this.tasks.loadTasks(weddingId),
+      this.wedding.exportJson(weddingId),
     ]).subscribe({
+      next: ([, , , exported]) => {
+        this.pendingInvitation.set(
+          exported.partnerInvitations.find((invitation) => invitation.status === 'pending') ?? null,
+        );
+      },
       error: () => this.toast.error('Nie udalo sie pobrac ustawien.'),
     });
   }
@@ -86,6 +111,68 @@ export class SettingsPage implements OnInit {
         this.toast.success('Data slubu zostala zapisana.');
       },
       error: () => this.toast.error('Nie udalo sie zapisac daty slubu.'),
+    });
+  }
+
+  protected invitePartner(): void {
+    const weddingId = this.requireWeddingId();
+    const email = this.partnerEmail().trim().toLowerCase();
+    if (!weddingId || !email) return;
+
+    this.wedding.invitePartner(weddingId, email).subscribe({
+      next: (invitation) => {
+        this.pendingInvitation.set(invitation);
+        this.partnerEmail.set('');
+        this.toast.success('Zaproszenie zostalo wyslane.');
+      },
+      error: () => this.toast.error('Nie udalo sie wyslac zaproszenia.'),
+    });
+  }
+
+  protected resendInvitation(): void {
+    const invitation = this.pendingInvitation();
+    if (!invitation) return;
+    this.partnerEmail.set(invitation.email);
+    this.invitePartner();
+  }
+
+  protected downloadJson(): void {
+    const weddingId = this.requireWeddingId();
+    if (!weddingId) return;
+    this.wedding.exportBlob(weddingId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `wedding-${weddingId}-export.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.toast.error('Nie udalo sie pobrac eksportu.'),
+    });
+  }
+
+  protected logout(): void {
+    this.auth.logout();
+  }
+
+  protected deleteWedding(): void {
+    const wedding = this.wedding.wedding();
+    if (!wedding || !this.isFounder()) return;
+
+    const expected = `${wedding.partnerAName} ${wedding.partnerBName}`;
+    const typed = window.prompt(`Aby usunac wesele, wpisz: ${expected}`);
+    if (typed !== expected) {
+      this.toast.error('Potwierdzenie nie pasuje.');
+      return;
+    }
+
+    this.wedding.deleteWedding(wedding.id).subscribe({
+      next: () => {
+        this.toast.success('Wesele zostalo usuniete.');
+        this.router.navigateByUrl('/app/setup');
+      },
+      error: () => this.toast.error('Nie udalo sie usunac wesela.'),
     });
   }
 

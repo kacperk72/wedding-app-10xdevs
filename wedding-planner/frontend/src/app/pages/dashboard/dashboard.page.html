@@ -3,15 +3,15 @@
     <p class="dashboard-hero__eyebrow">
       {{ coupleLabel() || 'Wesele' }}
       @if (wedding(); as w) {
-        · {{ w.weddingDate }}
+        - {{ w.weddingDate }}
       }
     </p>
     <h1>
       Do slubu zostalo
-      <strong>{{ daysUntilWedding() === null ? '—' : daysUntilWedding() + ' dni' }}</strong>
+      <strong>{{ daysUntilWedding() === null ? '-' : daysUntilWedding() + ' dni' }}</strong>
     </h1>
     <p class="dashboard-hero__copy">
-      Wszystko, co musicie ogarnac w jednym miejscu — goscie, kontrahenci, budzet i zadania.
+      Wszystko, co musicie ogarnac w jednym miejscu: goscie, kontrahenci, budzet i zadania.
     </p>
   </section>
 
@@ -38,14 +38,24 @@
           <p class="panel__eyebrow">Wymaga uwagi</p>
           <h2>Najwazniejsze akcje</h2>
         </div>
-        <span class="badge badge--warning">{{ attention.length }}</span>
+        <span class="badge badge--warning">{{ attention().length }}</span>
       </div>
       <div class="list">
-        @for (item of attention; track item) {
+        @for (item of attention(); track item.title) {
           <div class="list-item">
-            <p class="list-item__title">{{ item }}</p>
-            <span class="button-like button-like--secondary">Otworz</span>
+            <div>
+              <p class="list-item__title">{{ item.title }}</p>
+              <p class="list-item__meta">{{ item.meta }}</p>
+            </div>
+            <button type="button" class="button-like button-like--secondary" (click)="openAttention(item)">
+              Otworz
+            </button>
           </div>
+        } @empty {
+          <app-empty-state
+            title="Nic pilnego"
+            description="Najwazniejsze sprawy nie wymagaja teraz reakcji."
+          />
         }
       </div>
     </article>
@@ -56,17 +66,19 @@
         <h2>Kalendarz</h2>
       </div>
       <div class="list">
-        @for (meeting of meetings; track meeting.title) {
+        @for (meeting of meetings(); track meeting.id) {
           <div class="list-item">
             <div>
-              <p class="list-item__title">{{ meeting.day }} {{ meeting.month }} · {{ meeting.title }}</p>
-              <p class="list-item__meta">{{ meeting.meta }}</p>
+              <p class="list-item__title">{{ formatMeetingDate(meeting.meetingDate) }} - {{ meeting.title }}</p>
+              <p class="list-item__meta">{{ meeting.vendorName || 'Bez kontrahenta' }}</p>
             </div>
           </div>
         } @empty {
-          <div class="list-item">
-            <p class="list-item__title">—</p>
-          </div>
+          <app-empty-state
+            icon="calendar-days"
+            title="Brak spotkan"
+            description="W najblizszych 14 dniach nie ma zaplanowanych spotkan."
+          />
         }
       </div>
     </article>

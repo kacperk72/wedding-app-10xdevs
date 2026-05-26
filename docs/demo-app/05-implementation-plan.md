@@ -114,7 +114,9 @@ To jeden milestone, bo te trzy encje są ściśle zazębione i UI Umów konsumuj
 
 ### Backend (zamknięte)
 
-- [x] `routes/vendors.js` — CRUD + `GET /missing` (brakujące kategorie wg `status NOT IN ('zarezerwowany','zaplacony','wykonany')`); 10 kategorii (`sala`/`catering`/`fotograf`/`dj`/`kwiaciarz`/`usc`/`ksiadz`/`makijaz`/`dekoracje`/`tort`), 5 statusów (`rozwazany`/`spotkanie`/`zarezerwowany`/`zaplacony`/`wykonany`).
+- [x] `routes/vendors.js` — CRUD + `GET /missing` (brakujące kategorie wg `status NOT IN ('zarezerwowany','zaplacony','wykonany')`); 10 kategorii (`sala`/`catering`/`fotograf`/`dj`/`dekoratorka`/`kosciol`/`makijaz`/`dekoracje`/`slodki_stol_tort`/`ciasta_pozegnalne`), 5 statusów (`rozwazany`/`spotkanie`/`zarezerwowany`/`zaplacony`/`wykonany`). Migracja `20260526120000_vendor_categories_rework` (2026-05-26 rework: kwiaciarz→dekoratorka, ksiadz→kosciol, tort→slodki_stol_tort, +ciasta_pozegnalne, −usc).
+- [x] POST `vendors` opcjonalnie atomowo tworzy `contracts` + dwa `payments` (zaliczka + final) gdy body zawiera `contract: { totalAmount, deposit?, finalPayment? }`. Każda noga ma `amount`, `dueDate`, `method` (`gotowka`/`przelew`). Walidacja sumy = totalAmount. Rollback sekwencyjny przy błędzie na późniejszym kroku.
+- [x] `payments.method` (`gotowka`/`przelew`) — migracja `20260526120500_payments_method`; default `przelew` backfill istniejących wierszy. Edytowalne przez PATCH na płatności.
 - [x] `routes/contracts.js` — CRUD + `GET /upcoming-payments` (płatności w 30 dni, `status='planned'`); list zwraca contract'y z zagnieżdżonym `vendor` + `payments` z poprawnymi filtrami `.in("contract_id", ids)` (perf-correct, nie pulluje globalnie).
 - [x] `routes/payments.js` — nested pod `contracts/:contractId/payments`; `assertContractBelongsToWedding` na każdej mutacji.
 - [x] **`syncContractStatus(contractId)` w `payments.js`** — po każdej mutacji payment'a przelicza i ustawia `contracts.status`: `pending` jeśli brak payment'ów, `paid_in_full` jeśli wszystkie `paid`, `deposit_paid` jeśli `zaliczka paid`, inaczej `in_progress`. Działa w obrębie pojedynczej requesty Express'a (nie trigger DB — łatwiejsze testy, mniej ukrytej magii).
@@ -256,6 +258,8 @@ Cel: drag-and-drop działa, konflikty są wykrywane.
 ---
 
 ## Dashboard + Ustawienia + cross-cutting (M9)
+
+> **Status 2026-05-26:** core M9 wdrozony w kodzie i zweryfikowany. Zamkniete: backend `GET /dashboard`, nested `meetings` CRUD + `/upcoming`, `GET /export`, founder-only `DELETE /weddings/:id`, no-store cache middleware; frontend `DashboardService`, `MeetingsService`, dashboard bez zaslepek, settings: partner invite/resend/linked state/delete wedding/export/logout, globalny 404/500, HTTP error interceptor z `X-Skip-Toast`, EmptyState dla gosci/kontrahentow/zadan/stolow; testy backend: dashboard, meetings CRUD, wedding delete, wedding export. Weryfikacja: backend `npm test` 51/51, frontend `npm run build` OK. Nadal otwarte/opcjonalne w M9: skeletons, ChangePasswordForm, logout-all, drag/sort dla meal options.
 
 Cel: domknięcie aplikacji.
 

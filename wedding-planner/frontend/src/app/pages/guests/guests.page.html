@@ -80,9 +80,13 @@
   </section>
 
   @if (groupedByRelation().length === 0) {
-    <section class="empty-state">
-      <p>Brak gosci pasujacych do wybranych filtrow.</p>
-    </section>
+    <app-empty-state
+      icon="users"
+      title="Brak gosci"
+      description="Nie ma gosci pasujacych do wybranych filtrow."
+      ctaLabel="Dodaj goscia"
+      (cta)="isAddDialogOpen.set(true)"
+    />
   }
 
   @for (group of groupedByRelation(); track group[0]) {

@@ -10,6 +10,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
 import { formatDDMMYYYY } from '../../core/format/date.format';
 import { Icon } from '../../shared/ui/icon/icon';
+import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 
 type TaskSectionId = 'overdue' | 'thisWeek' | 'future' | 'completed';
@@ -38,7 +39,7 @@ const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS).map(([value, label]) =>
 
 @Component({
   selector: 'app-tasks-page',
-  imports: [FormsModule, Icon, PageHeader],
+  imports: [EmptyState, FormsModule, Icon, PageHeader],
   templateUrl: './tasks.page.html',
   styleUrl: './tasks.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

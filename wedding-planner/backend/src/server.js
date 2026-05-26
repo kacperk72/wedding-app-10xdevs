@@ -17,6 +17,7 @@ const vendorsRouter = require("./routes/vendors");
 const contractsRouter = require("./routes/contracts");
 const paymentsRouter = require("./routes/payments");
 const tasksRouter = require("./routes/tasks");
+const meetingsRouter = require("./routes/meetings");
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -29,6 +30,13 @@ app.set("trust proxy", 1);
 app.use(helmet());
 app.use(cors(corsOptions));
 if (process.env.NODE_ENV !== "test") app.use(morgan("combined"));
+
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  res.vary("Authorization");
+  next();
+});
+
 app.use(express.json({ limit: "1mb" }));
 
 app.use("/api/health", healthRouter);
@@ -40,6 +48,7 @@ app.use("/api/weddings/:weddingId/vendors", requireSsoAuth, vendorsRouter);
 app.use("/api/weddings/:weddingId/contracts/:contractId/payments", requireSsoAuth, paymentsRouter);
 app.use("/api/weddings/:weddingId/contracts", requireSsoAuth, contractsRouter);
 app.use("/api/weddings/:weddingId/tasks", requireSsoAuth, tasksRouter);
+app.use("/api/weddings/:weddingId/meetings", requireSsoAuth, meetingsRouter);
 app.use("/api/weddings", requireSsoAuth, weddingsRouter);
 
 app.use((_req, res) => {

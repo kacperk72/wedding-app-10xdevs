@@ -5,11 +5,12 @@ const { supabase } = require("../config/database");
 const { ensureUserFromSsoPayload } = require("../services/users");
 const { requireWeddingMember } = require("../middleware/wedding-member");
 const {
+  DomainError,
   BadRequestError,
   ConflictError,
   NotFoundError,
 } = require("../errors/domain-errors");
-const { mapWedding } = require("../utils/mappers");
+const { mapMeeting, mapWedding } = require("../utils/mappers");
 const {
   dateString,
   optionalDateString,
@@ -24,6 +25,19 @@ const router = express.Router();
 const WEDDING_SELECT =
   "id, partner_a_name, partner_b_name, wedding_date, ceremony_location, created_by_user_id, wedding_members(user_id, role, linked_at, users(email, first_name, last_name))";
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const VENDOR_CATEGORIES = [
+  "sala",
+  "catering",
+  "fotograf",
+  "dj",
+  "dekoratorka",
+  "kosciol",
+  "makijaz",
+  "dekoracje",
+  "slodki_stol_tort",
+  "ciasta_pozegnalne",
+];
+const SECURED_VENDOR_STATUSES = ["zarezerwowany", "zaplacony", "wykonany"];
 
 const acceptInviteLimit = rateLimit({
   windowMs: 60_000,
@@ -53,6 +67,212 @@ function buildWeddingPatch(body) {
   if (ceremonyLocation !== undefined) patch.ceremony_location = ceremonyLocation;
 
   return requireAtLeastOne(patch);
+}
+
+function dateOnly(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function sum(rows, key) {
+  return rows.reduce((total, row) => total + Number(row[key] || 0), 0);
+}
+
+function daysUntil(dateValue, now = new Date()) {
+  const today = new Date(`${dateOnly(now)}T00:00:00.000Z`);
+  const target = new Date(`${dateValue}T00:00:00.000Z`);
+  return Math.ceil((target.getTime() - today.getTime()) / 86400000);
+}
+
+async function listWeddingRows(table, weddingId, columns = "*") {
+  const { data, error } = await supabase.from(table).select(columns).eq("wedding_id", weddingId);
+  if (error) throw error;
+  return data || [];
+}
+
+async function loadContractsAndPayments(weddingId) {
+  const contracts = await listWeddingRows("contracts", weddingId);
+  if (contracts.length === 0) return { contracts, payments: [] };
+
+  const { data: payments, error } = await supabase
+    .from("payments")
+    .select("*")
+    .in("contract_id", contracts.map((contract) => contract.id));
+  if (error) throw error;
+  return { contracts, payments: payments || [] };
+}
+
+function missingVendorCategories(vendors) {
+  const secured = new Set(
+    vendors
+      .filter((vendor) => SECURED_VENDOR_STATUSES.includes(vendor.status))
+      .map((vendor) => vendor.category),
+  );
+  return VENDOR_CATEGORIES.filter((category) => !secured.has(category));
+}
+
+async function buildDashboard(weddingId) {
+  const now = new Date();
+  const today = dateOnly(now);
+  const inThirtyDays = new Date(now);
+  inThirtyDays.setUTCDate(now.getUTCDate() + 30);
+  const inFourteenDays = new Date(now);
+  inFourteenDays.setUTCDate(now.getUTCDate() + 14);
+
+  const [
+    guests,
+    tasks,
+    vendors,
+    budgetCategories,
+    expenses,
+    meetings,
+    contractsAndPayments,
+  ] = await Promise.all([
+    listWeddingRows("guests", weddingId),
+    listWeddingRows("tasks", weddingId),
+    listWeddingRows("vendors", weddingId),
+    listWeddingRows("budget_categories", weddingId),
+    listWeddingRows("expenses", weddingId),
+    listWeddingRows("meetings", weddingId),
+    loadContractsAndPayments(weddingId),
+  ]);
+
+  const { contracts, payments } = contractsAndPayments;
+  const contractsById = new Map(contracts.map((contract) => [contract.id, contract]));
+  const vendorsById = new Map(vendors.map((vendor) => [vendor.id, vendor]));
+  const activeTasks = tasks.filter((task) => !task.done);
+  const overdueTasks = activeTasks
+    .filter((task) => task.due_date < today)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+  const missingVendors = missingVendorCategories(vendors);
+  const plannedPayments = payments.filter((payment) => payment.status !== "paid");
+  const overduePayments = plannedPayments
+    .filter((payment) => payment.status === "overdue" || payment.due_date < today)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+  const upcomingPayments = plannedPayments
+    .filter((payment) => payment.due_date >= today && payment.due_date <= dateOnly(inThirtyDays))
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
+
+  const attentionItems = [
+    ...overdueTasks.map((task) => ({
+      type: "task",
+      title: task.title,
+      meta: `Termin: ${task.due_date}`,
+      route: "/app/zadania",
+    })),
+    ...missingVendors.map((category) => ({
+      type: "vendor",
+      title: `Brakuje kontrahenta: ${category}`,
+      meta: "Kategoria nie ma zabezpieczonego statusu",
+      route: "/app/kontrahenci",
+    })),
+    ...overduePayments.map((payment) => {
+      const contract = contractsById.get(payment.contract_id);
+      return {
+        type: "payment",
+        title: `Platnosc po terminie: ${Number(payment.amount || 0).toFixed(2)} PLN`,
+        meta: `${vendorsById.get(contract?.vendor_id)?.company_name || "Kontrahent"} - ${payment.due_date}`,
+        route: "/app/umowy",
+      };
+    }),
+  ].slice(0, 5);
+
+  const upcomingMeetings = meetings
+    .filter((meeting) => {
+      const startsAt = new Date(meeting.starts_at);
+      return startsAt >= now && startsAt <= inFourteenDays;
+    })
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    .map((meeting) => mapMeeting(meeting, vendorsById.get(meeting.vendor_id) || null));
+
+  return {
+    kpis: {
+      guests: {
+        invited: guests.length,
+        confirmed: guests.filter((guest) => guest.rsvp_status === "confirmed").length,
+        pending: guests.filter((guest) => guest.rsvp_status === "pending").length,
+        declined: guests.filter((guest) => guest.rsvp_status === "declined").length,
+      },
+      budget: {
+        plannedTotal: sum(budgetCategories, "planned_amount"),
+        spentTotal: sum(expenses, "amount"),
+      },
+      payments: {
+        upcomingCount: upcomingPayments.length,
+        upcomingAmount: sum(upcomingPayments, "amount"),
+        overdueCount: overduePayments.length,
+        overdueAmount: sum(overduePayments, "amount"),
+      },
+      tasks: {
+        activeCount: activeTasks.length,
+        overdueCount: overdueTasks.length,
+      },
+    },
+    attentionItems,
+    upcomingMeetings,
+  };
+}
+
+async function buildWeddingExport(weddingId) {
+  const { data: wedding, error: weddingError } = await supabase
+    .from("weddings")
+    .select("*")
+    .eq("id", weddingId)
+    .single();
+  if (weddingError) throw weddingError;
+  if (!wedding) throw new NotFoundError("Wedding not found");
+
+  const [
+    weddingMembers,
+    partnerInvitations,
+    guests,
+    mealOptions,
+    tables,
+    vendors,
+    budgetCategories,
+    expenses,
+    tasks,
+    meetings,
+    cateringOffers,
+    weddingCateringSelection,
+    contractsAndPayments,
+  ] = await Promise.all([
+    listWeddingRows("wedding_members", weddingId),
+    listWeddingRows(
+      "partner_invitations",
+      weddingId,
+      "id, wedding_id, invited_by_user_id, email, status, expires_at, accepted_at, created_at",
+    ),
+    listWeddingRows("guests", weddingId),
+    listWeddingRows("meal_options", weddingId),
+    listWeddingRows("tables", weddingId),
+    listWeddingRows("vendors", weddingId),
+    listWeddingRows("budget_categories", weddingId),
+    listWeddingRows("expenses", weddingId),
+    listWeddingRows("tasks", weddingId),
+    listWeddingRows("meetings", weddingId),
+    listWeddingRows("catering_offers", weddingId),
+    listWeddingRows("wedding_catering_selection", weddingId),
+    loadContractsAndPayments(weddingId),
+  ]);
+
+  return {
+    exportedAt: new Date().toISOString(),
+    wedding,
+    weddingMembers,
+    partnerInvitations,
+    guests,
+    mealOptions,
+    tables,
+    vendors,
+    contracts: contractsAndPayments.contracts,
+    payments: contractsAndPayments.payments,
+    budgetCategories,
+    expenses,
+    tasks,
+    meetings,
+    cateringOffers,
+    weddingCateringSelection,
+  };
 }
 
 router.post("/accept-invite", acceptInviteLimit, async (req, res, next) => {
@@ -137,6 +357,24 @@ router.get("/:id", requireWeddingMember({ paramName: "id" }), async (req, res, n
   }
 });
 
+router.get("/:id/dashboard", requireWeddingMember({ paramName: "id" }), async (req, res, next) => {
+  try {
+    res.json(await buildDashboard(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/:id/export", requireWeddingMember({ paramName: "id" }), async (req, res, next) => {
+  try {
+    res
+      .attachment(`wedding-${req.params.id}-export.json`)
+      .json(await buildWeddingExport(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch("/:id", requireWeddingMember({ paramName: "id" }), async (req, res, next) => {
   try {
     const patch = buildWeddingPatch(req.body);
@@ -149,6 +387,33 @@ router.patch("/:id", requireWeddingMember({ paramName: "id" }), async (req, res,
 
     if (error) throw error;
     res.json(mapWedding(wedding));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/:id", requireWeddingMember({ paramName: "id" }), async (req, res, next) => {
+  try {
+    const { data: wedding, error: weddingError } = await supabase
+      .from("weddings")
+      .select("id, created_by_user_id")
+      .eq("id", req.params.id)
+      .single();
+    if (weddingError) throw weddingError;
+    if (!wedding) throw new NotFoundError("Wedding not found");
+    if (wedding.created_by_user_id !== req.currentUser.id) {
+      throw new DomainError("Only the wedding founder can delete this wedding", 403);
+    }
+
+    const { data, error } = await supabase
+      .from("weddings")
+      .delete()
+      .eq("id", req.params.id)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new NotFoundError("Wedding not found");
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

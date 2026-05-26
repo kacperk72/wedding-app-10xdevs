@@ -1,8 +1,9 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from './auth.service';
-import { CreateWeddingDto, UpdateWeddingDto, Wedding } from '../models/wedding.model';
+import { SKIP_TOAST_HEADER } from '../http/error.interceptor';
+import { CreateWeddingDto, PartnerInvitation, UpdateWeddingDto, Wedding, WeddingExport } from '../models/wedding.model';
 import { apiUrl } from '../http/api-url';
 
 const MS_PER_DAY = 86_400_000;
@@ -47,7 +48,9 @@ export class WeddingService {
           return of(null);
         }
         return this.http
-          .get<Wedding>(apiUrl(`/weddings/${user.weddingId}`))
+          .get<Wedding>(apiUrl(`/weddings/${user.weddingId}`), {
+            headers: new HttpHeaders({ [SKIP_TOAST_HEADER]: '1' }),
+          })
           .pipe(tap((w) => this._wedding.set(w)));
       }),
     );
@@ -64,5 +67,25 @@ export class WeddingService {
     return this.http
       .patch<Wedding>(apiUrl(`/weddings/${id}`), patch)
       .pipe(tap((w) => this._wedding.set(w)));
+  }
+
+  invitePartner(id: string, email: string): Observable<PartnerInvitation> {
+    return this.http.post<PartnerInvitation>(apiUrl(`/weddings/${id}/invite-partner`), { email });
+  }
+
+  exportJson(id: string): Observable<WeddingExport> {
+    return this.http.get<WeddingExport>(apiUrl(`/weddings/${id}/export`), {
+      headers: new HttpHeaders({ [SKIP_TOAST_HEADER]: '1' }),
+    });
+  }
+
+  exportBlob(id: string): Observable<Blob> {
+    return this.http.get(apiUrl(`/weddings/${id}/export`), {
+      responseType: 'blob',
+    });
+  }
+
+  deleteWedding(id: string): Observable<void> {
+    return this.http.delete<void>(apiUrl(`/weddings/${id}`)).pipe(tap(() => this._wedding.set(null)));
   }
 }

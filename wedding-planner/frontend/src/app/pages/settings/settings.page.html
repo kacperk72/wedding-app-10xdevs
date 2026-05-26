@@ -1,5 +1,8 @@
 <app-page-header title="Ustawienia" subtitle="Profil pary, menu i stoly">
-  <span class="button-like button-like--secondary">Pobierz JSON</span>
+  <button type="button" class="button-like button-like--secondary" (click)="downloadJson()">
+    Pobierz JSON
+  </button>
+  <button type="button" class="button-like button-like--ghost" (click)="logout()">Wyloguj</button>
 </app-page-header>
 
 <div class="page-stack">
@@ -49,6 +52,47 @@
     }
   </section>
 
+  <section class="surface panel">
+    <div>
+      <p class="panel__eyebrow">Polaczone konto</p>
+      <h3>Konto partnera</h3>
+    </div>
+
+    @if (partnerMember(); as partner) {
+      <div class="list-item">
+        <div>
+          <p class="list-item__title">{{ partner.email || 'Partner B' }}</p>
+          <p class="list-item__meta">Polaczono: {{ partner.linkedAt }}</p>
+        </div>
+        <span class="badge badge--success">polaczone</span>
+      </div>
+    } @else if (pendingInvitation(); as invitation) {
+      <div class="list-item">
+        <div>
+          <p class="list-item__title">{{ invitation.email }}</p>
+          <p class="list-item__meta">Zaproszenie oczekuje na akceptacje.</p>
+        </div>
+        <button type="button" class="button-like button-like--secondary" (click)="resendInvitation()">
+          Wyslij ponownie
+        </button>
+      </div>
+    } @else {
+      <form class="toolbar" (ngSubmit)="invitePartner()">
+        <div class="field" style="flex: 1 1 260px">
+          <label for="partnerEmail">Email partnera</label>
+          <input
+            id="partnerEmail"
+            name="partnerEmail"
+            type="email"
+            [ngModel]="partnerEmail()"
+            (ngModelChange)="partnerEmail.set($event)"
+          />
+        </div>
+        <button type="submit" class="button-like button-like--secondary">Wyslij zaproszenie</button>
+      </form>
+    }
+  </section>
+
   <section class="section-grid section-grid--two">
     <article class="surface panel">
       <div>
@@ -89,6 +133,12 @@
               </div>
             }
           </div>
+        } @empty {
+          <app-empty-state
+            icon="clipboard-list"
+            title="Brak opcji menu"
+            description="Dodaj pierwsza opcje, zeby przypisywac dania gosciom."
+          />
         }
       </div>
     </article>
@@ -154,16 +204,27 @@
               </div>
             }
           </div>
+        } @empty {
+          <app-empty-state
+            icon="sofa"
+            title="Brak stolow"
+            description="Dodaj stoly, zeby pozniej rozsadzic gosci."
+          />
         }
       </div>
     </article>
   </section>
 
-  <section class="surface panel">
-    <div>
-      <p class="panel__eyebrow">Polaczone konto</p>
-      <h3>Konto partnera</h3>
-    </div>
-    <p class="muted">Zaproszenie partnera obsluguje backend przez token i SSO.</p>
-  </section>
+  @if (isFounder()) {
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Usun wesele</p>
+        <h3>Strefa ostrozna</h3>
+      </div>
+      <p class="muted">Usuniecie wesela kasuje wszystkie powiazane dane.</p>
+      <div class="toolbar">
+        <button type="button" class="button-like" (click)="deleteWedding()">Usun wesele</button>
+      </div>
+    </section>
+  }
 </div>

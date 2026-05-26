@@ -92,6 +92,7 @@ function mapPayment(payment, vendor = null) {
     amount: Number(payment.amount),
     status: payment.status,
     paidAt: payment.paid_at,
+    method: payment.method || "przelew",
     vendorName: vendor?.company_name || payment.contracts?.vendors?.company_name || null,
     daysUntilDue: Math.ceil((due.getTime() - today.getTime()) / 86400000),
   };
@@ -131,10 +132,25 @@ function mapTask(task) {
   };
 }
 
+function mapMeeting(meeting, vendor = null) {
+  return {
+    id: meeting.id,
+    weddingId: meeting.wedding_id,
+    title: meeting.title,
+    meetingDate: meeting.starts_at,
+    vendorId: meeting.vendor_id,
+    vendorName: vendor?.company_name || meeting.vendors?.company_name || null,
+    notes: meeting.notes,
+    createdAt: meeting.created_at,
+    updatedAt: meeting.updated_at,
+  };
+}
+
 module.exports = {
   mapContract,
   mapGuest,
   mapMealOption,
+  mapMeeting,
   mapPayment,
   mapTable,
   mapTask,

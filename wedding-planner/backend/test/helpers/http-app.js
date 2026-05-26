@@ -88,6 +88,7 @@ function request(server, method, requestPath, body, token = "sso-a") {
           }
           resolve({
             status: res.statusCode,
+            headers: res.headers,
             body,
           });
         });

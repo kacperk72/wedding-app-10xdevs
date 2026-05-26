@@ -19,6 +19,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 import { Icon } from '../../shared/ui/icon/icon';
+import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 
 const RELATIONS = Object.keys(RELATION_LABELS) as Relation[];
 const DIETS = Object.keys(DIET_LABELS) as Diet[];
@@ -26,7 +27,7 @@ const RSVP_STATUSES = Object.keys(RSVP_LABELS) as RsvpStatus[];
 
 @Component({
   selector: 'app-guests-page',
-  imports: [FormsModule, Icon, PageHeader],
+  imports: [EmptyState, FormsModule, Icon, PageHeader],
   templateUrl: './guests.page.html',
   styleUrl: './guests.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

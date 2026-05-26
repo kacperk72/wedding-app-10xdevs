@@ -1,0 +1,14 @@
+<div class="empty-state empty-state--rich">
+  <app-icon [name]="icon()" [size]="24" />
+  <div>
+    <p class="empty-state__title">{{ title() }}</p>
+    @if (description()) {
+      <p class="empty-state__description">{{ description() }}</p>
+    }
+  </div>
+  @if (ctaLabel()) {
+    <button type="button" class="button-like button-like--secondary" (click)="cta.emit()">
+      {{ ctaLabel() }}
+    </button>
+  }
+</div>

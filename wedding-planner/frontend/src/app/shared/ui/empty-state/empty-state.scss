@@ -1,0 +1,15 @@
+.empty-state--rich {
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.empty-state__title {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.empty-state__description {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}

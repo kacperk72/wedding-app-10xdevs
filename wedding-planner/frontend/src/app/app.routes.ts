@@ -75,5 +75,8 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: '' },
+  {
+    path: '**',
+    loadComponent: () => import('./pages/error/error.page').then((m) => m.ErrorPage),
+  },
 ];

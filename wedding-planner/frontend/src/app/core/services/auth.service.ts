@@ -1,9 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, Subject, of, race, tap, timer, take, map, catchError } from 'rxjs';
 import { User } from '../models/user.model';
 import { apiUrl } from '../http/api-url';
+import { SKIP_TOAST_HEADER } from '../http/error.interceptor';
 
 // Contract: see SSO/backend/public/sdk/sso-sdk.js. SDK exposes window.SSOAuth
 // after script tag in index.html resolves. We do NOT reimplement the protocol
@@ -60,7 +61,11 @@ export class AuthService {
   }
 
   me(): Observable<User> {
-    return this.http.get<User>(apiUrl('/me')).pipe(tap((user) => this._user.set(user)));
+    return this.http
+      .get<User>(apiUrl('/me'), {
+        headers: new HttpHeaders({ [SKIP_TOAST_HEADER]: '1' }),
+      })
+      .pipe(tap((user) => this._user.set(user)));
   }
 
   ensureUser(): Observable<User | null> {

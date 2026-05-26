@@ -1,0 +1,17 @@
+.error-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background: var(--color-bg);
+}
+
+.error-page__panel {
+  width: min(100%, 520px);
+}
+
+.error-page h1 {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  line-height: 1.08;
+}

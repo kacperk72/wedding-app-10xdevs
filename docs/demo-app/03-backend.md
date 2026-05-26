@@ -104,6 +104,8 @@ Każde poniżej (poza `/auth/*` i `/me`) wymaga aktywnego JWT i przynależności
 
 ### Implementation status
 
+> **Aktualizacja 2026-05-26:** zaimplementowane i pokryte testami: `GET /api/weddings/:id/dashboard`, `/api/weddings/:weddingId/meetings` CRUD + `/upcoming`, `GET /api/weddings/:id/export`, founder-only `DELETE /api/weddings/:id`, cache headers na `/api`. Backend `npm test`: 51/51.
+
 | Sekcja | Status | Komentarz |
 |---|---|---|
 | `/api/me` | ✅ | Z `weddingMembership` (role + linkedAt). 3 testy: bez membership / partner_a sam / oboje |

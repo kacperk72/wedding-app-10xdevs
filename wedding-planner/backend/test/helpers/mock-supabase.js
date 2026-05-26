@@ -117,11 +117,29 @@ class QueryBuilder {
 
   formatRow(row) {
     const result = clone(row);
+    if (this.table === "weddings" && this.selected?.includes("wedding_members(")) {
+      result.wedding_members = this.db.wedding_members
+        .filter((member) => member.wedding_id === row.id)
+        .map((member) => ({
+          ...clone(member),
+          users: this.db.users.find((user) => user.id === member.user_id) || null,
+        }));
+    }
     if (this.table === "wedding_members" && this.selected?.includes("users(")) {
       result.users =
         row.users ||
         this.db.users.find((user) => user.id === row.user_id) ||
         null;
+    }
+    if (this.selected && !this.selected.includes("*") && !this.selected.includes("(")) {
+      return this.selected
+        .split(",")
+        .map((column) => column.trim())
+        .filter(Boolean)
+        .reduce((projected, column) => {
+          projected[column] = result[column];
+          return projected;
+        }, {});
     }
     return result;
   }
@@ -157,7 +175,39 @@ class QueryBuilder {
       deleted.push(clone(row));
       return false;
     });
+    if (this.table === "weddings") {
+      for (const wedding of deleted) this.cascadeWeddingDelete(wedding.id);
+    }
     return deleted;
+  }
+
+  cascadeWeddingDelete(weddingId) {
+    const contractIds = new Set(
+      (this.db.contracts || [])
+        .filter((contract) => contract.wedding_id === weddingId)
+        .map((contract) => contract.id),
+    );
+    const weddingScopedTables = [
+      "wedding_members",
+      "partner_invitations",
+      "guests",
+      "meal_options",
+      "tables",
+      "vendors",
+      "contracts",
+      "budget_categories",
+      "expenses",
+      "tasks",
+      "meetings",
+      "catering_offers",
+      "wedding_catering_selection",
+    ];
+    for (const table of weddingScopedTables) {
+      if (this.db[table]) this.db[table] = this.db[table].filter((row) => row.wedding_id !== weddingId);
+    }
+    if (this.db.payments) {
+      this.db.payments = this.db.payments.filter((payment) => !contractIds.has(payment.contract_id));
+    }
   }
 
   executeUpsert() {
@@ -308,6 +358,17 @@ function createMockSupabase(seed = {}) {
       },
     ],
     partner_invitations: [],
+    guests: [],
+    meal_options: [],
+    tables: [],
+    vendors: [],
+    contracts: [],
+    payments: [],
+    budget_categories: [],
+    expenses: [],
+    meetings: [],
+    catering_offers: [],
+    wedding_catering_selection: [],
     tasks: [],
     task_templates: [],
     ...seed,
