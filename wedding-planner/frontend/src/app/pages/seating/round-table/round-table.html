@@ -1,0 +1,30 @@
+<section
+  class="round-table-card"
+  [class.round-table-card--full]="isFull()"
+  cdkDropList
+  [cdkDropListData]="table()"
+  [cdkDropListEnterPredicate]="enterPredicate()"
+  (cdkDropListDropped)="dropped.emit($event)"
+>
+  <div class="round-table-card__header">
+    <strong>{{ table().name }}</strong>
+    <span>{{ guests().length }} / {{ table().seatsCount }} miejsc</span>
+  </div>
+
+  <div class="round-table-card__seats" aria-label="Goscie przy stole">
+    @for (guest of guests(); track guest.id) {
+      <button
+        type="button"
+        class="seat-chip"
+        cdkDrag
+        [cdkDragData]="guest"
+        [attr.title]="guestName(guest)"
+        [attr.aria-label]="guestName(guest)"
+        (keydown.enter)="guestMenu.emit(guest)"
+        (click)="guestMenu.emit(guest)"
+      >
+        {{ initials(guest) }}
+      </button>
+    }
+  </div>
+</section>

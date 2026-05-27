@@ -81,10 +81,23 @@ function mapTable(table) {
     id: table.id,
     weddingId: table.wedding_id,
     name: table.name,
-    seatsCount: table.seats_count,
-    sortOrder: table.sort_order,
-    positionX: table.position_x,
-    positionY: table.position_y,
+    seatsCount: Number(table.seats_count),
+    sortOrder: Number(table.sort_order),
+    positionX: table.position_x == null ? null : Number(table.position_x),
+    positionY: table.position_y == null ? null : Number(table.position_y),
+  };
+}
+
+function mapSeatingConflict(conflict, guestA = null, guestB = null) {
+  return {
+    id: conflict.id,
+    weddingId: conflict.wedding_id,
+    guestAId: conflict.guest_a_id,
+    guestBId: conflict.guest_b_id,
+    guestAName: guestA ? `${guestA.first_name} ${guestA.last_name}` : null,
+    guestBName: guestB ? `${guestB.first_name} ${guestB.last_name}` : null,
+    reason: conflict.reason,
+    createdAt: conflict.created_at,
   };
 }
 
@@ -177,6 +190,7 @@ module.exports = {
   mapMealOption,
   mapMeeting,
   mapPayment,
+  mapSeatingConflict,
   mapTable,
   mapTask,
   mapVendor,

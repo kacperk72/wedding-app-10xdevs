@@ -2,6 +2,7 @@ const express = require("express");
 const { supabase } = require("../config/database");
 const { BadRequestError, NotFoundError } = require("../errors/domain-errors");
 const { requireWeddingMember } = require("../middleware/wedding-member");
+const { assertWeddingRecordExists } = require("../utils/cross-wedding");
 const { mapGuest } = require("../utils/mappers");
 const {
   enumValue,
@@ -77,23 +78,6 @@ function buildGuestPatch(body) {
   return requireAtLeastOne(patch);
 }
 
-async function assertWeddingRecordExists(tableName, id, weddingId, label) {
-  if (id === null || id === undefined) return;
-  if (typeof id !== "string" || id.trim() === "") {
-    throw new BadRequestError(`${label} must be a valid id`);
-  }
-
-  const { data, error } = await supabase
-    .from(tableName)
-    .select("id")
-    .eq("id", id)
-    .eq("wedding_id", weddingId)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) throw new BadRequestError(`${label} does not belong to this wedding`);
-}
-
 async function assertGuestRelationsBelongToWedding(payload, weddingId) {
   await assertWeddingRecordExists("meal_options", payload.meal_option_id, weddingId, "mealOptionId");
   await assertWeddingRecordExists("tables", payload.table_id, weddingId, "tableId");
@@ -110,6 +94,68 @@ async function loadGuestForWedding(guestId, weddingId) {
   if (error) throw error;
   if (!data) throw new NotFoundError("Guest not found");
   return data;
+}
+
+async function loadTableForWedding(tableId, weddingId) {
+  const { data, error } = await supabase
+    .from("tables")
+    .select("id,seats_count")
+    .eq("id", tableId)
+    .eq("wedding_id", weddingId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new NotFoundError("Table not found");
+  return data;
+}
+
+async function loadGuestsAtTable(tableId, weddingId, excludeGuestId = null) {
+  let query = supabase
+    .from("guests")
+    .select("id,first_name,last_name,table_id")
+    .eq("wedding_id", weddingId)
+    .eq("table_id", tableId);
+
+  if (excludeGuestId) query = query.neq("id", excludeGuestId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
+async function loadConflictWarnings(currentGuestId, seatedGuests, weddingId) {
+  const otherGuestIds = seatedGuests.map((guest) => guest.id);
+  if (otherGuestIds.length === 0) return [];
+
+  const [{ data: aSide, error: aError }, { data: bSide, error: bError }] = await Promise.all([
+    supabase
+      .from("seating_conflicts")
+      .select("guest_a_id,guest_b_id,reason")
+      .eq("wedding_id", weddingId)
+      .eq("guest_a_id", currentGuestId)
+      .in("guest_b_id", otherGuestIds),
+    supabase
+      .from("seating_conflicts")
+      .select("guest_a_id,guest_b_id,reason")
+      .eq("wedding_id", weddingId)
+      .eq("guest_b_id", currentGuestId)
+      .in("guest_a_id", otherGuestIds),
+  ]);
+
+  if (aError) throw aError;
+  if (bError) throw bError;
+
+  const guestsById = new Map(seatedGuests.map((guest) => [guest.id, guest]));
+  return [...aSide, ...bSide].map((conflict) => {
+    const otherGuestId =
+      conflict.guest_a_id === currentGuestId ? conflict.guest_b_id : conflict.guest_a_id;
+    const otherGuest = guestsById.get(otherGuestId);
+    return {
+      otherGuestId,
+      otherGuestName: otherGuest ? `${otherGuest.first_name} ${otherGuest.last_name}` : null,
+      reason: conflict.reason,
+    };
+  });
 }
 
 router.use(requireWeddingMember());
@@ -172,6 +218,54 @@ router.post("/", async (req, res, next) => {
 
     if (error) throw error;
     res.status(201).json(mapGuest(data));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/:guestId/assign-table", async (req, res, next) => {
+  try {
+    const weddingId = req.params.weddingId;
+    const tableId = requireString(req.body, "tableId");
+
+    await loadGuestForWedding(req.params.guestId, weddingId);
+    await assertWeddingRecordExists("tables", tableId, weddingId, "tableId");
+
+    const table = await loadTableForWedding(tableId, weddingId);
+    const seatedGuests = await loadGuestsAtTable(tableId, weddingId, req.params.guestId);
+    if (seatedGuests.length >= Number(table.seats_count)) {
+      throw new BadRequestError("table is full");
+    }
+
+    const warnings = await loadConflictWarnings(req.params.guestId, seatedGuests, weddingId);
+    const { data, error } = await supabase
+      .from("guests")
+      .update({ table_id: tableId })
+      .eq("id", req.params.guestId)
+      .eq("wedding_id", weddingId)
+      .select("*, meal_options(label), tables(name)")
+      .single();
+
+    if (error) throw error;
+    res.json({ guest: mapGuest(data), warnings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/:guestId/unassign-table", async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from("guests")
+      .update({ table_id: null })
+      .eq("id", req.params.guestId)
+      .eq("wedding_id", req.params.weddingId)
+      .select("*, meal_options(label), tables(name)")
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new NotFoundError("Guest not found");
+    res.json(mapGuest(data));
   } catch (err) {
     next(err);
   }

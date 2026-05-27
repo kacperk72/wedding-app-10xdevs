@@ -1,0 +1,31 @@
+.conflicts-panel {
+  min-width: 0;
+}
+
+.conflict-row {
+  align-items: flex-start;
+}
+
+.conflict-row .list-item__meta {
+  line-height: 1.45;
+}
+
+.empty-copy {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.field--wide,
+.form-actions {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 767px) {
+  .conflict-row {
+    flex-direction: row;
+  }
+}

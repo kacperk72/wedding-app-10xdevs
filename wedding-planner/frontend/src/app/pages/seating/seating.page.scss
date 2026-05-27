@@ -1,0 +1,130 @@
+.seating-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(280px, 320px);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.seating-sidebar,
+.seating-right {
+  position: sticky;
+  top: var(--space-4);
+}
+
+.seating-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.seating-main {
+  min-width: 0;
+}
+
+.stats-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, var(--color-surface) 92%, white);
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-4);
+}
+
+.guest-pool {
+  min-height: 180px;
+}
+
+.guest-card {
+  cursor: grab;
+}
+
+.guest-card:focus-visible {
+  outline: 3px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+.toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.compact-stats {
+  gap: var(--space-3);
+}
+
+.compact-stats h3 {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.stat-lines {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+}
+
+.stat-lines span,
+.empty-copy {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.assign-menu {
+  width: min(100%, 460px);
+}
+
+.assign-actions {
+  justify-content: flex-end;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  box-shadow: var(--shadow-sm);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.25;
+}
+
+.cdk-drag-animating {
+  transition: transform 160ms ease;
+}
+
+@media (max-width: 1180px) {
+  .seating-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .seating-sidebar,
+  .seating-right {
+    position: static;
+  }
+}
+
+@media (max-width: 767px) {
+  .stats-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

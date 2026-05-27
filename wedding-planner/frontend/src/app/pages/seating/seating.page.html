@@ -1,61 +1,162 @@
-<app-page-header title="Rozsadzenie" subtitle="Stoły, miejsca i konflikty do sprawdzenia">
-  <span class="button-like">Dodaj stół</span>
+<app-page-header title="Rozsadzenie" subtitle="Stoły, miejsca i konflikty przy sali">
+  <span class="badge badge--neutral">{{ stats().totalSeats }} miejsc</span>
 </app-page-header>
 
-<section class="section-grid section-grid--seating">
-  <aside class="surface panel">
+<section class="seating-layout" cdkDropListGroup>
+  <aside class="surface panel seating-sidebar">
     <div class="panel__header">
       <div>
-        <p class="panel__eyebrow">Nieprzypisani</p>
-        <h3>4 osoby</h3>
+        <p class="panel__eyebrow">Niesedzeni goście</p>
+        <h3>{{ unseatedGuests().length }} osób</h3>
       </div>
-      <span class="badge badge--neutral">tylko potwierdzeni</span>
     </div>
-    <div class="list">
-      @for (guest of guests; track guest.name) {
-        <div class="list-item">
+
+    <label class="toggle-row">
+      <input
+        type="checkbox"
+        [checked]="showConfirmedOnly()"
+        (change)="showConfirmedOnly.set($any($event.target).checked)"
+      />
+      <span>Tylko potwierdzeni</span>
+    </label>
+
+    <div
+      class="list guest-pool"
+      cdkDropList
+      [cdkDropListData]="unseatedGuests()"
+      [cdkDropListSortingDisabled]="true"
+    >
+      @for (guest of unseatedGuests(); track guest.id) {
+        <article
+          class="list-item guest-card"
+          cdkDrag
+          [cdkDragData]="guest"
+          tabindex="0"
+          (keydown.enter)="openGuestMenu(guest)"
+        >
           <div>
-            <p class="list-item__title">{{ guest.name }}</p>
-            <p class="list-item__meta">{{ guest.tags }}</p>
+            <p class="list-item__title">{{ guestName(guest) }}</p>
+            <p class="list-item__meta">{{ guestTags(guest) }}</p>
           </div>
-        </div>
+          <button
+            type="button"
+            class="button-like button-like--ghost button-like--icon"
+            aria-label="Przypisz do stołu"
+            (click)="openGuestMenu(guest)"
+          >
+            <app-icon name="plus" [size]="16" />
+          </button>
+        </article>
+      } @empty {
+        <p class="empty-copy">Wszyscy widoczni goście mają stół.</p>
       }
     </div>
   </aside>
 
-  <section class="surface panel">
-    <div class="panel__header">
-      <div>
-        <p class="panel__eyebrow">Plan sali</p>
-        <h2>12 stołów · 100 miejsc</h2>
-      </div>
-      <span class="badge badge--success">73 / 100 rozsadzonych</span>
+  <main class="surface panel seating-main">
+    <div class="stats-toolbar">
+      <span>{{ statsLabel() }}</span>
+      <span class="badge badge--success">{{ stats().fullTablesCount }} pełnych</span>
     </div>
-    <div class="round-table-grid">
-      @for (table of tables; track table.name) {
-        <div class="round-table">
-          <div>
-            <strong>{{ table.name }}</strong>
-            <span class="muted">{{ table.seats }}</span>
-          </div>
-        </div>
-      }
-    </div>
-  </section>
 
-  <aside class="surface panel">
     <div class="panel__header">
       <div>
-        <p class="panel__eyebrow">Konflikty</p>
-        <h3>{{ conflicts.length }} ostrzeżenia</h3>
+        <p class="panel__eyebrow">Stoły</p>
+        <h2>{{ tables().length }} stołów</h2>
       </div>
+      <span class="badge badge--info">{{ stats().unseatedCount }} bez miejsca</span>
     </div>
-    <div class="list">
-      @for (conflict of conflicts; track conflict) {
-        <div class="list-item">
-          <p class="list-item__meta">{{ conflict }}</p>
-        </div>
+
+    <div class="table-grid">
+      @for (table of tables(); track table.id) {
+        <app-round-table
+          [table]="table"
+          [guests]="guestsForTable(table.id)"
+          [isFull]="isTableFull(table)"
+          [enterPredicate]="canEnterTable"
+          (dropped)="dropGuest($event)"
+          (guestMenu)="openGuestMenu($event)"
+        />
+      } @empty {
+        <p class="empty-copy">Dodaj stoły w module gości, aby rozpocząć rozsadzanie.</p>
       }
     </div>
+  </main>
+
+  <aside class="seating-right">
+    <section class="surface panel compact-stats">
+      <div>
+        <p class="panel__eyebrow">Status</p>
+        <h3>{{ stats().seatedCount }} / {{ stats().seatedCount + stats().unseatedCount }}</h3>
+      </div>
+      <div class="stat-lines">
+        <span>Stoły używane</span>
+        <strong>{{ stats().tablesUsed }}</strong>
+      </div>
+      <div class="stat-lines">
+        <span>Konflikty</span>
+        <strong>{{ stats().conflictsCount }}</strong>
+      </div>
+      <div class="stat-lines">
+        <span>Miejsca razem</span>
+        <strong>{{ stats().totalSeats }}</strong>
+      </div>
+    </section>
+
+    <app-conflicts-panel
+      [conflicts]="seating.conflicts()"
+      [guests]="guests()"
+      (createConflict)="createConflict($event)"
+      (removeConflict)="removeConflict($event)"
+    />
   </aside>
 </section>
+
+@if (menuGuest(); as guest) {
+  <div class="modal-backdrop" role="presentation" (click)="closeGuestMenu()">
+    <section
+      class="modal surface panel assign-menu"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assignGuestTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Przypisz do stołu</p>
+          <h2 id="assignGuestTitle">{{ guestName(guest) }}</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="closeGuestMenu()">
+          Zamknij
+        </button>
+      </div>
+
+      <div class="field">
+        <label for="assignTable">Stół z wolnymi miejscami</label>
+        <select
+          id="assignTable"
+          name="assignTable"
+          [ngModel]="selectedTableId()"
+          (ngModelChange)="selectedTableId.set($event)"
+        >
+          @for (table of availableTables(); track table.id) {
+            <option [value]="table.id">
+              {{ table.name }} · {{ guestsForTable(table.id).length }} / {{ table.seatsCount }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <div class="toolbar assign-actions">
+        @if (guest.tableId) {
+          <button type="button" class="button-like button-like--secondary" (click)="unassignFromMenu()">
+            Usuń z miejsca
+          </button>
+        }
+        <button type="button" class="button-like" [disabled]="!selectedTableId()" (click)="assignFromMenu()">
+          Przypisz
+        </button>
+      </div>
+    </section>
+  </div>
+}

@@ -154,6 +154,9 @@ class QueryBuilder {
       if (this.table === "wedding_members") {
         record.linked_at = record.linked_at || "2026-05-24T10:00:00.000Z";
       }
+      if (this.table === "seating_conflicts") {
+        record.created_at = record.created_at || "2026-05-24T10:00:00.000Z";
+      }
       this.db[this.table].push(record);
       return clone(record);
     });
@@ -201,6 +204,7 @@ class QueryBuilder {
       "meetings",
       "catering_offers",
       "wedding_catering_selection",
+      "seating_conflicts",
     ];
     for (const table of weddingScopedTables) {
       if (this.db[table]) this.db[table] = this.db[table].filter((row) => row.wedding_id !== weddingId);
@@ -369,6 +373,7 @@ function createMockSupabase(seed = {}) {
     meetings: [],
     catering_offers: [],
     wedding_catering_selection: [],
+    seating_conflicts: [],
     tasks: [],
     task_templates: [],
     ...seed,

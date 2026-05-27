@@ -39,6 +39,11 @@
   color: var(--color-info);
 }
 
+.toast--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
 .toast__message {
   flex: 1;
 }

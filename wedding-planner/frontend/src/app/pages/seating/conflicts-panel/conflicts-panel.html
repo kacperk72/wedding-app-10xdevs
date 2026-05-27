@@ -1,0 +1,109 @@
+<section class="surface panel conflicts-panel">
+  <div class="panel__header">
+    <div>
+      <p class="panel__eyebrow">Konflikty</p>
+      <h3>{{ conflicts().length }} ostrzezenia</h3>
+    </div>
+    <button type="button" class="button-like button-like--compact" (click)="openDialog()">
+      <app-icon name="plus" [size]="16" />
+      Dodaj konflikt
+    </button>
+  </div>
+
+  @if (conflicts().length === 0) {
+    <p class="empty-copy">Brak zapisanych konfliktow.</p>
+  } @else {
+    <div class="list">
+      @for (conflict of conflicts(); track conflict.id) {
+        <article class="list-item conflict-row">
+          <p class="list-item__meta">
+            <strong>{{ conflict.guestAName }}</strong>
+            ↔
+            <strong>{{ conflict.guestBName }}</strong>
+            · {{ conflict.reason }}
+          </p>
+          <button
+            type="button"
+            class="button-like button-like--ghost button-like--icon"
+            aria-label="Usun konflikt"
+            (click)="removeConflict.emit(conflict.id)"
+          >
+            <app-icon name="x" [size]="16" />
+          </button>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+@if (isDialogOpen()) {
+  <div class="modal-backdrop" role="presentation" (click)="closeDialog()">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addConflictTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Nowe ostrzezenie</p>
+          <h2 id="addConflictTitle">Dodaj konflikt</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="closeDialog()">
+          Zamknij
+        </button>
+      </div>
+
+      <form class="form-grid" (ngSubmit)="submit()">
+        <div class="field">
+          <label for="guestA">Pierwszy gosc</label>
+          <select
+            id="guestA"
+            name="guestA"
+            required
+            [ngModel]="form().guestAId"
+            (ngModelChange)="updateForm({ guestAId: $event })"
+          >
+            @for (guest of guests(); track guest.id) {
+              <option [value]="guest.id">{{ guestName(guest) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="guestB">Drugi gosc</label>
+          <select
+            id="guestB"
+            name="guestB"
+            required
+            [ngModel]="form().guestBId"
+            (ngModelChange)="updateForm({ guestBId: $event })"
+          >
+            @for (guest of secondGuestOptions(); track guest.id) {
+              <option [value]="guest.id">{{ guestName(guest) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field field--wide">
+          <label for="reason">Powod</label>
+          <textarea
+            id="reason"
+            name="reason"
+            required
+            [ngModel]="form().reason"
+            (ngModelChange)="updateForm({ reason: $event })"
+          ></textarea>
+        </div>
+
+        <div class="toolbar form-actions">
+          <button type="button" class="button-like button-like--secondary" (click)="closeDialog()">
+            Anuluj
+          </button>
+          <button type="submit" class="button-like">Dodaj</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
