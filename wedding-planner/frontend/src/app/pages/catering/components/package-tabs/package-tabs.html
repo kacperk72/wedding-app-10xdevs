@@ -1,0 +1,14 @@
+<div class="package-tabs" role="tablist" aria-label="Pakiety cateringowe">
+  @for (pkg of packages(); track pkg.id) {
+    <button
+      type="button"
+      role="tab"
+      class="package-tab"
+      [class.package-tab--active]="pkg.id === activePackageId()"
+      (click)="packageSelected.emit(pkg)"
+    >
+      <strong>{{ pkg.name }}</strong>
+      <span>{{ money(pkg.pricePerPerson) }} / os.</span>
+    </button>
+  }
+</div>

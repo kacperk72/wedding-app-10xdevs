@@ -101,6 +101,184 @@ function mapSeatingConflict(conflict, guestA = null, guestB = null) {
   };
 }
 
+function mapCateringOffer(offer, vendor = null, counts = {}) {
+  return {
+    id: offer.id,
+    weddingId: offer.wedding_id,
+    vendorId: offer.vendor_id,
+    vendorName: vendor?.company_name || offer.vendors?.company_name || null,
+    name: offer.name,
+    validThrough: offer.valid_through,
+    notes: offer.notes,
+    packagesCount: Number(counts.packagesCount || 0),
+    dishesCount: Number(counts.dishesCount || 0),
+    addonsCount: Number(counts.addonsCount || 0),
+    createdAt: offer.created_at,
+    updatedAt: offer.updated_at,
+  };
+}
+
+function mapCateringDish(dish, link = null) {
+  return {
+    id: link?.id || `${link?.catering_course_id || ""}:${dish.id}`,
+    dishId: dish.id,
+    offerId: dish.catering_offer_id,
+    name: dish.name,
+    description: dish.description,
+    isVegetarian: Boolean(dish.is_vegetarian),
+    isVegan: Boolean(dish.is_vegan),
+    isGlutenFree: Boolean(dish.is_gluten_free),
+    allergens: dish.allergens || [],
+    sortOrder: link ? Number(link.sort_order) : 0,
+    createdAt: dish.created_at,
+    updatedAt: dish.updated_at,
+  };
+}
+
+function mapCateringCourse(course, dishes = []) {
+  return {
+    id: course.id,
+    packageId: course.catering_package_id,
+    courseType: course.course_type,
+    title: course.title,
+    selectionMode: course.selection_mode,
+    choiceLimit: course.choice_limit == null ? null : Number(course.choice_limit),
+    sortOrder: Number(course.sort_order),
+    dishes,
+    createdAt: course.created_at,
+    updatedAt: course.updated_at,
+  };
+}
+
+function mapCateringPackage(pkg, courses = [], courseDishCounts = {}) {
+  return {
+    id: pkg.id,
+    offerId: pkg.catering_offer_id,
+    name: pkg.name,
+    pricePerPerson: Number(pkg.price_per_person),
+    isModifiable: Boolean(pkg.is_modifiable),
+    description: pkg.description,
+    sortOrder: Number(pkg.sort_order),
+    courses,
+    dishesCount: Number(courseDishCounts[pkg.id] || 0),
+    createdAt: pkg.created_at,
+    updatedAt: pkg.updated_at,
+  };
+}
+
+function mapCateringAddon(addon) {
+  return {
+    id: addon.id,
+    offerId: addon.catering_offer_id,
+    name: addon.name,
+    price: Number(addon.price),
+    pricingUnit: addon.pricing_unit,
+    description: addon.description,
+    sortOrder: Number(addon.sort_order),
+    createdAt: addon.created_at,
+    updatedAt: addon.updated_at,
+  };
+}
+
+function mapCateringOfferFull(offer, packages, courses, dishes, courseDishLinks, addons, vendor = null) {
+  const dishesById = new Map(dishes.map((dish) => [dish.id, dish]));
+  const linksByCourse = new Map();
+  for (const link of courseDishLinks) {
+    const list = linksByCourse.get(link.catering_course_id) || [];
+    list.push(link);
+    linksByCourse.set(link.catering_course_id, list);
+  }
+
+  const coursesByPackage = new Map();
+  for (const course of courses) {
+    const courseDishes = (linksByCourse.get(course.id) || [])
+      .map((link) => {
+        const dish = dishesById.get(link.catering_dish_id);
+        return dish ? mapCateringDish(dish, link) : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    const list = coursesByPackage.get(course.catering_package_id) || [];
+    list.push(mapCateringCourse(course, courseDishes));
+    coursesByPackage.set(course.catering_package_id, list);
+  }
+
+  const packagesMapped = packages
+    .map((pkg) =>
+      mapCateringPackage(
+        pkg,
+        (coursesByPackage.get(pkg.id) || []).sort((a, b) => a.sortOrder - b.sortOrder),
+      ),
+    )
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+  return {
+    ...mapCateringOffer(offer, vendor, {
+      packagesCount: packages.length,
+      dishesCount: dishes.length,
+      addonsCount: addons.length,
+    }),
+    packages: packagesMapped,
+    dishes: dishes.map((dish) => mapCateringDish(dish)).sort((a, b) => a.name.localeCompare(b.name)),
+    addons: addons.map(mapCateringAddon).sort((a, b) => a.sortOrder - b.sortOrder),
+  };
+}
+
+function mapCateringSelection(selection, dishPicks = [], addonPicks = [], pkg = null) {
+  return {
+    id: selection.id,
+    weddingId: selection.wedding_id,
+    packageId: selection.catering_package_id,
+    packageName: pkg?.name || selection.catering_packages?.name || null,
+    guestCountEstimate: Number(selection.guest_count_estimate),
+    notes: selection.notes,
+    dishPicks: dishPicks.map((pick) => ({
+      courseId: pick.catering_course_id,
+      dishId: pick.catering_dish_id,
+      dishName: pick.dish?.name || pick.catering_dishes?.name || null,
+    })),
+    addonPicks: addonPicks.map((pick) => ({
+      addonId: pick.catering_addon_id,
+      addonName: pick.addon?.name || pick.catering_addons?.name || null,
+      quantity: Number(pick.quantity),
+      pricingUnit: pick.addon?.pricing_unit || pick.catering_addons?.pricing_unit || null,
+      unitPrice:
+        pick.addon?.price == null && pick.catering_addons?.price == null
+          ? null
+          : Number(pick.addon?.price ?? pick.catering_addons?.price),
+    })),
+    createdAt: selection.created_at,
+    updatedAt: selection.updated_at,
+  };
+}
+
+function mapPriceBreakdown(packagePrice, guestCount, addonsResolved) {
+  const packageSubtotal = Number(packagePrice) * Number(guestCount);
+  const addons = addonsResolved.map((line) => {
+    const quantity = Number(line.quantity || 1);
+    const multiplier = line.pricingUnit === "per_person" ? Number(guestCount) : line.pricingUnit === "per_event" ? 1 : quantity;
+    const subtotal = Number(line.price) * multiplier;
+    return {
+      id: line.id,
+      name: line.name,
+      unitPrice: Number(line.price),
+      pricingUnit: line.pricingUnit,
+      multiplier,
+      quantity,
+      subtotal,
+    };
+  });
+  const addonsSubtotal = addons.reduce((sum, addon) => sum + addon.subtotal, 0);
+  return {
+    packagePrice: Number(packagePrice),
+    guestCount: Number(guestCount),
+    packageSubtotal,
+    addons,
+    addonsSubtotal,
+    total: packageSubtotal + addonsSubtotal,
+  };
+}
+
 function mapVendor(vendor) {
   return {
     id: vendor.id,
@@ -184,12 +362,20 @@ function mapMeeting(meeting, vendor = null) {
 
 module.exports = {
   mapBudgetCategory,
+  mapCateringAddon,
+  mapCateringCourse,
+  mapCateringDish,
+  mapCateringOffer,
+  mapCateringOfferFull,
+  mapCateringPackage,
+  mapCateringSelection,
   mapContract,
   mapExpense,
   mapGuest,
   mapMealOption,
   mapMeeting,
   mapPayment,
+  mapPriceBreakdown,
   mapSeatingConflict,
   mapTable,
   mapTask,

@@ -1,0 +1,32 @@
+<section class="surface panel">
+  <div>
+    <p class="panel__eyebrow">Dodatki</p>
+    <h3>Opcje płatne</h3>
+  </div>
+  <div class="list">
+    @for (addon of addons(); track addon.id) {
+      <article class="list-item addon-row">
+        <label class="addon-row__main">
+          <input
+            type="checkbox"
+            [checked]="isPicked(addon)"
+            (change)="$any($event.target).checked ? pickChanged.emit({ addon, quantity: quantity(addon) }) : pickRemoved.emit(addon)"
+          />
+          <span>
+            <strong>{{ addon.name }}</strong>
+            <span class="list-item__meta">{{ money(addon.price) }} · {{ addon.pricingUnit }}</span>
+          </span>
+        </label>
+        @if (isPicked(addon) && addon.pricingUnit !== 'per_event' && addon.pricingUnit !== 'per_person') {
+          <input
+            class="quantity-input"
+            type="number"
+            min="1"
+            [ngModel]="quantity(addon)"
+            (ngModelChange)="pickChanged.emit({ addon, quantity: +$event || 1 })"
+          />
+        }
+      </article>
+    }
+  </div>
+</section>

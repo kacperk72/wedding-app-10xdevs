@@ -1,0 +1,18 @@
+.addon-row,
+.addon-row__main {
+  align-items: center;
+}
+
+.addon-row__main {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.addon-row__main span {
+  display: grid;
+  gap: 3px;
+}
+
+.quantity-input {
+  width: 76px;
+}

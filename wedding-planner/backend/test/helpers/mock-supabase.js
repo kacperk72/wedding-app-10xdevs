@@ -157,6 +157,10 @@ class QueryBuilder {
       if (this.table === "seating_conflicts") {
         record.created_at = record.created_at || "2026-05-24T10:00:00.000Z";
       }
+      if (this.table.startsWith("catering_") || this.table.startsWith("wedding_catering_")) {
+        record.created_at = record.created_at || "2026-05-24T10:00:00.000Z";
+        record.updated_at = record.updated_at || "2026-05-24T10:00:00.000Z";
+      }
       this.db[this.table].push(record);
       return clone(record);
     });
@@ -203,7 +207,14 @@ class QueryBuilder {
       "tasks",
       "meetings",
       "catering_offers",
+      "catering_packages",
+      "catering_courses",
+      "catering_dishes",
+      "catering_course_dishes",
+      "catering_addons",
       "wedding_catering_selection",
+      "wedding_catering_dish_picks",
+      "wedding_catering_addon_picks",
       "seating_conflicts",
     ];
     for (const table of weddingScopedTables) {
@@ -372,7 +383,14 @@ function createMockSupabase(seed = {}) {
     expenses: [],
     meetings: [],
     catering_offers: [],
+    catering_packages: [],
+    catering_courses: [],
+    catering_dishes: [],
+    catering_course_dishes: [],
+    catering_addons: [],
     wedding_catering_selection: [],
+    wedding_catering_dish_picks: [],
+    wedding_catering_addon_picks: [],
     seating_conflicts: [],
     tasks: [],
     task_templates: [],

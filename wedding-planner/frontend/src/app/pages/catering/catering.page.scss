@@ -1,0 +1,39 @@
+.empty-catering {
+  min-height: 360px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.empty-catering h2 {
+  max-width: 680px;
+  font-family: var(--font-serif);
+  font-size: 2.4rem;
+  line-height: 1.1;
+}
+
+.catering-config {
+  align-items: start;
+}
+
+.guest-count {
+  width: 140px;
+}
+
+.offer-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 767px) {
+  .empty-catering h2 {
+    font-size: 1.8rem;
+  }
+
+  .guest-count {
+    width: 100%;
+  }
+}

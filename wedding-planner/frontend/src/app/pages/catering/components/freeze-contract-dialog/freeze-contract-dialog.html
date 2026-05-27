@@ -1,0 +1,95 @@
+<div class="modal-backdrop" role="presentation" (click)="closed.emit()">
+  <section
+    class="modal surface panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="freezeTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Umowa</p>
+        <h2 id="freezeTitle">Zamroź w umowie</h2>
+      </div>
+      <button type="button" class="button-like button-like--ghost" (click)="closed.emit()">Zamknij</button>
+    </div>
+
+    <form class="form-grid" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="freezeVendor">Kontrahent</label>
+        <select
+          id="freezeVendor"
+          name="freezeVendor"
+          [ngModel]="vendorId() || cateringVendors()[0]?.id"
+          (ngModelChange)="vendorId.set($event)"
+        >
+          @for (vendor of cateringVendors(); track vendor.id) {
+            <option [value]="vendor.id">{{ vendor.companyName }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="signedDate">Data podpisu</label>
+        <input
+          id="signedDate"
+          name="signedDate"
+          type="date"
+          [ngModel]="signedDate()"
+          (ngModelChange)="signedDate.set($event)"
+        />
+      </div>
+
+      <label class="toggle-row">
+        <input
+          type="checkbox"
+          [checked]="withPayments()"
+          (change)="withPayments.set($any($event.target).checked)"
+        />
+        Dodaj harmonogram płatności
+      </label>
+
+      @if (withPayments()) {
+        <div class="field">
+          <label for="depositAmount">Zaliczka</label>
+          <input
+            id="depositAmount"
+            name="depositAmount"
+            type="number"
+            min="0"
+            [ngModel]="depositAmount()"
+            (ngModelChange)="depositAmount.set(+$event || 0)"
+          />
+        </div>
+        <div class="field">
+          <label for="depositDueDate">Termin zaliczki</label>
+          <input
+            id="depositDueDate"
+            name="depositDueDate"
+            type="date"
+            [ngModel]="depositDueDate()"
+            (ngModelChange)="depositDueDate.set($event)"
+          />
+        </div>
+        <div class="field">
+          <label>Final</label>
+          <input [value]="money(finalAmount())" readonly />
+        </div>
+        <div class="field">
+          <label for="finalDueDate">Termin final</label>
+          <input
+            id="finalDueDate"
+            name="finalDueDate"
+            type="date"
+            [ngModel]="finalDueDate()"
+            (ngModelChange)="finalDueDate.set($event)"
+          />
+        </div>
+      }
+
+      <div class="toolbar form-actions">
+        <button type="button" class="button-like button-like--secondary" (click)="closed.emit()">Anuluj</button>
+        <button type="submit" class="button-like">Utwórz umowę</button>
+      </div>
+    </form>
+  </section>
+</div>

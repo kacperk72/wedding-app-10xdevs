@@ -1,0 +1,85 @@
+<article class="surface panel course-section">
+  <div class="panel__header">
+    <div>
+      <p class="panel__eyebrow">{{ hint(course()) }}</p>
+      <h3>{{ course().title }}</h3>
+    </div>
+    @if (!packageModifiable()) {
+      <span class="badge badge--neutral">fixed</span>
+    }
+  </div>
+
+  <div class="dish-grid">
+    @for (dish of course().dishes; track dish.dishId) {
+      <app-dish-card
+        [dish]="dish"
+        [selected]="course().selectionMode === 'all_served' || pickedDishIds().has(dish.dishId)"
+        [disabled]="isDisabled(course())"
+        [controlType]="controlType(course())"
+        (toggled)="pickChanged.emit({ course: course(), dish, selected: $event })"
+      />
+    }
+  </div>
+
+  @if (packageModifiable()) {
+    <div class="custom-dish">
+      @if (!formOpen()) {
+        <button type="button" class="button-like button-like--secondary" (click)="formOpen.set(true)">
+          Dodaj własne danie
+        </button>
+      } @else {
+        <form class="form-grid" (ngSubmit)="submitCustomDish()">
+          <div class="field">
+            <label for="customName-{{ course().id }}">Nazwa dania</label>
+            <input
+              id="customName-{{ course().id }}"
+              name="customName"
+              required
+              [ngModel]="customName()"
+              (ngModelChange)="customName.set($event)"
+            />
+          </div>
+          <div class="field">
+            <label for="customDescription-{{ course().id }}">Opis</label>
+            <input
+              id="customDescription-{{ course().id }}"
+              name="customDescription"
+              [ngModel]="customDescription()"
+              (ngModelChange)="customDescription.set($event)"
+            />
+          </div>
+          <label class="toggle-row">
+            <input
+              type="checkbox"
+              [checked]="customVegetarian()"
+              (change)="customVegetarian.set($any($event.target).checked)"
+            />
+            vege
+          </label>
+          <label class="toggle-row">
+            <input
+              type="checkbox"
+              [checked]="customVegan()"
+              (change)="customVegan.set($any($event.target).checked)"
+            />
+            vegan
+          </label>
+          <label class="toggle-row">
+            <input
+              type="checkbox"
+              [checked]="customGlutenFree()"
+              (change)="customGlutenFree.set($any($event.target).checked)"
+            />
+            GF
+          </label>
+          <div class="toolbar form-actions">
+            <button type="button" class="button-like button-like--ghost" (click)="formOpen.set(false)">
+              Anuluj
+            </button>
+            <button type="submit" class="button-like">Dodaj</button>
+          </div>
+        </form>
+      }
+    </div>
+  }
+</article>

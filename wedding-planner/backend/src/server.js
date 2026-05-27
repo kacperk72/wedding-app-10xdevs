@@ -22,6 +22,11 @@ const budgetRouter = require("./routes/budget");
 const expensesRouter = require("./routes/expenses");
 const seatingConflictsRouter = require("./routes/seating-conflicts");
 const seatingRouter = require("./routes/seating");
+const cateringOffersRouter = require("./routes/catering-offers");
+const cateringPackagesRouter = require("./routes/catering-packages");
+const cateringDishesRouter = require("./routes/catering-dishes");
+const cateringAddonsRouter = require("./routes/catering-addons");
+const cateringSelectionRouter = require("./routes/catering-selection");
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -57,6 +62,12 @@ app.use("/api/weddings/:weddingId/budget", requireSsoAuth, budgetRouter);
 app.use("/api/weddings/:weddingId/expenses", requireSsoAuth, expensesRouter);
 app.use("/api/weddings/:weddingId/seating-conflicts", requireSsoAuth, seatingConflictsRouter);
 app.use("/api/weddings/:weddingId/seating", requireSsoAuth, seatingRouter);
+app.use("/api/weddings/:weddingId/catering/offers", requireSsoAuth, cateringOffersRouter);
+app.use("/api/weddings/:weddingId/catering/packages", requireSsoAuth, cateringPackagesRouter);
+app.use("/api/weddings/:weddingId/catering/courses", requireSsoAuth, cateringPackagesRouter);
+app.use("/api/weddings/:weddingId/catering/dishes", requireSsoAuth, cateringDishesRouter);
+app.use("/api/weddings/:weddingId/catering/addons", requireSsoAuth, cateringAddonsRouter);
+app.use("/api/weddings/:weddingId/catering/selection", requireSsoAuth, cateringSelectionRouter);
 app.use("/api/weddings", requireSsoAuth, weddingsRouter);
 
 app.use((_req, res) => {

@@ -1,0 +1,28 @@
+<aside class="surface panel price-summary">
+  <div>
+    <p class="panel__eyebrow">Podsumowanie ceny</p>
+    <h2>{{ money(price()?.total) }}</h2>
+  </div>
+
+  @if (price(); as p) {
+    <div class="price-lines">
+      <span>Pakiet</span>
+      <strong>{{ money(p.packageSubtotal) }}</strong>
+      <small>{{ money(p.packagePrice) }} × {{ p.guestCount }}</small>
+    </div>
+    @for (addon of p.addons; track addon.id) {
+      <div class="price-lines">
+        <span>{{ addon.name }}</span>
+        <strong>{{ money(addon.subtotal) }}</strong>
+        <small>{{ money(addon.unitPrice) }} × {{ addon.multiplier }}</small>
+      </div>
+    }
+  }
+
+  <button type="button" class="button-like" (click)="syncRequested.emit()">
+    Synchronizuj z RSVP
+  </button>
+  <button type="button" class="button-like button-like--secondary" (click)="freezeRequested.emit()">
+    Zamroź w umowie
+  </button>
+</aside>

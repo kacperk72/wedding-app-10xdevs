@@ -1,0 +1,102 @@
+<div class="modal-backdrop" role="presentation" (click)="closed.emit()">
+  <section
+    class="modal surface panel offer-editor"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="offerEditorTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Edycja oferty</p>
+        <h2 id="offerEditorTitle">{{ offer().name }}</h2>
+      </div>
+      <button type="button" class="button-like button-like--ghost" (click)="closed.emit()">Zamknij</button>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="chip" [class.badge--success]="tab() === 'packages'" (click)="tab.set('packages')">Pakiety</button>
+      <button type="button" class="chip" [class.badge--success]="tab() === 'courses'" (click)="tab.set('courses')">Kursy</button>
+      <button type="button" class="chip" [class.badge--success]="tab() === 'dishes'" (click)="tab.set('dishes')">Dania</button>
+      <button type="button" class="chip" [class.badge--success]="tab() === 'addons'" (click)="tab.set('addons')">Dodatki</button>
+    </div>
+
+    @if (tab() === 'packages') {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Pakiet</th><th>Cena</th><th>Modyfikowalny</th><th>Akcje</th></tr>
+          </thead>
+          <tbody>
+            @for (pkg of offer().packages ?? []; track pkg.id) {
+              <tr>
+                <td><strong>{{ pkg.name }}</strong></td>
+                <td>
+                  <input
+                    class="inline-input"
+                    type="number"
+                    min="0"
+                    [ngModel]="pkg.pricePerPerson"
+                    #price
+                  />
+                </td>
+                <td>{{ pkg.isModifiable ? 'tak' : 'nie' }}</td>
+                <td>
+                  <button type="button" class="button-like button-like--compact" (click)="packageUpdated.emit({ pkg, pricePerPerson: +price.value || 0 })">
+                    Zapisz
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (tab() === 'courses') {
+      <div class="list">
+        @for (pkg of offer().packages ?? []; track pkg.id) {
+          <article class="list-item list-item--stack">
+            <strong>{{ pkg.name }}</strong>
+            <span class="list-item__meta">{{ pkg.courses.length }} kursów</span>
+          </article>
+        }
+      </div>
+    }
+
+    @if (tab() === 'dishes') {
+      <div class="list">
+        @for (dish of offer().dishes ?? []; track dish.dishId) {
+          <article class="list-item">
+            <div>
+              <p class="list-item__title">{{ dish.name }}</p>
+              <p class="list-item__meta">
+                @if (dish.isVegetarian) { vege }
+                @if (dish.isVegan) { vegan }
+                @if (dish.isGlutenFree) { GF }
+              </p>
+            </div>
+            <button type="button" class="button-like button-like--ghost" (click)="dishRemoved.emit(dish)">Usuń</button>
+          </article>
+        }
+      </div>
+    }
+
+    @if (tab() === 'addons') {
+      <div class="list">
+        @for (addon of offer().addons ?? []; track addon.id) {
+          <article class="list-item">
+            <div>
+              <p class="list-item__title">{{ addon.name }}</p>
+              <p class="list-item__meta">{{ addon.pricingUnit }}</p>
+            </div>
+            <input class="inline-input" type="number" min="0" [ngModel]="addon.price" #addonPrice />
+            <button type="button" class="button-like button-like--compact" (click)="addonUpdated.emit({ addon, price: +addonPrice.value || 0 })">
+              Zapisz
+            </button>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</div>
