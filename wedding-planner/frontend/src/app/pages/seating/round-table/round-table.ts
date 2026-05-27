@@ -2,10 +2,11 @@ import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { Guest } from '../../../core/models/guest.model';
 import { Table } from '../../../core/models/table.model';
+import { Icon } from '../../../shared/ui/icon/icon';
 
 @Component({
   selector: 'app-round-table',
-  imports: [CdkDrag, CdkDropList],
+  imports: [CdkDrag, CdkDropList, Icon],
   templateUrl: './round-table.html',
   styleUrl: './round-table.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,6 +19,7 @@ export class RoundTable {
 
   readonly dropped = output<CdkDragDrop<Table>>();
   readonly guestMenu = output<Guest>();
+  readonly editTable = output<Table>();
 
   protected initials(guest: Guest): string {
     return `${guest.firstName.charAt(0)}${guest.lastName.charAt(0)}`.toUpperCase();

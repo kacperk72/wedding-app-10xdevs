@@ -83,4 +83,32 @@
       </div>
     </article>
   </section>
+
+  <section class="surface panel">
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Najbliższe zadania</p>
+        <h2>TODO</h2>
+      </div>
+      <button type="button" class="button-like button-like--secondary" (click)="openTasks()">
+        Otwórz listę
+      </button>
+    </div>
+    <div class="list">
+      @for (task of upcomingTasks(); track task.id) {
+        <div class="list-item">
+          <div>
+            <p class="list-item__title">{{ task.title }}</p>
+            <p class="list-item__meta">{{ formatTaskDate(task.dueDate) }}</p>
+          </div>
+        </div>
+      } @empty {
+        <app-empty-state
+          icon="list-checks"
+          title="Brak zadań"
+          description="Dodaj zadania w /Zadania, aby zobaczyć je tutaj."
+        />
+      }
+    </div>
+  </section>
 </div>

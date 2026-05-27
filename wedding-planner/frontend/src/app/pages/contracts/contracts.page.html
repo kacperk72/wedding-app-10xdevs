@@ -46,7 +46,9 @@
           (ngModelChange)="updateNewContract({ signedDate: $event || null })"
         />
       </div>
-      <button type="submit" class="button-like">Dodaj</button>
+      <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+        <button type="submit" class="button-like">Dodaj umowę</button>
+      </div>
     </form>
   </section>
 
@@ -139,11 +141,11 @@
                           [ngModel]="payment.status"
                           (ngModelChange)="setPaymentStatus(contract, payment, $event)"
                         >
-                          <option value="planned">planned</option>
-                          <option value="paid">paid</option>
-                          <option value="overdue">overdue</option>
+                          @for (option of paymentStatusOptions; track option.value) {
+                            <option [value]="option.value">{{ option.label }}</option>
+                          }
                         </select>
-                        <span class="badge {{ paymentStatusClass(payment.status) }}">{{ payment.status }}</span>
+                        <span class="badge {{ paymentStatusClass(payment.status) }}">{{ paymentStatusLabel(payment.status) }}</span>
                         <button
                           type="button"
                           class="button-like button-like--ghost"

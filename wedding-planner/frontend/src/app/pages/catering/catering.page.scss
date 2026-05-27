@@ -37,3 +37,66 @@
     width: 100%;
   }
 }
+
+.catering-print {
+  display: none;
+}
+
+@media print {
+  app-app-shell,
+  app-toast-host,
+  app-page-header,
+  .modal-backdrop,
+  .empty-catering,
+  .panel__header .toolbar,
+  app-package-tabs,
+  app-course-section,
+  app-addons-list,
+  app-price-summary,
+  app-offer-editor,
+  app-freeze-contract-dialog {
+    display: none !important;
+  }
+
+  .catering-print {
+    display: block;
+    padding: 24px;
+    color: #000;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .catering-print h1 {
+    font-size: 22pt;
+    margin: 0 0 8pt;
+  }
+
+  .catering-print h2 {
+    font-size: 14pt;
+    margin: 16pt 0 4pt;
+    border-bottom: 1px solid #888;
+    padding-bottom: 2pt;
+  }
+
+  .catering-print ul {
+    margin: 0;
+    padding-left: 18pt;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  .catering-print header p {
+    font-size: 11pt;
+    color: #555;
+  }
+
+  .catering-print footer {
+    margin-top: 18pt;
+    padding-top: 6pt;
+    border-top: 2px solid #000;
+  }
+
+  .catering-print__total {
+    font-size: 14pt;
+    margin-top: 4pt;
+  }
+}

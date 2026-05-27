@@ -103,6 +103,7 @@
             [price]="price()"
             (syncRequested)="syncMealOptions()"
             (freezeRequested)="isFreezeDialogOpen.set(true)"
+            (printRequested)="printSelection()"
           />
         </aside>
       </section>
@@ -181,4 +182,49 @@
     (closed)="isFreezeDialogOpen.set(false)"
     (submitted)="freezeContract($event)"
   />
+}
+
+@if (activePackage(); as pkg) {
+  <section class="catering-print" aria-hidden="true">
+    <header>
+      <h1>{{ activeOffer()?.name }}</h1>
+      <p>Pakiet: <strong>{{ pkg.name }}</strong> · {{ money(pkg.pricePerPerson) }} / os. · {{ guestCount() }} gości</p>
+    </header>
+
+    @for (course of pkg.courses; track course.id) {
+      @if (coursePicks(course.id).length > 0 || course.selectionMode === 'all_served') {
+        <section>
+          <h2>{{ course.title }}</h2>
+          <ul>
+            @if (course.selectionMode === 'all_served') {
+              @for (dish of course.dishes; track dish.dishId) {
+                <li>{{ dish.name }}</li>
+              }
+            } @else {
+              @for (pick of coursePicks(course.id); track pick.id) {
+                <li>{{ pick.name }}</li>
+              }
+            }
+          </ul>
+        </section>
+      }
+    }
+
+    @if ((selection()?.addonPicks ?? []).length > 0) {
+      <section>
+        <h2>Dodatki</h2>
+        <ul>
+          @for (addon of selection()?.addonPicks ?? []; track addon.addonId) {
+            <li>{{ addon.addonName }} · {{ money(addon.unitPrice) }} · {{ addon.quantity }} szt.</li>
+          }
+        </ul>
+      </section>
+    }
+
+    <footer>
+      <p>Cena pakietu: <strong>{{ money(price()?.packageSubtotal) }}</strong></p>
+      <p>Dodatki: <strong>{{ money(price()?.addonsSubtotal) }}</strong></p>
+      <p class="catering-print__total">SUMA: <strong>{{ money(price()?.total) }}</strong></p>
+    </footer>
+  </section>
 }

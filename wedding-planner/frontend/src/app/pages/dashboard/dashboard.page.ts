@@ -3,8 +3,10 @@ import { Router } from '@angular/router';
 import { formatPLN } from '../../core/format/currency.format';
 import { AttentionItem } from '../../core/models/dashboard.model';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
+import { formatDDMMYYYY } from '../../core/format/date.format';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { Icon, IconName } from '../../shared/ui/icon/icon';
 
@@ -27,6 +29,7 @@ interface Kpi {
 export class DashboardPage implements OnInit {
   protected readonly weddingService = inject(WeddingService);
   private readonly dashboardService = inject(DashboardService);
+  private readonly tasksService = inject(TasksService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
@@ -91,6 +94,13 @@ export class DashboardPage implements OnInit {
 
   protected readonly attention = computed(() => this.dashboard()?.attentionItems ?? []);
   protected readonly meetings = computed(() => this.dashboard()?.upcomingMeetings ?? []);
+  protected readonly upcomingTasks = computed(() =>
+    [
+      ...this.tasksService.overdueTasks(),
+      ...this.tasksService.thisWeekTasks(),
+      ...this.tasksService.futureTasks(),
+    ].slice(0, 6),
+  );
 
   ngOnInit(): void {
     const weddingId = this.wedding()?.id;
@@ -132,9 +142,20 @@ export class DashboardPage implements OnInit {
     }).format(new Date(input));
   }
 
+  protected formatTaskDate(value: string): string {
+    return formatDDMMYYYY(value);
+  }
+
+  protected openTasks(): void {
+    this.router.navigateByUrl('/app/zadania');
+  }
+
   private loadDashboard(weddingId: string): void {
     this.dashboardService.load(weddingId).subscribe({
       error: () => this.toast.error('Nie udalo sie pobrac dashboardu.'),
+    });
+    this.tasksService.loadTasks(weddingId).subscribe({
+      error: () => this.toast.error('Nie udalo sie pobrac zadan.'),
     });
   }
 }

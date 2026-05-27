@@ -22,7 +22,10 @@
   <button type="button" class="button-like" (click)="syncRequested.emit()">
     Synchronizuj z RSVP
   </button>
-  <button type="button" class="button-like button-like--secondary" (click)="freezeRequested.emit()">
+  <button type="button" class="button-like button-like--secondary" (click)="printRequested.emit()">
+    Drukuj wybór
+  </button>
+  <button type="button" class="button-like button-like--ghost" (click)="freezeRequested.emit()">
     Zamroź w umowie
   </button>
 </aside>

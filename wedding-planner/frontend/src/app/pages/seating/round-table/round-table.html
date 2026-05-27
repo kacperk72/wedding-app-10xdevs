@@ -7,7 +7,15 @@
   (cdkDropListDropped)="dropped.emit($event)"
 >
   <div class="round-table-card__header">
-    <strong>{{ table().name }}</strong>
+    <button
+      type="button"
+      class="round-table-card__edit"
+      aria-label="Edytuj stół"
+      (click)="editTable.emit(table())"
+    >
+      <strong>{{ table().name }}</strong>
+      <app-icon name="edit" [size]="14" />
+    </button>
     <span>{{ guests().length }} / {{ table().seatsCount }} miejsc</span>
   </div>
 

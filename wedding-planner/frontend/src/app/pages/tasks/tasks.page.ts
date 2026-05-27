@@ -64,6 +64,8 @@ export class TasksPage implements OnInit {
     description: '',
   });
 
+  protected readonly defaultDueDate = computed(() => this.weddingService.wedding()?.weddingDate ?? '');
+
   protected readonly sections = computed<TaskSection[]>(() => [
     {
       id: 'overdue',
@@ -149,12 +151,20 @@ export class TasksPage implements OnInit {
       })
       .subscribe({
         next: () => {
-          this.newTask.set({ title: '', category: 'inne', dueDate: '', description: '' });
+          this.newTask.set({ title: '', category: 'inne', dueDate: this.defaultDueDate(), description: '' });
           this.isAddDialogOpen.set(false);
           this.toast.success('Zadanie zostało dodane.');
         },
         error: () => this.toast.error('Nie udało się dodać zadania.'),
       });
+  }
+
+  protected openAddDialog(): void {
+    this.newTask.update((current) => ({
+      ...current,
+      dueDate: current.dueDate || this.defaultDueDate(),
+    }));
+    this.isAddDialogOpen.set(true);
   }
 
   protected toggleDone(task: Task, done: boolean): void {

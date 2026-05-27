@@ -8,6 +8,7 @@ import {
   CreateContractDto,
   CreatePaymentDto,
   PAYMENT_KIND_LABELS,
+  PAYMENT_STATUS_LABELS,
   Payment,
   PaymentKind,
   PaymentStatus,
@@ -21,6 +22,7 @@ import { WeddingService } from '../../core/services/wedding.service';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 
 const PAYMENT_KINDS = Object.keys(PAYMENT_KIND_LABELS) as PaymentKind[];
+const PAYMENT_STATUSES = Object.keys(PAYMENT_STATUS_LABELS) as PaymentStatus[];
 
 @Component({
   selector: 'app-contracts-page',
@@ -38,6 +40,11 @@ export class ContractsPage implements OnInit {
   protected readonly paymentKindOptions = PAYMENT_KINDS.map((value) => ({
     value,
     label: PAYMENT_KIND_LABELS[value],
+  }));
+
+  protected readonly paymentStatusOptions = PAYMENT_STATUSES.map((value) => ({
+    value,
+    label: PAYMENT_STATUS_LABELS[value],
   }));
 
   protected readonly newContract = signal<CreateContractDto>({
@@ -196,6 +203,10 @@ export class ContractsPage implements OnInit {
 
   protected paymentKindLabel(kind: PaymentKind): string {
     return PAYMENT_KIND_LABELS[kind];
+  }
+
+  protected paymentStatusLabel(status: PaymentStatus): string {
+    return PAYMENT_STATUS_LABELS[status];
   }
 
   protected paymentMethodLabel(method: PaymentMethod | undefined): string {

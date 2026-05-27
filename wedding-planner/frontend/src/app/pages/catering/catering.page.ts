@@ -259,6 +259,15 @@ export class CateringPage implements OnInit {
     });
   }
 
+  protected printSelection(): void {
+    window.print();
+  }
+
+  protected coursePicks(courseId: string): { id: string; name: string }[] {
+    const picks = this.selection()?.dishPicks ?? [];
+    return picks.filter((pick) => pick.courseId === courseId).map((pick) => ({ id: pick.dishId, name: pick.dishName ?? '' }));
+  }
+
   protected updatePackagePrice(event: { pkg: CateringPackage; pricePerPerson: number }): void {
     const weddingId = this.requireWeddingId();
     const offer = this.activeOffer();
@@ -288,8 +297,8 @@ export class CateringPage implements OnInit {
     });
   }
 
-  protected money(value: number): string {
-    return formatPLN(value);
+  protected money(value: number | null | undefined): string {
+    return formatPLN(value ?? 0);
   }
 
   private loadResources(weddingId: string): void {

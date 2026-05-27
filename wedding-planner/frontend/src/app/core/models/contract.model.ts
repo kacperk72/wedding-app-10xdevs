@@ -64,3 +64,9 @@ export const PAYMENT_KIND_LABELS: Record<PaymentKind, string> = {
   final: 'final',
   ofiara: 'ofiara',
 };
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  planned: 'zaplanowana',
+  paid: 'opłacona',
+  overdue: 'zaległa',
+};

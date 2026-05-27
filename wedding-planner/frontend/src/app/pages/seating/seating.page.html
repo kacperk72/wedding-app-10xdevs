@@ -1,5 +1,9 @@
 <app-page-header title="Rozsadzenie" subtitle="Stoły, miejsca i konflikty przy sali">
   <span class="badge badge--neutral">{{ stats().totalSeats }} miejsc</span>
+  <button type="button" class="button-like button-like--secondary" (click)="printLayout()">
+    <app-icon name="printer" [size]="16" />
+    Drukuj
+  </button>
 </app-page-header>
 
 <section class="seating-layout" cdkDropListGroup>
@@ -9,6 +13,16 @@
         <p class="panel__eyebrow">Niesedzeni goście</p>
         <h3>{{ unseatedGuests().length }} osób</h3>
       </div>
+    </div>
+
+    <div class="field">
+      <input
+        type="search"
+        placeholder="Szukaj gościa..."
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+        aria-label="Szukaj gościa"
+      />
     </div>
 
     <label class="toggle-row">
@@ -76,6 +90,7 @@
           [enterPredicate]="canEnterTable"
           (dropped)="dropGuest($event)"
           (guestMenu)="openGuestMenu($event)"
+          (editTable)="openTableEditor($event)"
         />
       } @empty {
         <p class="empty-copy">Dodaj stoły w module gości, aby rozpocząć rozsadzanie.</p>
@@ -83,34 +98,60 @@
     </div>
   </main>
 
-  <aside class="seating-right">
-    <section class="surface panel compact-stats">
-      <div>
-        <p class="panel__eyebrow">Status</p>
-        <h3>{{ stats().seatedCount }} / {{ stats().seatedCount + stats().unseatedCount }}</h3>
+</section>
+
+@if (editingTable(); as table) {
+  <div class="modal-backdrop" role="presentation" (click)="closeTableEditor()">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editTableTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Edytuj stół</p>
+          <h2 id="editTableTitle">{{ table.name }}</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="closeTableEditor()">
+          Zamknij
+        </button>
       </div>
-      <div class="stat-lines">
-        <span>Stoły używane</span>
-        <strong>{{ stats().tablesUsed }}</strong>
+
+      <div class="field">
+        <label for="editTableName">Nazwa</label>
+        <input
+          id="editTableName"
+          name="editTableName"
+          [ngModel]="editTableName()"
+          (ngModelChange)="editTableName.set($event)"
+        />
       </div>
-      <div class="stat-lines">
-        <span>Konflikty</span>
-        <strong>{{ stats().conflictsCount }}</strong>
+
+      <div class="field">
+        <label for="editTableSeats">Liczba miejsc</label>
+        <input
+          id="editTableSeats"
+          name="editTableSeats"
+          type="number"
+          min="1"
+          max="24"
+          [ngModel]="editTableSeats()"
+          (ngModelChange)="editTableSeats.set(+$event)"
+        />
+        <small>Obecnie zajętych: {{ guestsForTable(table.id).length }}</small>
       </div>
-      <div class="stat-lines">
-        <span>Miejsca razem</span>
-        <strong>{{ stats().totalSeats }}</strong>
+
+      <div class="toolbar assign-actions">
+        <button type="button" class="button-like button-like--ghost" (click)="deleteTable()">
+          Usuń stół
+        </button>
+        <button type="button" class="button-like" (click)="saveTableEdit()">Zapisz</button>
       </div>
     </section>
-
-    <app-conflicts-panel
-      [conflicts]="seating.conflicts()"
-      [guests]="guests()"
-      (createConflict)="createConflict($event)"
-      (removeConflict)="removeConflict($event)"
-    />
-  </aside>
-</section>
+  </div>
+}
 
 @if (menuGuest(); as guest) {
   <div class="modal-backdrop" role="presentation" (click)="closeGuestMenu()">
@@ -160,3 +201,36 @@
     </section>
   </div>
 }
+
+<section class="seating-print" aria-hidden="true">
+  <header>
+    <h1>Rozkład stołów</h1>
+    <p>{{ stats().seatedCount }} / {{ stats().seatedCount + stats().unseatedCount }} gości rozsadzonych · {{ stats().tablesUsed }} z {{ tables().length }} stołów</p>
+  </header>
+
+  <div class="seating-print__grid">
+    @for (table of tables(); track table.id) {
+      <article class="seating-print__table">
+        <h2>{{ table.name }} <span>· {{ guestsForTable(table.id).length }} / {{ table.seatsCount }} miejsc</span></h2>
+        <ol>
+          @for (guest of sortedGuestsForTable(table.id); track guest.id) {
+            <li>{{ guest.lastName }} {{ guest.firstName }}</li>
+          } @empty {
+            <li class="seating-print__empty">(stół pusty)</li>
+          }
+        </ol>
+      </article>
+    }
+  </div>
+
+  @if (unseatedGuests().length > 0) {
+    <section class="seating-print__unseated">
+      <h2>Niesedzeni ({{ unseatedGuests().length }})</h2>
+      <ul>
+        @for (guest of unseatedGuests(); track guest.id) {
+          <li>{{ guest.lastName }} {{ guest.firstName }}</li>
+        }
+      </ul>
+    </section>
+  }
+</section>

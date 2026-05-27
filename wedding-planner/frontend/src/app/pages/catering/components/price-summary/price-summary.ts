@@ -12,6 +12,7 @@ export class PriceSummary {
   readonly price = input.required<PriceBreakdown | null>();
   readonly syncRequested = output<void>();
   readonly freezeRequested = output<void>();
+  readonly printRequested = output<void>();
 
   protected money(value: number | null | undefined): string {
     return formatPLN(value ?? 0);
