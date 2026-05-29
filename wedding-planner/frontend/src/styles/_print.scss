@@ -1,0 +1,25 @@
+// Global print rules. These must live in the global stylesheet (not a
+// component's scoped styles) because they target shell chrome rendered
+// outside any single page component — Angular's view encapsulation would
+// otherwise rewrite these selectors so they never match.
+@media print {
+  // Hide the application chrome: top bar (header), navigation menu
+  // (sidebar) and the mobile bottom nav.
+  app-header,
+  app-sidebar,
+  app-mobile-bottom-nav,
+  app-toast-host {
+    display: none !important;
+  }
+
+  // Collapse the shell layout so printed content uses the full page width.
+  .app-shell {
+    display: block !important;
+  }
+
+  .app-shell__content {
+    padding: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}

@@ -134,8 +134,10 @@
 }
 
 @media print {
-  app-app-shell,
-  app-toast-host,
+  // Shell chrome (header bar, sidebar menu, toasts) is hidden by the global
+  // print rules in styles/_print.scss — those selectors can't be reached from
+  // here because of view encapsulation. Here we only hide this page's own
+  // elements (its header, modals, and the interactive seating layout).
   app-page-header,
   .modal-backdrop,
   .seating-layout {

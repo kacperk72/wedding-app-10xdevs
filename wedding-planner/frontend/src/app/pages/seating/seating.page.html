@@ -25,6 +25,22 @@
       />
     </div>
 
+    <div class="field">
+      <label for="sideFilter">Strona</label>
+      <select
+        id="sideFilter"
+        name="sideFilter"
+        [ngModel]="sideFilter()"
+        (ngModelChange)="sideFilter.set($event)"
+        aria-label="Filtruj po stronie wesela"
+      >
+        <option value="all">Wszyscy</option>
+        <option value="bride">Strona Panny Młodej</option>
+        <option value="groom">Strona Pana Młodego</option>
+        <option value="shared">Wspólni</option>
+      </select>
+    </div>
+
     <label class="toggle-row">
       <input
         type="checkbox"

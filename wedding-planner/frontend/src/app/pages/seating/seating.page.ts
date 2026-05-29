@@ -7,7 +7,7 @@ import {
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
-import { Guest } from '../../core/models/guest.model';
+import { Guest, GuestSide, relationToSide } from '../../core/models/guest.model';
 import { Table } from '../../core/models/table.model';
 import { GuestsService } from '../../core/services/guests.service';
 import { SeatingService } from '../../core/services/seating.service';
@@ -43,6 +43,7 @@ export class SeatingPage implements OnInit {
   protected readonly guests = this.guestsService.guests;
   protected readonly tables = this.tablesService.tables;
   protected readonly showConfirmedOnly = signal(false);
+  protected readonly sideFilter = signal<GuestSide | 'all'>('all');
   protected readonly searchTerm = signal('');
   protected readonly menuGuest = signal<Guest | null>(null);
   protected readonly selectedTableId = signal('');
@@ -65,9 +66,11 @@ export class SeatingPage implements OnInit {
 
   protected readonly unseatedGuests = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
+    const side = this.sideFilter();
     return this.guests()
       .filter((guest) => guest.tableId === null)
       .filter((guest) => !this.showConfirmedOnly() || guest.rsvpStatus === 'confirmed')
+      .filter((guest) => side === 'all' || relationToSide(guest.relation) === side)
       .filter(
         (guest) =>
           !term ||

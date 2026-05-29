@@ -10,6 +10,12 @@ export type Relation =
   | 'znajomi_z_pracy'
   | 'wspolni_znajomi';
 
+/**
+ * Strona wesela wyprowadzona z relacji gościa. Nie ma osobnego pola w schemacie —
+ * relacje jednoznacznie wskazują stronę Panny/Pana Młodego, a pozostałe są wspólne.
+ */
+export type GuestSide = 'bride' | 'groom' | 'shared';
+
 export interface Guest {
   id: string;
   weddingId: string;
@@ -62,6 +68,25 @@ export const RELATION_LABELS: Record<Relation, string> = {
   przyjaciele_pana_mlodego: 'Przyjaciele Pana Młodego',
   znajomi_z_pracy: 'Znajomi z pracy',
   wspolni_znajomi: 'Wspólni znajomi',
+};
+
+const RELATION_TO_SIDE: Record<Relation, GuestSide> = {
+  rodzina_panny_mlodej: 'bride',
+  przyjaciele_panny_mlodej: 'bride',
+  rodzina_pana_mlodego: 'groom',
+  przyjaciele_pana_mlodego: 'groom',
+  znajomi_z_pracy: 'shared',
+  wspolni_znajomi: 'shared',
+};
+
+export function relationToSide(relation: Relation): GuestSide {
+  return RELATION_TO_SIDE[relation];
+}
+
+export const SIDE_LABELS: Record<GuestSide, string> = {
+  bride: 'Strona Panny Młodej',
+  groom: 'Strona Pana Młodego',
+  shared: 'Wspólni',
 };
 
 export const DIET_LABELS: Record<Diet, string> = {

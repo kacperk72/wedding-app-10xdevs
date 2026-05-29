@@ -55,7 +55,7 @@ Co już jest w kodzie `wedding-planner/` na 2026-05-28 (auto-zbadane + potwierdz
 - **Backend / API:** present — Express; 20 route files pokrywają wszystkie 8 modułów MVP + cały podsystem cateringowy (5 plików `catering-*`) + import script `scripts/import-seating.js` (`wedding-planner/backend/src/routes/`).
 - **Data:** present — Supabase Postgres; 7 migracji w `wedding-planner/backend/supabase/migrations/`; 25 tabel; RLS deny-all enabled na wszystkich tabelach `public`, service-role backend bypass; `task_templates` seedowane w migracji M1.
 - **Auth:** present — external SSO (`kubitksso.pl`); JWKS-verified RS256 JWT (`middleware/jwks-auth.js`) + per-wedding membership guard (`middleware/wedding-member.js`).
-- **Deploy / infra:** partial — `.github/workflows/deploy.yml` (FTP-Deploy frontendu do Hostinger); backend leci przez Hostinger Git auto-pull z `main` **bez** CI test-gate'u; konfiguracja lintera nie istnieje (CI job ma `npm run lint --if-present` ale brak `.eslintrc*`).
+- **Deploy / infra:** partial — **frontend FTP-Deploy działa end-to-end** (push do `main` → `.github/workflows/deploy.yml` → `ng build --configuration=production` → FTP do `/public_html/` na `wedding-planner-kubitk.pl`; sekrety `HOSTINGER_FTP_HOST/USER/PASS` ustawione w GH; pierwsza udana publikacja **2026-05-28**). Backend nadal leci przez Hostinger Git auto-pull z `main` **bez** CI test-gate'u. Step `Test` w workflowie jest dziś **no-op placeholder'em** (`package.json` script `"test": "echo ... && exit 0"` — workaround do czasu landingu F-01, bo `angular.json` nie ma target-u `test` i projekt jest bez Karmy/Jasmine). Konfiguracja lintera nie istnieje (CI job ma `npm run lint --if-present` ale brak `.eslintrc*`).
 - **Observability:** partial — `morgan` HTTP log + `/api/health` endpoint; brak structured logging (winston/pino), error tracking (sentry), uptime monitoring (UptimeRobot wymieniony w `infrastructure.md` jako post-MVP).
 
 **Pokrycie must-have FR-ów (audyt 2026-05-28, traktowane jako rozszerzenie tej sekcji):**
@@ -85,7 +85,7 @@ Co już jest w kodzie `wedding-planner/` na 2026-05-28 (auto-zbadane + potwierdz
 
 ### F-02: CI test-gate + lint config + smoke health-check po deploy
 
-- **Outcome:** (foundation) GitHub Actions workflow uruchamia lint + backend testy + (gdy F-01 wyląduje) E2E przed FTP-deployem frontendu; po deploy automatyczny `curl /api/health` weryfikuje że SPA i backend wstały i odpowiadają; backend deploy nadal idzie przez Hostinger auto-pull, ale workflow sygnalizuje "OK/FAIL" w PR.
+- **Outcome:** (foundation) F-02 NIE buduje mechanizmu uploadu — frontend FTP-Deploy już istnieje i działa od 2026-05-28. F-02 wrap-uje istniejący pipeline realnym gate'em: konfiguracja ESLint zamiast `--if-present` no-op'a, backend testy + (gdy F-01 wyląduje) E2E uruchamiane przed FTP-deployem frontendu, podmiana placeholder'owego `npm test` na realny test target frontu (lub świadomie zostawiony jako E2E-only); po deployu automatyczny `curl /api/health` na `https://wedding-planner-kubitk.pl/api/health` weryfikuje, że SPA i backend wstały i odpowiadają; backend deploy nadal idzie przez Hostinger auto-pull, ale workflow sygnalizuje "OK/FAIL" w PR.
 - **Change ID:** `ci-test-gate-and-smoke`
 - **PRD refs:** Guardrail "Izolacja per wesele = krytyczny incydent blokuje wdrożenie na produkcję" (operacjonalizacja gate'u przed prod).
 - **Unlocks:** `S-05` (production cutover — nie wycinamy do prod z workflow który nie testuje); regression net dla wszystkich slice'ów post-MVP.
@@ -95,7 +95,7 @@ Co już jest w kodzie `wedding-planner/` na 2026-05-28 (auto-zbadane + potwierdz
 - **Unknowns:**
   - Linter: ESLint flat config (nowoczesny `eslint.config.js`) czy klasyczny `.eslintrc`? `angular-eslint` plus shared backend rules? Owner: implementer. Block: nie.
   - Backend w workflow vs zostawienie Hostinger auto-pull-a? Decyzja kierunkowa: workflow uruchamia backend testy + lint + (gdy F-01) E2E; jeśli zielone — sygnalizuje OK i Hostinger nadal auto-pulluje (zachowuje obecną topologię, dodaje gate przez PR-check). Owner: implementer. Block: nie.
-- **Risk:** Bez tego pojedynczy merge może zaszipować regresję do prod przez oba kanały: FE przez Actions bez testów + BE przez Hostinger pull. To risk explicit w `infrastructure.md` § Risk Register ("a fat-fingered merge ships broken code through two channels to a single-environment hosting setup").
+- **Risk:** Urgency podniesiona od 2026-05-28 — przed tą datą "fat-fingered merge" nie szipował broken FE do prod, bo FTP-Deploy padał na brak sekretów (FE channel był de facto wyłączony). Teraz każdy push do `main` ląduje na `wedding-planner-kubitk.pl` bez żadnego gate'u testowego (step `Test` w workflowie jest no-op'em). Pojedyncza pomyłka w merge'u = broken UI w prod, do następnego dobrego commita. Ryzyko explicit w `infrastructure.md` § Risk Register ("a fat-fingered merge ships broken code through two channels to a single-environment hosting setup").
 - **Status:** ready
 
 ## Slices
