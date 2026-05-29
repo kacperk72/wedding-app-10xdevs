@@ -10,7 +10,7 @@
   <aside class="surface panel seating-sidebar">
     <div class="panel__header">
       <div>
-        <p class="panel__eyebrow">Niesedzeni goście</p>
+        <p class="panel__eyebrow">Nieposadzeni goście</p>
         <h3>{{ unseatedGuests().length }} osób</h3>
       </div>
     </div>
@@ -101,7 +101,7 @@
       @for (table of tables(); track table.id) {
         <app-round-table
           [table]="table"
-          [guests]="guestsForTable(table.id)"
+          [guests]="sortedGuestsForTable(table.id)"
           [isFull]="isTableFull(table)"
           [enterPredicate]="canEnterTable"
           (dropped)="dropGuest($event)"
@@ -157,6 +157,43 @@
           (ngModelChange)="editTableSeats.set(+$event)"
         />
         <small>Obecnie zajętych: {{ guestsForTable(table.id).length }}</small>
+      </div>
+
+      <div class="field">
+        <label>Miejsca przy stole</label>
+        <ul class="seat-list">
+          @for (seat of seatNumbers(table); track seat) {
+            <li class="seat-list__row">
+              <span class="seat-list__num">Krzesło {{ seat }}</span>
+              @if (guestAtSeat(table.id, seat); as occupant) {
+                <span class="seat-list__guest">{{ occupant.firstName }} {{ occupant.lastName }}</span>
+                <button
+                  type="button"
+                  class="button-like button-like--ghost"
+                  (click)="clearSeat(occupant)"
+                >
+                  Zwolnij
+                </button>
+              } @else {
+                <select
+                  class="inline-select seat-list__select"
+                  [ngModel]="''"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="assignSeatById(table.id, seat, $event)"
+                  aria-label="Przypisz gościa do krzesła {{ seat }}"
+                >
+                  <option value="">— (puste)</option>
+                  @for (candidate of unseatedAtTable(table.id); track candidate.id) {
+                    <option [value]="candidate.id">
+                      {{ candidate.firstName }} {{ candidate.lastName }}
+                    </option>
+                  }
+                </select>
+              }
+            </li>
+          }
+        </ul>
+        <small>Goście bez krzesła trafiają do listy wyboru przy pustych miejscach.</small>
       </div>
 
       <div class="toolbar assign-actions">
@@ -241,7 +278,7 @@
 
   @if (unseatedGuests().length > 0) {
     <section class="seating-print__unseated">
-      <h2>Niesedzeni ({{ unseatedGuests().length }})</h2>
+      <h2>Nieposadzeni ({{ unseatedGuests().length }})</h2>
       <ul>
         @for (guest of unseatedGuests(); track guest.id) {
           <li>{{ guest.lastName }} {{ guest.firstName }}</li>

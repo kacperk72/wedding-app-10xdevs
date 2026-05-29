@@ -9,6 +9,7 @@ const {
   optionalBoolean,
   optionalEnum,
   optionalNonEmptyString,
+  optionalNullableInteger,
   optionalString,
   requireAtLeastOne,
   requireString,
@@ -66,6 +67,7 @@ function buildGuestPatch(body) {
   const isChild = optionalBoolean(body, "isChild");
   const mealOptionId = optionalString(body, "mealOptionId");
   const tableId = optionalString(body, "tableId");
+  const seatNumber = optionalNullableInteger(body, "seatNumber");
 
   if (relation !== undefined) patch.relation = relation;
   if (rsvpStatus !== undefined) patch.rsvp_status = rsvpStatus;
@@ -74,8 +76,32 @@ function buildGuestPatch(body) {
   if (isChild !== undefined) patch.is_child = isChild;
   if (mealOptionId !== undefined) patch.meal_option_id = mealOptionId;
   if (tableId !== undefined) patch.table_id = tableId;
+  if (seatNumber !== undefined) patch.seat_number = seatNumber;
+  // Zmiana stołu (lub odpięcie) unieważnia dotychczasowe krzesło, o ile nowego
+  // nie podano wprost — krzesło jest sensowne tylko w kontekście bieżącego stołu.
+  if (patch.table_id !== undefined && patch.seat_number === undefined) {
+    patch.seat_number = null;
+  }
 
   return requireAtLeastOne(patch);
+}
+
+// Krzesło można nadać tylko gościowi przy stole i tylko w zakresie liczby miejsc.
+// Unikat (jedno krzesło = jeden gość) pilnuje indeks uq_guests_table_seat.
+async function assertSeatNumberValid(patch, guest, weddingId) {
+  if (patch.seat_number === undefined || patch.seat_number === null) return;
+
+  const tableId = patch.table_id !== undefined ? patch.table_id : guest.table_id;
+  if (!tableId) {
+    throw new BadRequestError("Nie można przypisać krzesła gościowi bez stołu");
+  }
+
+  const table = await loadTableForWedding(tableId, weddingId);
+  if (patch.seat_number > Number(table.seats_count)) {
+    throw new BadRequestError(
+      `Numer krzesła przekracza liczbę miejsc przy stole (${table.seats_count})`,
+    );
+  }
 }
 
 async function assertGuestRelationsBelongToWedding(payload, weddingId) {
@@ -240,7 +266,7 @@ router.post("/:guestId/assign-table", async (req, res, next) => {
     const warnings = await loadConflictWarnings(req.params.guestId, seatedGuests, weddingId);
     const { data, error } = await supabase
       .from("guests")
-      .update({ table_id: tableId })
+      .update({ table_id: tableId, seat_number: null })
       .eq("id", req.params.guestId)
       .eq("wedding_id", weddingId)
       .select("*, meal_options(label), tables(name)")
@@ -257,7 +283,7 @@ router.post("/:guestId/unassign-table", async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from("guests")
-      .update({ table_id: null })
+      .update({ table_id: null, seat_number: null })
       .eq("id", req.params.guestId)
       .eq("wedding_id", req.params.weddingId)
       .select("*, meal_options(label), tables(name)")
@@ -273,9 +299,10 @@ router.post("/:guestId/unassign-table", async (req, res, next) => {
 
 router.patch("/:guestId", async (req, res, next) => {
   try {
-    await loadGuestForWedding(req.params.guestId, req.params.weddingId);
+    const guest = await loadGuestForWedding(req.params.guestId, req.params.weddingId);
     const patch = buildGuestPatch(req.body);
     await assertGuestRelationsBelongToWedding(patch, req.params.weddingId);
+    await assertSeatNumberValid(patch, guest, req.params.weddingId);
 
     const { data, error } = await supabase
       .from("guests")
@@ -285,7 +312,10 @@ router.patch("/:guestId", async (req, res, next) => {
       .select("*, meal_options(label), tables(name)")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === "23505") throw new BadRequestError("To krzesło jest już zajęte");
+      throw error;
+    }
     res.json(mapGuest(data));
   } catch (err) {
     next(err);

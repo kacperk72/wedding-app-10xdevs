@@ -28,6 +28,7 @@ export interface Guest {
   isChild: boolean;
   mealOptionId: string | null;
   tableId: string | null;
+  seatNumber: number | null;
   contactPhone: string | null;
   contactEmail: string | null;
   mealOptionLabel?: string | null;

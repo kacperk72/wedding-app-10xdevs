@@ -24,6 +24,10 @@ function rowMatches(row, filters) {
   return filters.every((filter) => {
     if (filter.operator === "neq") return row[filter.column] !== filter.value;
     if (filter.operator === "in") return filter.values.includes(row[filter.column]);
+    if (filter.operator === "gt") {
+      const value = row[filter.column];
+      return value != null && value > filter.value;
+    }
     return row[filter.column] === filter.value;
   });
 }
@@ -56,6 +60,11 @@ class QueryBuilder {
 
   in(column, values) {
     this.filters.push({ column, values, operator: "in" });
+    return this;
+  }
+
+  gt(column, value) {
+    this.filters.push({ column, value, operator: "gt" });
     return this;
   }
 

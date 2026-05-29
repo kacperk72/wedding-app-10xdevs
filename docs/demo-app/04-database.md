@@ -140,12 +140,13 @@ Indexes: `(wedding_id, status)`, `expires_at` (cron unieważniający wygasłe).
 | is_child         | boolean                                                               | NO   | `false`              | Observed   | "5 dzieci" w agregatach. Pole edytowalne w widoku edycji gościa (poza modalem dodawania, który ma tylko 4 pola). |
 | meal_option_id   | uuid FK → meal_options(id) ON DELETE SET NULL                         | YES  |                      | Recommended | Wybór konkretnej opcji menu (osobne od diety — para definiuje listę dań w `meal_options`) |
 | table_id         | uuid FK → tables(id) ON DELETE SET NULL                               | YES  |                      | Observed   | Kolumna "Stół" w tabeli                                |
+| seat_number      | smallint CHECK (seat_number >= 1)                                     | YES  |                      | Recommended | Numer krzesła 1..N w obrębie stołu gościa. Sensowny tylko gdy `table_id` ustawione; odpięcie od stołu zeruje. Zakres ≤ `tables.seats_count` egzekwowany w API. Steruje kolejnością krzesełek przy stole i na wydruku. |
 | contact_phone    | text                                                                  | YES  |                      | Inferred   | Z opisu modala (telefon/e-mail) — w aktualnym modalu nie ma |
 | contact_email    | text                                                                  | YES  |                      | Inferred   |                                                        |
 | created_at       | timestamptz                                                           | NO   | `now()`              | Recommended|                                                        |
 | updated_at       | timestamptz                                                           | NO   | `now()`              | Recommended|                                                        |
 
-Indexes: `wedding_id`, `(wedding_id, rsvp_status)`, `(wedding_id, table_id)`, `(wedding_id, relation)`.
+Indexes: `wedding_id`, `(wedding_id, rsvp_status)`, `(wedding_id, table_id)`, `(wedding_id, relation)`. Partial unique: `(table_id, seat_number) WHERE table_id IS NOT NULL AND seat_number IS NOT NULL` — jedno krzesło = jeden gość przy stole.
 
 ### `vendors`
 
@@ -664,6 +665,7 @@ CREATE TABLE guests (
   is_child        boolean NOT NULL DEFAULT false,
   meal_option_id  uuid REFERENCES meal_options(id) ON DELETE SET NULL,
   table_id        uuid REFERENCES tables(id) ON DELETE SET NULL,
+  seat_number     smallint CHECK (seat_number >= 1),
   contact_phone   text,
   contact_email   text,
   created_at      timestamptz NOT NULL DEFAULT now(),
@@ -674,6 +676,9 @@ CREATE INDEX idx_guests_rsvp ON guests(wedding_id, rsvp_status);
 CREATE INDEX idx_guests_relation ON guests(wedding_id, relation);
 CREATE INDEX idx_guests_table ON guests(wedding_id, table_id);
 CREATE INDEX idx_guests_meal_option ON guests(meal_option_id) WHERE meal_option_id IS NOT NULL;
+-- Jedno krzesło = jeden gość w obrębie stołu
+CREATE UNIQUE INDEX uq_guests_table_seat ON guests(table_id, seat_number)
+  WHERE table_id IS NOT NULL AND seat_number IS NOT NULL;
 
 -- 7) Seating conflicts
 CREATE TABLE seating_conflicts (

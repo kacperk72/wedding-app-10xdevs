@@ -83,6 +83,27 @@ router.post("/", async (req, res, next) => {
 router.patch("/:tableId", async (req, res, next) => {
   try {
     const patch = buildTablePatch(req.body);
+
+    // Nie pozwól zmniejszyć liczby miejsc poniżej zajętego krzesła —
+    // najpierw trzeba zwolnić krzesła o numerze > nowej liczby miejsc.
+    if (patch.seats_count !== undefined) {
+      const { data: occupied, error: occupiedError } = await supabase
+        .from("guests")
+        .select("seat_number")
+        .eq("wedding_id", req.params.weddingId)
+        .eq("table_id", req.params.tableId)
+        .gt("seat_number", patch.seats_count)
+        .order("seat_number", { ascending: false })
+        .limit(1);
+
+      if (occupiedError) throw occupiedError;
+      if (occupied && occupied.length > 0) {
+        throw new BadRequestError(
+          `Najpierw zwolnij krzesła o numerze większym niż ${patch.seats_count}`,
+        );
+      }
+    }
+
     const { data, error } = await supabase
       .from("tables")
       .update(patch)

@@ -186,10 +186,52 @@ export class SeatingPage implements OnInit {
     window.print();
   }
 
+  // Kolejność krzesełek przy stole i na wydruku: wg numeru krzesła (puste na końcu),
+  // a w obrębie nieprzypisanych — alfabetycznie po nazwisku.
   protected sortedGuestsForTable(tableId: string): Guest[] {
+    return this.guestsForTable(tableId).slice().sort((a, b) => {
+      if (a.seatNumber != null && b.seatNumber != null) return a.seatNumber - b.seatNumber;
+      if (a.seatNumber != null) return -1;
+      if (b.seatNumber != null) return 1;
+      return `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`);
+    });
+  }
+
+  protected seatNumbers(table: Table): number[] {
+    return Array.from({ length: table.seatsCount }, (_, index) => index + 1);
+  }
+
+  protected guestAtSeat(tableId: string, seatNumber: number): Guest | null {
+    return this.guestsForTable(tableId).find((guest) => guest.seatNumber === seatNumber) ?? null;
+  }
+
+  protected unseatedAtTable(tableId: string): Guest[] {
     return this.guestsForTable(tableId)
+      .filter((guest) => guest.seatNumber == null)
       .slice()
       .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
+  }
+
+  protected assignSeatById(tableId: string, seatNumber: number, guestId: string): void {
+    if (!guestId) return;
+    const guest = this.guestsForTable(tableId).find((candidate) => candidate.id === guestId);
+    if (guest) this.assignSeat(guest, seatNumber);
+  }
+
+  protected assignSeat(guest: Guest, seatNumber: number): void {
+    const weddingId = this.weddingService.wedding()?.id;
+    if (!weddingId) return;
+    this.guestsService.update(weddingId, guest.id, { seatNumber }).subscribe({
+      error: () => this.toast.error('Nie udalo sie przypisac krzesla.'),
+    });
+  }
+
+  protected clearSeat(guest: Guest): void {
+    const weddingId = this.weddingService.wedding()?.id;
+    if (!weddingId) return;
+    this.guestsService.update(weddingId, guest.id, { seatNumber: null }).subscribe({
+      error: () => this.toast.error('Nie udalo sie zwolnic krzesla.'),
+    });
   }
 
   protected openTableEditor(table: Table): void {

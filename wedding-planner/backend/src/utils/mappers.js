@@ -60,6 +60,7 @@ function mapGuest(guest) {
     isChild: guest.is_child,
     mealOptionId: guest.meal_option_id,
     tableId: guest.table_id,
+    seatNumber: guest.seat_number == null ? null : Number(guest.seat_number),
     contactPhone: guest.contact_phone,
     contactEmail: guest.contact_email,
     mealOptionLabel: guest.meal_options?.label || null,

@@ -38,6 +38,15 @@ function optionalInteger(body, key) {
   return body[key];
 }
 
+function optionalNullableInteger(body, key) {
+  if (!body || body[key] === undefined) return undefined;
+  if (body[key] === null) return null;
+  if (!Number.isInteger(body[key])) {
+    throw new BadRequestError(`${key} must be an integer`);
+  }
+  return body[key];
+}
+
 function enumValue(value, allowed, key) {
   if (!allowed.includes(value)) {
     throw new BadRequestError(`${key} must be one of: ${allowed.join(", ")}`);
@@ -87,6 +96,7 @@ module.exports = {
   optionalEnum,
   optionalInteger,
   optionalNonEmptyString,
+  optionalNullableInteger,
   optionalString,
   requireAtLeastOne,
   requireDateString,

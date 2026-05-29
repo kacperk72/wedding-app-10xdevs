@@ -162,13 +162,22 @@
                   </select>
                 </td>
                 <td>
-                  <button
-                    type="button"
-                    class="button-like button-like--ghost"
-                    (click)="removeGuest(guest)"
-                  >
-                    Usun
-                  </button>
+                  <div class="toolbar">
+                    <button
+                      type="button"
+                      class="button-like button-like--ghost"
+                      (click)="openEditDialog(guest)"
+                    >
+                      Edytuj
+                    </button>
+                    <button
+                      type="button"
+                      class="button-like button-like--ghost"
+                      (click)="removeGuest(guest)"
+                    >
+                      Usun
+                    </button>
+                  </div>
                 </td>
               </tr>
             }
@@ -250,6 +259,57 @@
             Anuluj
           </button>
           <button type="submit" class="button-like">Dodaj</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (editingGuest(); as guest) {
+  <div class="modal-backdrop" role="presentation" (click)="closeEditDialog()">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editGuestTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Edytuj goscia</p>
+          <h2 id="editGuestTitle">{{ guest.firstName }} {{ guest.lastName }}</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="closeEditDialog()">
+          Zamknij
+        </button>
+      </div>
+
+      <form class="form-grid" (ngSubmit)="saveEditGuest()">
+        <div class="field">
+          <label for="editFirstName">Imie</label>
+          <input
+            id="editFirstName"
+            name="editFirstName"
+            required
+            [ngModel]="editForm().firstName"
+            (ngModelChange)="updateEditForm({ firstName: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="editLastName">Nazwisko</label>
+          <input
+            id="editLastName"
+            name="editLastName"
+            required
+            [ngModel]="editForm().lastName"
+            (ngModelChange)="updateEditForm({ lastName: $event })"
+          />
+        </div>
+        <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+          <button type="button" class="button-like button-like--secondary" (click)="closeEditDialog()">
+            Anuluj
+          </button>
+          <button type="submit" class="button-like">Zapisz</button>
         </div>
       </form>
     </section>

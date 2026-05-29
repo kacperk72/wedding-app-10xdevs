@@ -60,6 +60,12 @@ export class GuestsPage implements OnInit {
     diet: 'standard',
   });
 
+  protected readonly editingGuest = signal<Guest | null>(null);
+  protected readonly editForm = signal<{ firstName: string; lastName: string }>({
+    firstName: '',
+    lastName: '',
+  });
+
   protected readonly aggregateCards = computed(() => {
     const a = this.aggregates();
     return [
@@ -156,6 +162,42 @@ export class GuestsPage implements OnInit {
         },
         error: () => this.toast.error('Nie udalo sie dodac goscia.'),
       });
+  }
+
+  protected openEditDialog(guest: Guest): void {
+    this.editingGuest.set(guest);
+    this.editForm.set({ firstName: guest.firstName, lastName: guest.lastName });
+  }
+
+  protected closeEditDialog(): void {
+    this.editingGuest.set(null);
+  }
+
+  protected updateEditForm(patch: Partial<{ firstName: string; lastName: string }>): void {
+    this.editForm.update((current) => ({ ...current, ...patch }));
+  }
+
+  protected saveEditGuest(): void {
+    const guest = this.editingGuest();
+    const weddingId = this.requireWeddingId();
+    if (!guest || !weddingId) return;
+
+    const firstName = this.editForm().firstName.trim();
+    const lastName = this.editForm().lastName.trim();
+    if (!firstName || !lastName) return;
+
+    if (firstName === guest.firstName && lastName === guest.lastName) {
+      this.closeEditDialog();
+      return;
+    }
+
+    this.guestsService.update(weddingId, guest.id, { firstName, lastName }).subscribe({
+      next: () => {
+        this.closeEditDialog();
+        this.toast.success('Dane goscia zostaly zapisane.');
+      },
+      error: () => this.toast.error('Nie udalo sie zapisac zmian.'),
+    });
   }
 
   protected updateGuest(guest: Guest, patch: UpdateGuestDto): void {

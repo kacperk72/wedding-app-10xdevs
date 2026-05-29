@@ -117,6 +117,81 @@ describe("scoped wedding resource CRUD", () => {
     assert.equal(db.guests.some((guest) => guest.id === created.body.id), false);
   });
 
+  async function seatGuestAtTable1(seatNumber) {
+    const created = await request(server, "POST", "/api/weddings/wedding-1/guests", {
+      firstName: "Ewa",
+      lastName: "Lis",
+      relation: "wspolni_znajomi",
+      diet: "standard",
+      tableId: "table-1",
+    });
+    assert.equal(created.body.seatNumber, null);
+    if (seatNumber === undefined) return created.body;
+
+    const seated = await request(
+      server,
+      "PATCH",
+      `/api/weddings/wedding-1/guests/${created.body.id}`,
+      { seatNumber },
+    );
+    assert.equal(seated.status, 200);
+    assert.equal(seated.body.seatNumber, seatNumber);
+    return seated.body;
+  }
+
+  it("assigns and clears a guest's seat number", async () => {
+    const guest = await seatGuestAtTable1(3);
+
+    const cleared = await request(
+      server,
+      "PATCH",
+      `/api/weddings/wedding-1/guests/${guest.id}`,
+      { seatNumber: null },
+    );
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.seatNumber, null);
+  });
+
+  it("rejects a seat number beyond table capacity", async () => {
+    const guest = await seatGuestAtTable1();
+    const res = await request(server, "PATCH", `/api/weddings/wedding-1/guests/${guest.id}`, {
+      seatNumber: 9,
+    });
+    assert.equal(res.status, 400);
+  });
+
+  it("rejects a seat number for a guest without a table", async () => {
+    const res = await request(server, "PATCH", "/api/weddings/wedding-1/guests/guest-1", {
+      seatNumber: 1,
+    });
+    assert.equal(res.status, 400);
+  });
+
+  it("clears the seat number when a guest leaves the table", async () => {
+    const guest = await seatGuestAtTable1(2);
+    const left = await request(server, "PATCH", `/api/weddings/wedding-1/guests/${guest.id}`, {
+      tableId: null,
+    });
+    assert.equal(left.status, 200);
+    assert.equal(left.body.tableId, null);
+    assert.equal(left.body.seatNumber, null);
+  });
+
+  it("blocks shrinking a table below an occupied seat but allows shrinking to it", async () => {
+    await seatGuestAtTable1(6);
+
+    const blocked = await request(server, "PATCH", "/api/weddings/wedding-1/tables/table-1", {
+      seatsCount: 5,
+    });
+    assert.equal(blocked.status, 400);
+
+    const allowed = await request(server, "PATCH", "/api/weddings/wedding-1/tables/table-1", {
+      seatsCount: 6,
+    });
+    assert.equal(allowed.status, 200);
+    assert.equal(allowed.body.seatsCount, 6);
+  });
+
   it("rejects guest foreign keys from another wedding", async () => {
     db.meal_options.push({
       id: "foreign-meal",
