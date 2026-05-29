@@ -47,5 +47,8 @@ jobs:
           username:   ${{ secrets.HOSTINGER_FTP_USER }}
           password:   ${{ secrets.HOSTINGER_FTP_PASS }}
           local-dir:  ./wedding-planner/frontend/dist/wedding-planner/browser/
-          server-dir: /public_html/
+          # Użytkownik FTP loguje się już WEWNĄTRZ public_html, więc katalog
+          # docelowy to "./". Podanie "/public_html/" tworzyło zagnieżdżenie
+          # public_html/public_html/ — pliki lądowały piętro niżej niż docroot.
+          server-dir: ./
           dangerous-clean-slate: false
