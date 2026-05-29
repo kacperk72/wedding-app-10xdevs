@@ -47,8 +47,9 @@ jobs:
           username:   ${{ secrets.HOSTINGER_FTP_USER }}
           password:   ${{ secrets.HOSTINGER_FTP_PASS }}
           local-dir:  ./wedding-planner/frontend/dist/wedding-planner/browser/
-          # Użytkownik FTP loguje się już WEWNĄTRZ public_html, więc katalog
-          # docelowy to "./". Podanie "/public_html/" tworzyło zagnieżdżenie
-          # public_html/public_html/ — pliki lądowały piętro niżej niż docroot.
-          server-dir: ./
+          # Sesja FTP startuje w zagnieżdżonym public_html/public_html (home
+          # konta FTP jest ustawiony o poziom za głęboko). Prawdziwy docroot
+          # serwowany przez domenę to katalog NADRZĘDNY, stąd "../".
+          # Docelowo lepiej poprawić katalog konta FTP w hPanel na public_html.
+          server-dir: ../
           dangerous-clean-slate: false
