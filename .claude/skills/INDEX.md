@@ -7,7 +7,7 @@ Lista nie obejmuje skilli z pluginów (superpowers, figma, supabase, frontend-de
 
 ## Łańcuch 10x (Module 1 → Module 2)
 
-Kolejność użycia: **shape → prd → tech-stack-selector → bootstrapper → agents-md → roadmap → (Module 2: /10x-new + implementacja)**.
+Kolejność użycia: **shape → prd → tech-stack-selector → bootstrapper → agents-md → roadmap → (Module 2: new → plan → plan-review → implement → impl-review → archive)**.
 Dla brownfield: **stack-assess → health-check** zamiast tech-stack/bootstrap.
 
 ### /10x-shape
@@ -57,6 +57,36 @@ Zapisuje powtarzającą się regułę / pattern do `context/foundation/lessons.m
 ### /10x-rule-review
 Review pliku z regułami AI (CLAUDE.md, AGENTS.md, .cursor/rules/*.mdc, copilot-instructions.md itd.) — 5-punktowy scorecard + actionable fixy.
 **Kiedy:** "/10x-rule-review <ścieżka>", "review AI rules", "audit AGENTS.md", "score my agent instructions".
+
+---
+
+## Module 2 — łańcuch zmian (planowanie → implementacja → zamknięcie)
+
+Kolejność: **new → plan → plan-review → implement → impl-review → archive**. Wszystkie operują na jednym `context/changes/<change-id>/`.
+
+### /10x-new
+Inicjalizuje folder zmiany `context/changes/<change-id>/` z plikiem tożsamości `change.md` — wspólna tożsamość dla planowania, implementacji, postępu, commitów i review.
+**Kiedy:** wybrałeś item z roadmapy i potrzebujesz stabilnego folderu zmiany. **Po:** selekcji z roadmapy, **przed:** `/10x-plan`.
+
+### /10x-plan
+Tworzy reviewowalny plan implementacji — czyta roadmapę, foundation docs, dowody w kodzie i notatki zmiany; pisze `plan.md` + `plan-brief.md` z fazami, kontraktami plików, success criteria i sekcją `## Progress`.
+**Kiedy:** masz folder zmiany i potrzebujesz planu. **Po:** `/10x-new`, **przed:** `/10x-plan-review`.
+
+### /10x-plan-review
+Lekki pre-code readiness check planu — łapie brakujący end state, słabe kontrakty, zły format progress, scope drift i blind spoty zanim ruszy kod.
+**Kiedy:** masz `plan.md` i chcesz go zwalidować. **Po:** `/10x-plan`, **przed:** `/10x-implement`.
+
+### /10x-implement
+Wykonuje jedną zaplanowaną fazę z weryfikacją, manualną bramką, rytuałem commita i zapisem SHA do `## Progress`.
+**Kiedy:** "/10x-implement <change-id> phase <n>", masz zatwierdzony plan. **Po:** `/10x-plan-review`.
+
+### /10x-impl-review
+Review implementacji względem planu — dryf, niebezpieczne decyzje, zgodność z patternami (Lesson 3).
+**Kiedy:** faza/zmiana zaimplementowana, chcesz sprawdzić diff względem kontraktu z planu.
+
+### /10x-archive
+Archiwizuje ukończoną zmianę — przenosi folder do `context/archive/` i stempluje `change.md` statusem archived. Folder staje się immutable.
+**Kiedy:** zmiana zmergowana lub świadomie zamknięta.
 
 ---
 
