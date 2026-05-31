@@ -61,22 +61,22 @@ export const VENDOR_CATEGORY_LABELS: Record<VendorCategory, string> = {
   fotograf: 'Fotograf',
   dj: 'DJ',
   dekoratorka: 'Dekoratorka',
-  kosciol: 'Kosciol',
-  makijaz: 'Makijaz',
+  kosciol: 'Kościół',
+  makijaz: 'Makijaż',
   dekoracje: 'Dekoracje',
-  slodki_stol_tort: 'Slodki stol + tort',
-  ciasta_pozegnalne: 'Ciasta na pozegnanie',
+  slodki_stol_tort: 'Słodki stół + tort',
+  ciasta_pozegnalne: 'Ciasta na pożegnanie',
 };
 
 export const VENDOR_STATUS_LABELS: Record<VendorStatus, string> = {
-  rozwazany: 'rozwazany',
+  rozwazany: 'rozważany',
   spotkanie: 'spotkanie',
   zarezerwowany: 'zarezerwowany',
-  zaplacony: 'zaplacony',
+  zaplacony: 'zapłacony',
   wykonany: 'wykonany',
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  gotowka: 'Gotowka',
+  gotowka: 'Gotówka',
   przelew: 'Przelew',
 };

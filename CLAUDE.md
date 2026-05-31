@@ -45,7 +45,7 @@ Note: specs live in `docs/demo-app/`; screenshots are under `docs/demo-app/scree
 - **Visual tokens (locked):** bottle green accent `~#3F5C3A`, cream background `~#FAF7EE`, serif headings (Cormorant/Playfair), sans body (Inter/DM Sans), `rounded-2xl`, subtle shadows. Put into `wedding-planner/frontend/src/styles/_tokens.scss` and never hardcode.
 - **One wedding, two accounts, symmetric CRUD.** Wedding is a first-class entity with two members via `wedding_members`. Both partners have identical permissions *except* hard-delete of the wedding itself, which is gated by `weddings.created_by_user_id` (the "founder"). Do not introduce asymmetric permissions for anything else.
 - **Catering configurator is universal.** Couples enter their own venue's offer (CRUD) — no global marketplace. The PDF in `docs/menu/` is the *modeling reference*, not a hardcoded fixture. Schema must accept any package-based catering offer.
-- **Auto-task timeline.** Tasks tagged `auto` are generated backward from `weddings.wedding_date` using `task_templates`. Keep the Postgres trigger/function approach from `04-database.md` / Supabase migrations: date changes shift only unfinished auto tasks. Never touch completed tasks or manually-created tasks during regeneration; the operation must be idempotent.
+- **Tasks są w pełni manualne.** ⚠️ Wcześniejszy auto-task timeline (generowanie wstecz od `weddings.wedding_date` przez `task_templates`) został **usunięty** migracją `20260526150000_strip_task_auto` (zniknęły: trigger `tg_weddings_shift_auto_tasks` + funkcja `shift_auto_tasks_on_wedding_date_change`, tabela `task_templates`, kolumny `tasks.is_auto` i `tasks.template_id`). Decyzja produktowa z 2026-05-26 odwrócona — nie przywracaj auto-tasków bez zgody PO. `04-database.md` w części o auto-taskach jest w tym punkcie nieaktualny.
 - **Drag-and-drop needs a keyboard fallback.** Seating page uses `@angular/cdk/drag-drop`; an accessible alternative is a hard requirement, not a polish item.
 - **Each milestone ships an end-to-end vertical slice.** M3 means "user sees the added guest in the UI", not "POST returns 201". Don't merge backend-only or frontend-only milestone completions.
 
@@ -67,15 +67,21 @@ The current scaffold lives under `wedding-planner/`. Backend commands run in `we
 When asked to start implementation:
 1. Continue from `docs/demo-app/05-implementation-plan.md`, adapted to the existing folders: `wedding-planner/frontend` and `wedding-planner/backend`.
 2. Backend implementation uses Express routes/services, Supabase JS service-role client, and JWKS auth middleware. Do not add Sequelize/MySQL to wedding-planner; MySQL belongs to SSO only.
-3. The data model in `04-database.md` (25 tables including the catering subsystem) is the contract. Schema changes must round-trip into the Supabase migration and that doc.
+3. The data model in `04-database.md` (24 tables including the catering subsystem — the original 25 minus `task_templates`, dropped by `strip_task_auto`) is the contract. Schema changes must round-trip into the Supabase migration and that doc.
 
 **Implementation state:**
 - M0/M1: complete (scaffold, schema, RLS lockdown, seed)
 - M2: complete (SSO mapping via `services/users.js`, wedding bootstrap, invite/accept-invite flow as atomic PG RPCs, membership guard `middleware/wedding-member.js`)
 - M3: complete end-to-end — backend (guests / meal-options / tables CRUD + `guest_aggregates` RPC) and frontend (login → SSO redirect → wedding-setup → guests page wired to `GuestsService`, settings page with meal-options + tables CRUD, dashboard with countdown + KPI bar from aggregates)
 - M4: complete end-to-end — backend (vendors / contracts / payments routes with `syncContractStatus` business logic, `/upcoming-payments` and `vendors/missing` aggregate endpoints) and frontend (`VendorsService`, `ContractsService`, `PaymentsService`, vendors and contracts pages wired)
-- M5+ (budget / catering / tasks / seating / dashboard polish / export): **not started**
-- Test suite: **36 tests across 11 suites** (validation helpers, mappers with injected clock, error handler, invite flow, resource CRUD covering guests/meal-options/tables/vendors/contracts/payments with cross-wedding rejection + payment status sync, wedding/me payload). Mock-Supabase + HTTP test harness in `test/helpers/`.
+- M5: complete end-to-end — budżet (`routes/budget.js` + `routes/expenses.js`, `budget.service.ts`, `pages/budget`; planowany vs rzeczywisty z `budget_total` na `weddings`), `budget-crud.test.js`
+- M6: complete end-to-end — catering (oferty/pakiety/dania/dodatki/wybór: `routes/catering-{offers,packages,dishes,addons,selection}.js`, `pages/catering` + 7 komponentów, `freeze-contract-dialog`), `catering-{offers,dishes,selection}-crud.test.js`
+- M7: complete end-to-end — zadania (manualne — patrz uwaga o tasks wyżej) + spotkania (`routes/tasks.js`, `routes/meetings.js`, `pages/tasks`; spotkania renderowane na dashboardzie jako „upcoming"), `tasks-crud.test.js`, `meetings-crud.test.js`
+- M8: complete end-to-end — seating + konflikty + wizualne przypisanie miejsc (`routes/seating.js`, `routes/seating-conflicts.js`, `pages/seating/{round-table,conflicts-panel}`, migracja `guest_seat_number`), `seating-crud.test.js`
+- M9: complete — eksport JSON (pełny dump minus sekrety) i hard-delete wesela, `wedding-export.test.js`, `wedding-delete.test.js`
+- M10 (polish / deployment): **częściowo** — front wdrożony (commity „deploy front fix"); brak końcowego audytu deploymentu/SSO end-to-end
+- **Single source of truth o POSTĘPIE: `STATUS.md` w korzeniu repo.** Ten plik (`CLAUDE.md`) trzyma konwencje; bieżący stan modułów żyje w `STATUS.md`. Przy zmianie stanu aktualizuj `STATUS.md`, nie rozsiewaj statusu po docs.
+- Test suite: **100 tests across 23 suites** (validation helpers, mappers with injected clock, error handler, invite flow, resource CRUD across guests/meal-options/tables/vendors/contracts/payments/budget/catering/tasks/meetings/seating with cross-wedding rejection + payment status sync, dashboard aggregate, wedding export/delete). Mock-Supabase + HTTP test harness in `test/helpers/`. **Uwaga na time-bomb testy:** dashboard/meetings seedują daty względem `now` (`isoDaysFromNow`/`dateDaysFromNow`) — nie wpisuj dat na sztywno, bo okno „upcoming" się przeterminuje i testy pójdą na czerwono (zdarzyło się 2026-05-31).
 
 **Frontend wiring conventions:**
 - `WeddingService` is the canonical source for `weddingId` — pages call `wedding.wedding()?.id` to scope subsequent API calls. `WeddingService.loadCurrent()` is idempotent and pulls from `GET /api/weddings/:id` after `AuthService.me()` resolves the membership.
@@ -97,8 +103,14 @@ When asked to start implementation:
 - `20260524123000_create_wedding_with_bootstrap_json_errors.sql` — rewrites `create_wedding_with_bootstrap` to return the same jsonb `{status, error}` shape on failure instead of raising — Express handler keys off `data.error` consistently across both RPCs
 - `20260524190000_guest_aggregates_rpc.sql` — `guest_aggregates(p_wedding_id)` RPC with `count(*) filter (where ...)` for KPI bar; consumed by `GET /api/weddings/:id/guests/aggregates` and `GuestsService.loadAggregates` on the dashboard
 - `20260524193000_revoke_rpc_execute_from_client_roles.sql` — security hardening: `revoke execute ... from anon, authenticated` on all 4 SECURITY DEFINER RPCs. Required because Supabase auto-grants `EXECUTE` to `anon`/`authenticated` on every newly created function in `public` (for PostgREST `/rest/v1/rpc/*`); `revoke from public` alone doesn't undo those explicit role grants — without this migration, anyone with a publishable key could call sensitive RPCs directly
+- `20260526120000_vendor_categories_rework.sql` — przebudowa kategorii kontrahentów (vendors)
+- `20260526120500_payments_method.sql` — kolumna metody płatności na `payments`
+- `20260526150000_strip_task_auto.sql` — **usuwa cały podsystem auto-tasków** (trigger, `task_templates`, kolumny `tasks.is_auto`/`template_id`) i przepisuje `bootstrap_wedding` bez seedowania tasków; tasks są odtąd manualne
+- `20260526160000_wedding_budget_total.sql` — `budget_total` na `weddings` (planowany budżet całkowity dla M5)
+- `20260526160500_drop_budget_planned_amount.sql` — usuwa nadmiarowe `planned_amount` (budżet planowany skonsolidowany w `weddings.budget_total`)
+- `20260529120000_guest_seat_number.sql` — `seat_number` na `guests` dla wizualnego przypisania miejsc przy stołach (M8)
 
-**Drift check (do this every session):** `mcp list_migrations` vs `ls wedding-planner/backend/supabase/migrations/`. Writing a migration without `npx supabase db push` is the most common mistake in this repo — it has happened on 4 of 7 migrations. If counts disagree, the missing migration(s) need to be pushed before any code that depends on them is exercised.
+**Drift check (do this every session):** `mcp list_migrations` vs `ls wedding-planner/backend/supabase/migrations/`. Writing a migration without `npx supabase db push` is the most common mistake in this repo (currently **13 migrations** on disk). If counts disagree, the missing migration(s) need to be pushed before any code that depends on them is exercised.
 
 To add a new migration: `npx supabase migration new <name>` from `wedding-planner/backend/`, write SQL, then `npx supabase db push`. The Supabase MCP plugin lets agents iterate via `execute_sql` and verify with `get_advisors` before committing to a migration file. **Do not use `apply_migration` MCP tool for iterative work — it writes history on every call and conflicts with `db pull`.**
 

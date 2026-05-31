@@ -1,4 +1,4 @@
-<app-page-header title="Ustawienia" subtitle="Profil pary, menu i stoly">
+<app-page-header title="Ustawienia" subtitle="Profil pary, menu i stoły">
   <button type="button" class="button-like button-like--secondary" (click)="downloadJson()">
     Pobierz JSON
   </button>
@@ -13,7 +13,7 @@
         <h2>{{ wedding.coupleLabel() || 'Wesele' }}</h2>
       </div>
       @if (wedding.daysUntilWedding() !== null) {
-        <span class="badge badge--success">Do slubu: {{ wedding.daysUntilWedding() }} dni</span>
+        <span class="badge badge--success">Do ślubu: {{ wedding.daysUntilWedding() }} dni</span>
       }
     </div>
     @if (wedding.wedding(); as w) {
@@ -27,7 +27,7 @@
           <input [value]="w.partnerBName" readonly />
         </div>
         <div class="field">
-          <label>Data slubu</label>
+          <label>Data ślubu</label>
           <input
             type="date"
             [ngModel]="weddingDateDraft()"
@@ -46,7 +46,7 @@
           [disabled]="!weddingDateDraft() || weddingDateDraft() === w.weddingDate"
           (click)="saveWeddingDate()"
         >
-          Zapisz date
+          Zapisz profil
         </button>
       </div>
     }
@@ -54,7 +54,7 @@
 
   <section class="surface panel">
     <div>
-      <p class="panel__eyebrow">Polaczone konto</p>
+      <p class="panel__eyebrow">Połączone konto</p>
       <h3>Konto partnera</h3>
     </div>
 
@@ -62,18 +62,18 @@
       <div class="list-item">
         <div>
           <p class="list-item__title">{{ partner.email || 'Partner B' }}</p>
-          <p class="list-item__meta">Polaczono: {{ partner.linkedAt }}</p>
+          <p class="list-item__meta">Połączono: {{ formatDate(partner.linkedAt) }}</p>
         </div>
-        <span class="badge badge--success">polaczone</span>
+        <span class="badge badge--success">połączone</span>
       </div>
     } @else if (pendingInvitation(); as invitation) {
       <div class="list-item">
         <div>
           <p class="list-item__title">{{ invitation.email }}</p>
-          <p class="list-item__meta">Zaproszenie oczekuje na akceptacje.</p>
+          <p class="list-item__meta">Zaproszenie oczekuje na akceptację.</p>
         </div>
         <button type="button" class="button-like button-like--secondary" (click)="resendInvitation()">
-          Wyslij ponownie
+          Wyślij ponownie
         </button>
       </div>
     } @else {
@@ -88,7 +88,7 @@
             (ngModelChange)="partnerEmail.set($event)"
           />
         </div>
-        <button type="submit" class="button-like button-like--secondary">Wyslij zaproszenie</button>
+        <button type="submit" class="button-like button-like--secondary">Wyślij zaproszenie</button>
       </form>
     }
   </section>
@@ -97,7 +97,7 @@
     <article class="surface panel">
       <div>
         <p class="panel__eyebrow">Menu na wesele</p>
-        <h3>Opcje dan dla gosci</h3>
+        <h3>Opcje dań dla gości</h3>
       </div>
 
       <form class="toolbar" (ngSubmit)="addMealOption()">
@@ -129,7 +129,7 @@
               <p class="list-item__title">{{ option.label }}</p>
               <div class="toolbar">
                 <button type="button" class="button-like button-like--secondary" (click)="startMealEdit(option.id, option.label)">Edytuj</button>
-                <button type="button" class="button-like button-like--ghost" (click)="removeMealOption(option.id)">Usun</button>
+                <button type="button" class="button-like button-like--ghost" (click)="removeMealOption(option.id)">Usuń</button>
               </div>
             }
           </div>
@@ -137,7 +137,7 @@
           <app-empty-state
             icon="clipboard-list"
             title="Brak opcji menu"
-            description="Dodaj pierwsza opcje, zeby przypisywac dania gosciom."
+            description="Dodaj pierwszą opcję, żeby przypisywać dania gościom."
           />
         }
       </div>
@@ -145,8 +145,8 @@
 
     <article class="surface panel">
       <div>
-        <p class="panel__eyebrow">Stoly</p>
-        <h3>Uklad sali</h3>
+        <p class="panel__eyebrow">Stoły</p>
+        <h3>Układ sali</h3>
       </div>
 
       <form class="toolbar" (ngSubmit)="addTable()">
@@ -200,15 +200,15 @@
               </div>
               <div class="toolbar">
                 <button type="button" class="button-like button-like--secondary" (click)="startTableEdit(table.id, table.name, table.seatsCount)">Edytuj</button>
-                <button type="button" class="button-like button-like--ghost" (click)="removeTable(table.id)">Usun</button>
+                <button type="button" class="button-like button-like--ghost" (click)="removeTable(table.id)">Usuń</button>
               </div>
             }
           </div>
         } @empty {
           <app-empty-state
             icon="sofa"
-            title="Brak stolow"
-            description="Dodaj stoly, zeby pozniej rozsadzic gosci."
+            title="Brak stołów"
+            description="Dodaj stoły, żeby później rozsadzić gości."
           />
         }
       </div>
@@ -218,12 +218,12 @@
   @if (isFounder()) {
     <section class="surface panel">
       <div>
-        <p class="panel__eyebrow">Usun wesele</p>
-        <h3>Strefa ostrozna</h3>
+        <p class="panel__eyebrow">Usuń wesele</p>
+        <h3>Strefa ostrożna</h3>
       </div>
-      <p class="muted">Usuniecie wesela kasuje wszystkie powiazane dane.</p>
+      <p class="muted">Usunięcie wesela kasuje wszystkie powiązane dane.</p>
       <div class="toolbar">
-        <button type="button" class="button-like" (click)="deleteWedding()">Usun wesele</button>
+        <button type="button" class="button-like" (click)="deleteWedding()">Usuń wesele</button>
       </div>
     </section>
   }

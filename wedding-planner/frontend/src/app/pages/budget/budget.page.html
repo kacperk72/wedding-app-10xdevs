@@ -1,5 +1,5 @@
-<app-page-header title="Budzet" subtitle="Estymata calkowita i lista wydatkow">
-  <button type="button" class="button-like" (click)="startBudgetEdit()">Edytuj budzet</button>
+<app-page-header title="Budżet" subtitle="Estymata całkowita i lista wydatków">
+  <button type="button" class="button-like" (click)="startBudgetEdit()">Edytuj budżet</button>
 </app-page-header>
 
 <div class="page-stack">
@@ -7,14 +7,14 @@
     <div class="panel__header">
       <div>
         <p class="panel__eyebrow">Podsumowanie</p>
-        <h2>Budzet wesela</h2>
+        <h2>Budżet wesela</h2>
       </div>
-      <span class="badge badge--info">{{ budget.summary()?.expensesCount || 0 }} wydatkow</span>
+      <span class="badge badge--info">{{ budget.summary()?.expensesCount || 0 }} wydatków</span>
     </div>
 
     <div class="section-grid">
       <article class="metric">
-        <p class="panel__eyebrow">Estymata koncowa</p>
+        <p class="panel__eyebrow">Estymata końcowa</p>
         @if (isBudgetEditOpen()) {
           <div class="toolbar">
             <input
@@ -37,7 +37,7 @@
         <p class="metric__value">{{ money(budget.summary()?.spent) }}</p>
       </article>
       <article class="metric">
-        <p class="panel__eyebrow">Pozostalo</p>
+        <p class="panel__eyebrow">Pozostało</p>
         <p class="metric__value">{{ money(budget.summary()?.remaining) }}</p>
       </article>
     </div>
@@ -54,7 +54,7 @@
   <section class="surface panel">
     <div>
       <p class="panel__eyebrow">Nowy wydatek</p>
-      <h2>Dodaj pozycje</h2>
+      <h2>Dodaj pozycję</h2>
     </div>
 
     <form class="form-grid" (ngSubmit)="addExpense()">
@@ -67,7 +67,7 @@
           (ngModelChange)="updateNewExpense({ categoryId: $event })"
         >
           @for (category of budget.categories(); track category.id) {
-            <option [value]="category.id">{{ category.name }}</option>
+            <option [value]="category.id">{{ categoryLabel(category.name) }}</option>
           }
         </select>
       </div>
@@ -145,7 +145,7 @@
           [class.badge--success]="selectedCategoryId() === category.id"
           (click)="setCategoryFilter(category.id)"
         >
-          {{ category.name }}
+          {{ categoryLabel(category.name) }}
         </button>
       }
     </div>
@@ -179,7 +179,7 @@
                     (ngModelChange)="updateEditingExpense({ categoryId: $event })"
                   >
                     @for (category of budget.categories(); track category.id) {
-                      <option [value]="category.id">{{ category.name }}</option>
+                      <option [value]="category.id">{{ categoryLabel(category.name) }}</option>
                     }
                   </select>
                 </td>
@@ -223,14 +223,14 @@
                 <td>
                   <div class="toolbar">
                     <button type="button" class="button-like button-like--secondary" (click)="startEdit(expense)">Edytuj</button>
-                    <button type="button" class="button-like button-like--ghost" (click)="removeExpense(expense.id)">Usun</button>
+                    <button type="button" class="button-like button-like--ghost" (click)="removeExpense(expense.id)">Usuń</button>
                   </div>
                 </td>
               }
             </tr>
           } @empty {
             <tr>
-              <td colspan="6">Brak wydatkow w wybranym filtrze.</td>
+              <td colspan="6">Brak wydatków w wybranym filtrze.</td>
             </tr>
           }
         </tbody>

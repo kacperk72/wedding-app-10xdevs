@@ -8,6 +8,6 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 })
 export class CoupleAvatarPair {
   readonly initialA = input.required<string>();
-  readonly initialB = input.required<string>();
-  readonly label = input<string>('Konto połączone');
+  readonly initialB = input<string>('');
+  readonly label = input<string>('');
 }

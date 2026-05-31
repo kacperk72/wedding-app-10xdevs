@@ -45,7 +45,7 @@ export class TablesService {
 
   private assertSeatsCount(value: number): void {
     if (!Number.isInteger(value) || value < 1 || value > 24) {
-      throw new Error('Liczba miejsc musi byc w zakresie 1-24.');
+      throw new Error('Liczba miejsc musi być w zakresie 1-24.');
     }
   }
 }

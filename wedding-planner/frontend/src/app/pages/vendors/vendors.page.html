@@ -1,4 +1,4 @@
-<app-page-header title="Kontrahenci" subtitle="Firmy i osoby, ktore pomagaja dowiezc dzien slubu">
+<app-page-header title="Kontrahenci" subtitle="Firmy i osoby, które pomagają dowieźć dzień ślubu">
   <button type="button" class="button-like" (click)="addVendor()">Dodaj kontrahenta</button>
 </app-page-header>
 
@@ -7,15 +7,15 @@
     <div class="panel__header">
       <div>
         <p class="panel__eyebrow">Wymaga uwagi</p>
-        <h2>Brakujace kategorie</h2>
+        <h2>Brakujące kategorie</h2>
       </div>
       <span class="badge badge--warning">{{ vendorsService.missingCategories().length }} kategorii</span>
     </div>
     <p class="muted">
       @if (vendorsService.missingCategories().length) {
-        Do potwierdzenia: {{ vendorsService.missingCategories().join(', ') }}.
+        Do potwierdzenia: {{ missingCategoryLabels() }}.
       } @else {
-        Najwazniejsze kategorie sa zabezpieczone.
+        Najważniejsze kategorie są zabezpieczone.
       }
     </p>
   </section>
@@ -59,7 +59,7 @@
         </select>
       </div>
       <div class="field">
-        <label for="newTotal">Kwota calkowita</label>
+        <label for="newTotal">Kwota całkowita</label>
         <input
           id="newTotal"
           name="newTotal"
@@ -78,7 +78,7 @@
           [ngModel]="newContractEnabled()"
           (ngModelChange)="toggleContract($event)"
         />
-        <span>Dodaj harmonogram platnosci (zaliczka + kwota do zaplaty)</span>
+        <span>Dodaj harmonogram płatności (zaliczka + kwota do zapłaty)</span>
       </label>
 
       @if (newContractEnabled() && (newTotal() ?? 0) > 0) {
@@ -124,7 +124,7 @@
         </fieldset>
 
         <fieldset class="surface panel" style="grid-column: 1 / -1">
-          <legend class="panel__eyebrow">Kwota do zaplaty</legend>
+          <legend class="panel__eyebrow">Kwota do zapłaty</legend>
           <div class="form-grid">
             <div class="field">
               <label for="finalAmount">Kwota</label>
@@ -166,7 +166,7 @@
 
         @if (newSumMismatch()) {
           <p class="muted" style="grid-column: 1 / -1; color: #b91c1c">
-            Suma zaliczki i kwoty do zaplaty musi rownac sie kwocie calkowitej ({{ money(newTotal()) }}).
+            Suma zaliczki i kwoty do zapłaty musi równać się kwocie całkowitej ({{ money(newTotal()) }}).
           </p>
         }
       }
@@ -254,7 +254,7 @@
               Edytuj
             </button>
             <button type="button" class="button-like button-like--ghost" (click)="removeVendor(vendor.id)">
-              Usun
+              Usuń
             </button>
           </div>
         }
@@ -262,8 +262,8 @@
     } @empty {
       <app-empty-state
         icon="store"
-        title="Brak kontrahentow"
-        description="Dodaj pierwszego kontrahenta, zeby monitorowac status i umowy."
+        title="Brak kontrahentów"
+        description="Dodaj pierwszego kontrahenta, żeby monitorować status i umowy."
       />
     }
   </section>

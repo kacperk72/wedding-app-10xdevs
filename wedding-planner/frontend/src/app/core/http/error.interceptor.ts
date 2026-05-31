@@ -6,10 +6,10 @@ import { ToastService } from '../services/toast.service';
 export const SKIP_TOAST_HEADER = 'X-Skip-Toast';
 
 function messageFor(error: HttpErrorResponse): string {
-  if (error.status === 409) return 'Juz istnieje';
-  if (error.status === 403) return 'Brak uprawnien';
-  if (error.status >= 500) return 'Wystapil blad';
-  return error.error?.error || 'Nie udalo sie wykonac operacji';
+  if (error.status === 409) return 'Już istnieje';
+  if (error.status === 403) return 'Brak uprawnień';
+  if (error.status >= 500) return 'Wystąpił błąd';
+  return error.error?.error || 'Nie udało się wykonać operacji';
 }
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {

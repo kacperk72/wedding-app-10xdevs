@@ -54,8 +54,8 @@ export type UpdatePaymentDto = Partial<CreatePaymentDto>;
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   pending: 'do podpisu',
   in_progress: 'w trakcie',
-  deposit_paid: 'zaliczka oplacona',
-  paid_in_full: 'oplacone',
+  deposit_paid: 'zaliczka opłacona',
+  paid_in_full: 'opłacone',
 };
 
 export const PAYMENT_KIND_LABELS: Record<PaymentKind, string> = {

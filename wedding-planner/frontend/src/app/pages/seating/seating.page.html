@@ -227,18 +227,22 @@
 
       <div class="field">
         <label for="assignTable">Stół z wolnymi miejscami</label>
-        <select
-          id="assignTable"
-          name="assignTable"
-          [ngModel]="selectedTableId()"
-          (ngModelChange)="selectedTableId.set($event)"
-        >
-          @for (table of availableTables(); track table.id) {
-            <option [value]="table.id">
-              {{ table.name }} · {{ guestsForTable(table.id).length }} / {{ table.seatsCount }}
-            </option>
-          }
-        </select>
+        @if (availableTables().length > 0) {
+          <select
+            id="assignTable"
+            name="assignTable"
+            [ngModel]="selectedTableId()"
+            (ngModelChange)="selectedTableId.set($event)"
+          >
+            @for (table of availableTables(); track table.id) {
+              <option [value]="table.id">
+                {{ table.name }} · {{ guestsForTable(table.id).length }} / {{ table.seatsCount }}
+              </option>
+            }
+          </select>
+        } @else {
+          <small>Brak wolnych miejsc lub brak stołów.</small>
+        }
       </div>
 
       <div class="toolbar assign-actions">

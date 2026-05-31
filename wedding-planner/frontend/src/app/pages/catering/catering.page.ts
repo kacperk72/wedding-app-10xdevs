@@ -67,7 +67,7 @@ export class CateringPage implements OnInit {
     const selectedPackageId = this.selection()?.packageId;
     return (
       offer.packages.find((pkg) => pkg.id === selectedPackageId) ??
-      offer.packages.find((pkg) => pkg.name === 'Zloty') ??
+      offer.packages.find((pkg) => this.isGoldPackage(pkg.name)) ??
       offer.packages[0]
     );
   });
@@ -111,7 +111,7 @@ export class CateringPage implements OnInit {
           this.isOfferDialogOpen.set(false);
           this.catering.loadOffer(weddingId, offer.id).subscribe({
             next: (fullOffer) => {
-              const gold = fullOffer.packages?.find((pkg) => pkg.name === 'Zloty') ?? fullOffer.packages?.[0];
+              const gold = fullOffer.packages?.find((pkg) => this.isGoldPackage(pkg.name)) ?? fullOffer.packages?.[0];
               if (gold) this.selectPackage(gold, false);
             },
           });
@@ -146,7 +146,7 @@ export class CateringPage implements OnInit {
         const selected = this.selection()?.packageId;
         const pkg =
           offer.packages?.find((item) => item.id === selected) ??
-          offer.packages?.find((item) => item.name === 'Zloty') ??
+          offer.packages?.find((item) => this.isGoldPackage(item.name)) ??
           offer.packages?.[0];
         if (pkg) this.selectPackage(pkg, false);
       },
@@ -327,6 +327,10 @@ export class CateringPage implements OnInit {
 
   private defaultGuestCount(): number {
     return this.guests.aggregates().confirmed || 100;
+  }
+
+  private isGoldPackage(name: string): boolean {
+    return name.localeCompare('Złoty', 'pl', { sensitivity: 'base' }) === 0;
   }
 
   private requireWeddingId(): string | null {

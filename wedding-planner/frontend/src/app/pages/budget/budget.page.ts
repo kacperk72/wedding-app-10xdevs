@@ -10,6 +10,15 @@ import { VendorsService } from '../../core/services/vendors.service';
 import { WeddingService } from '../../core/services/wedding.service';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 
+const BUDGET_CATEGORY_LABELS: Record<string, string> = {
+  'Stylizacja panny mlodej': 'Stylizacja panny młodej',
+  'Stylizacja pana mlodego': 'Stylizacja pana młodego',
+  'USC / formalnosci': 'USC / formalności',
+  'Transport gosci': 'Transport gości',
+  'Hotel dla gosci': 'Hotel dla gości',
+  Obraczki: 'Obrączki',
+};
+
 @Component({
   selector: 'app-budget-page',
   imports: [FormsModule, PageHeader],
@@ -71,7 +80,7 @@ export class BudgetPage implements OnInit {
         }
         this.toast.error('Najpierw skonfiguruj wesele.');
       },
-      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
+      error: () => this.toast.error('Nie udało się pobrać wesela.'),
     });
   }
 
@@ -93,7 +102,7 @@ export class BudgetPage implements OnInit {
     const weddingId = this.requireWeddingId();
     const amount = this.budgetTotalDraft();
     if (!weddingId || (amount !== null && amount < 0)) {
-      this.toast.error('Budzet musi byc liczba nieujemna.');
+      this.toast.error('Budżet musi być liczbą nieujemną.');
       return;
     }
 
@@ -101,9 +110,9 @@ export class BudgetPage implements OnInit {
       next: () => {
         this.budget.loadSummary(weddingId).subscribe();
         this.isBudgetEditOpen.set(false);
-        this.toast.success('Budzet zostal zapisany.');
+        this.toast.success('Budżet został zapisany.');
       },
-      error: () => this.toast.error('Nie udalo sie zapisac budzetu.'),
+      error: () => this.toast.error('Nie udało się zapisać budżetu.'),
     });
   }
 
@@ -130,9 +139,9 @@ export class BudgetPage implements OnInit {
           vendorId: null,
         });
         this.reloadExpenses(weddingId);
-        this.toast.success('Wydatek zostal dodany.');
+        this.toast.success('Wydatek został dodany.');
       },
-      error: () => this.toast.error('Nie udalo sie dodac wydatku.'),
+      error: () => this.toast.error('Nie udało się dodać wydatku.'),
     });
   }
 
@@ -170,28 +179,33 @@ export class BudgetPage implements OnInit {
       next: () => {
         this.editingExpenseId.set(null);
         this.reloadExpenses(weddingId);
-        this.toast.success('Wydatek zostal zapisany.');
+        this.toast.success('Wydatek został zapisany.');
       },
-      error: () => this.toast.error('Nie udalo sie zapisac wydatku.'),
+      error: () => this.toast.error('Nie udało się zapisać wydatku.'),
     });
   }
 
   protected removeExpense(id: string): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
-    if (!window.confirm('Usunac ten wydatek?')) return;
+    if (!window.confirm('Usunąć ten wydatek?')) return;
 
     this.budget.removeExpense(weddingId, id).subscribe({
       next: () => {
         this.reloadExpenses(weddingId);
-        this.toast.success('Wydatek zostal usuniety.');
+        this.toast.success('Wydatek został usunięty.');
       },
-      error: () => this.toast.error('Nie udalo sie usunac wydatku.'),
+      error: () => this.toast.error('Nie udało się usunąć wydatku.'),
     });
   }
 
   protected categoryName(categoryId: string): string {
-    return this.budget.categories().find((category) => category.id === categoryId)?.name ?? '-';
+    const name = this.budget.categories().find((category) => category.id === categoryId)?.name;
+    return name ? this.categoryLabel(name) : '-';
+  }
+
+  protected categoryLabel(name: string): string {
+    return BUDGET_CATEGORY_LABELS[name] ?? name;
   }
 
   protected categoryTrack(_index: number, category: BudgetCategory): string {
@@ -227,14 +241,14 @@ export class BudgetPage implements OnInit {
           categoryId: current.categoryId || categories[0]?.id || '',
         }));
       },
-      error: () => this.toast.error('Nie udalo sie pobrac budzetu.'),
+      error: () => this.toast.error('Nie udało się pobrać budżetu.'),
     });
   }
 
   private reloadExpenses(weddingId: string): void {
     this.budget
       .listExpenses(weddingId, { categoryId: this.selectedCategoryId() })
-      .subscribe({ error: () => this.toast.error('Nie udalo sie odswiezyc wydatkow.') });
+      .subscribe({ error: () => this.toast.error('Nie udało się odświeżyć wydatków.') });
   }
 
   private requireWeddingId(): string | null {
@@ -256,7 +270,7 @@ export class BudgetPage implements OnInit {
   private validateExpense(dto: CreateExpenseDto): boolean {
     const validDate = Boolean(dto.spentOn && !Number.isNaN(new Date(`${dto.spentOn}T00:00:00`).getTime()));
     const ok = Boolean(dto.categoryId && dto.description && dto.amount > 0 && validDate);
-    if (!ok) this.toast.error('Uzupelnij kategorie, date, kwote i opis.');
+    if (!ok) this.toast.error('Uzupełnij kategorię, datę, kwotę i opis.');
     return ok;
   }
 

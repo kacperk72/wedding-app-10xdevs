@@ -77,11 +77,15 @@ function mapMealOption(mealOption) {
   };
 }
 
+function displayTableName(name) {
+  return typeof name === "string" ? name.replace(/^Stol (?=\d+$)/, "Stół ") : name;
+}
+
 function mapTable(table) {
   return {
     id: table.id,
     weddingId: table.wedding_id,
-    name: table.name,
+    name: displayTableName(table.name),
     seatsCount: Number(table.seats_count),
     sortOrder: Number(table.sort_order),
     positionX: table.position_x == null ? null : Number(table.position_x),

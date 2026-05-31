@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { formatDDMMYYYY } from '../../core/format/date.format';
 import { PartnerInvitation } from '../../core/models/wedding.model';
 import { AuthService } from '../../core/services/auth.service';
 import { MealOptionsService } from '../../core/services/meal-options.service';
@@ -40,7 +41,7 @@ export class SettingsPage implements OnInit {
   protected readonly editingTableSeats = signal(8);
 
   protected readonly partnerMember = computed(() =>
-    this.wedding.wedding()?.members?.find((member) => member.role === 'partner_b') ?? null,
+    this.wedding.wedding()?.members?.find((member) => member.userId !== this.auth.user()?.id) ?? null,
   );
 
   protected readonly isFounder = computed(() => {
@@ -67,7 +68,7 @@ export class SettingsPage implements OnInit {
         }
         this.toast.error('Najpierw skonfiguruj wesele.');
       },
-      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
+      error: () => this.toast.error('Nie udało się pobrać wesela.'),
     });
   }
 
@@ -82,7 +83,7 @@ export class SettingsPage implements OnInit {
           exported.partnerInvitations.find((invitation) => invitation.status === 'pending') ?? null,
         );
       },
-      error: () => this.toast.error('Nie udalo sie pobrac ustawien.'),
+      error: () => this.toast.error('Nie udało się pobrać ustawień.'),
     });
   }
 
@@ -93,9 +94,13 @@ export class SettingsPage implements OnInit {
     if (!weddingId || !currentWedding || !nextDate || nextDate === currentWedding.weddingDate) return;
 
     this.wedding.update(weddingId, { weddingDate: nextDate }).subscribe({
-      next: () => this.toast.success('Data slubu zostala zapisana.'),
-      error: () => this.toast.error('Nie udalo sie zapisac daty slubu.'),
+      next: () => this.toast.success('Profil został zapisany.'),
+      error: () => this.toast.error('Nie udało się zapisać profilu.'),
     });
+  }
+
+  protected formatDate(value: string | null | undefined): string {
+    return formatDDMMYYYY(value) || '-';
   }
 
   protected invitePartner(): void {
@@ -107,9 +112,9 @@ export class SettingsPage implements OnInit {
       next: (invitation) => {
         this.pendingInvitation.set(invitation);
         this.partnerEmail.set('');
-        this.toast.success('Zaproszenie zostalo wyslane.');
+        this.toast.success('Zaproszenie zostało wysłane.');
       },
-      error: () => this.toast.error('Nie udalo sie wyslac zaproszenia.'),
+      error: () => this.toast.error('Nie udało się wysłać zaproszenia.'),
     });
   }
 
@@ -132,7 +137,7 @@ export class SettingsPage implements OnInit {
         link.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.toast.error('Nie udalo sie pobrac eksportu.'),
+      error: () => this.toast.error('Nie udało się pobrać eksportu.'),
     });
   }
 
@@ -145,7 +150,7 @@ export class SettingsPage implements OnInit {
     if (!wedding || !this.isFounder()) return;
 
     const expected = `${wedding.partnerAName} ${wedding.partnerBName}`;
-    const typed = window.prompt(`Aby usunac wesele, wpisz: ${expected}`);
+    const typed = window.prompt(`Aby usunąć wesele, wpisz: ${expected}`);
     if (typed !== expected) {
       this.toast.error('Potwierdzenie nie pasuje.');
       return;
@@ -153,10 +158,10 @@ export class SettingsPage implements OnInit {
 
     this.wedding.deleteWedding(wedding.id).subscribe({
       next: () => {
-        this.toast.success('Wesele zostalo usuniete.');
+        this.toast.success('Wesele zostało usunięte.');
         this.router.navigateByUrl('/app/setup');
       },
-      error: () => this.toast.error('Nie udalo sie usunac wesela.'),
+      error: () => this.toast.error('Nie udało się usunąć wesela.'),
     });
   }
 
@@ -168,9 +173,9 @@ export class SettingsPage implements OnInit {
     this.mealOptions.create(weddingId, { label }).subscribe({
       next: () => {
         this.newMealLabel.set('');
-        this.toast.success('Opcja menu zostala dodana.');
+        this.toast.success('Opcja menu została dodana.');
       },
-      error: () => this.toast.error('Nie udalo sie dodac opcji menu.'),
+      error: () => this.toast.error('Nie udało się dodać opcji menu.'),
     });
   }
 
@@ -187,18 +192,19 @@ export class SettingsPage implements OnInit {
     this.mealOptions.update(weddingId, id, { label }).subscribe({
       next: () => {
         this.editingMealId.set(null);
-        this.toast.success('Opcja menu zostala zapisana.');
+        this.toast.success('Opcja menu została zapisana.');
       },
-      error: () => this.toast.error('Nie udalo sie zapisac opcji menu.'),
+      error: () => this.toast.error('Nie udało się zapisać opcji menu.'),
     });
   }
 
   protected removeMealOption(id: string): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
+    if (!window.confirm('Usunąć tę opcję menu?')) return;
     this.mealOptions.remove(weddingId, id).subscribe({
-      next: () => this.toast.success('Opcja menu zostala usunieta.'),
-      error: () => this.toast.error('Nie udalo sie usunac opcji menu.'),
+      next: () => this.toast.success('Opcja menu została usunięta.'),
+      error: () => this.toast.error('Nie udało się usunąć opcji menu.'),
     });
   }
 
@@ -212,9 +218,9 @@ export class SettingsPage implements OnInit {
       next: () => {
         this.newTableName.set('');
         this.newTableSeats.set(8);
-        this.toast.success('Stol zostal dodany.');
+        this.toast.success('Stół został dodany.');
       },
-      error: () => this.toast.error('Nie udalo sie dodac stolu.'),
+      error: () => this.toast.error('Nie udało się dodać stołu.'),
     });
   }
 
@@ -233,24 +239,25 @@ export class SettingsPage implements OnInit {
     this.tables.update(weddingId, id, { name, seatsCount }).subscribe({
       next: () => {
         this.editingTableId.set(null);
-        this.toast.success('Stol zostal zapisany.');
+        this.toast.success('Stół został zapisany.');
       },
-      error: () => this.toast.error('Nie udalo sie zapisac stolu.'),
+      error: () => this.toast.error('Nie udało się zapisać stołu.'),
     });
   }
 
   protected removeTable(id: string): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
+    if (!window.confirm('Usunąć ten stół?')) return;
     this.tables.remove(weddingId, id).subscribe({
-      next: () => this.toast.success('Stol zostal usuniety.'),
-      error: () => this.toast.error('Nie udalo sie usunac stolu.'),
+      next: () => this.toast.success('Stół został usunięty.'),
+      error: () => this.toast.error('Nie udało się usunąć stołu.'),
     });
   }
 
   private validSeats(value: number): boolean {
     const ok = Number.isInteger(value) && value >= 1 && value <= 24;
-    if (!ok) this.toast.error('Liczba miejsc musi byc w zakresie 1-24.');
+    if (!ok) this.toast.error('Liczba miejsc musi być w zakresie 1-24.');
     return ok;
   }
 

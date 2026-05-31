@@ -2,7 +2,7 @@
   <div class="panel__header">
     <div>
       <p class="panel__eyebrow">Konflikty</p>
-      <h3>{{ conflicts().length }} ostrzezenia</h3>
+      <h3>{{ conflicts().length }} ostrzeżeń</h3>
     </div>
     <button type="button" class="button-like button-like--compact" (click)="openDialog()">
       <app-icon name="plus" [size]="16" />
@@ -11,7 +11,7 @@
   </div>
 
   @if (conflicts().length === 0) {
-    <p class="empty-copy">Brak zapisanych konfliktow.</p>
+    <p class="empty-copy">Brak zapisanych konfliktów.</p>
   } @else {
     <div class="list">
       @for (conflict of conflicts(); track conflict.id) {
@@ -25,7 +25,7 @@
           <button
             type="button"
             class="button-like button-like--ghost button-like--icon"
-            aria-label="Usun konflikt"
+            aria-label="Usuń konflikt"
             (click)="removeConflict.emit(conflict.id)"
           >
             <app-icon name="x" [size]="16" />
@@ -47,7 +47,7 @@
     >
       <div class="panel__header">
         <div>
-          <p class="panel__eyebrow">Nowe ostrzezenie</p>
+          <p class="panel__eyebrow">Nowe ostrzeżenie</p>
           <h2 id="addConflictTitle">Dodaj konflikt</h2>
         </div>
         <button type="button" class="button-like button-like--ghost" (click)="closeDialog()">
@@ -57,7 +57,7 @@
 
       <form class="form-grid" (ngSubmit)="submit()">
         <div class="field">
-          <label for="guestA">Pierwszy gosc</label>
+          <label for="guestA">Pierwszy gość</label>
           <select
             id="guestA"
             name="guestA"
@@ -72,7 +72,7 @@
         </div>
 
         <div class="field">
-          <label for="guestB">Drugi gosc</label>
+          <label for="guestB">Drugi gość</label>
           <select
             id="guestB"
             name="guestB"
@@ -87,7 +87,7 @@
         </div>
 
         <div class="field field--wide">
-          <label for="reason">Powod</label>
+          <label for="reason">Powód</label>
           <textarea
             id="reason"
             name="reason"

@@ -84,7 +84,7 @@ describe("catering offers", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.packages.length, 4);
-    assert.ok(response.body.packages.find((pkg) => pkg.name === "Zloty").courses.length > 0);
+    assert.ok(response.body.packages.find((pkg) => pkg.name === "Złoty").courses.length > 0);
     assert.equal(response.body.addons.length, 7);
   });
 
@@ -93,7 +93,7 @@ describe("catering offers", () => {
       name: "Palac Polanka 2026",
       preset: "palac-polanka-2026",
     });
-    const gold = db.catering_packages.find((pkg) => pkg.name === "Zloty");
+    const gold = db.catering_packages.find((pkg) => pkg.name === "Złoty");
     await request(server, "PUT", "/api/weddings/wedding-1/catering/selection", {
       packageId: gold.id,
       guestCountEstimate: 100,

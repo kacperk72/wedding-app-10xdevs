@@ -19,7 +19,7 @@
     <span>{{ guests().length }} / {{ table().seatsCount }} miejsc</span>
   </div>
 
-  <div class="round-table-card__seats" aria-label="Goscie przy stole">
+  <div class="round-table-card__seats" aria-label="Goście przy stole">
     @for (guest of guests(); track guest.id) {
       <button
         type="button"

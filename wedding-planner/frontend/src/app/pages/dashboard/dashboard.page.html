@@ -3,15 +3,15 @@
     <p class="dashboard-hero__eyebrow">
       {{ coupleLabel() || 'Wesele' }}
       @if (wedding(); as w) {
-        - {{ w.weddingDate }}
+        - {{ formatDate(w.weddingDate) }}
       }
     </p>
     <h1>
-      Do slubu zostalo
+      Do ślubu zostało
       <strong>{{ daysUntilWedding() === null ? '-' : daysUntilWedding() + ' dni' }}</strong>
     </h1>
     <p class="dashboard-hero__copy">
-      Wszystko, co musicie ogarnac w jednym miejscu: goscie, kontrahenci, budzet i zadania.
+      Wszystko, co musicie ogarnąć w jednym miejscu: goście, kontrahenci, budżet i zadania.
     </p>
   </section>
 
@@ -36,7 +36,7 @@
       <div class="panel__header">
         <div>
           <p class="panel__eyebrow">Wymaga uwagi</p>
-          <h2>Najwazniejsze akcje</h2>
+          <h2>Najważniejsze akcje</h2>
         </div>
         <span class="badge badge--warning">{{ attention().length }}</span>
       </div>
@@ -48,13 +48,13 @@
               <p class="list-item__meta">{{ item.meta }}</p>
             </div>
             <button type="button" class="button-like button-like--secondary" (click)="openAttention(item)">
-              Otworz
+              Otwórz
             </button>
           </div>
         } @empty {
           <app-empty-state
             title="Nic pilnego"
-            description="Najwazniejsze sprawy nie wymagaja teraz reakcji."
+            description="Najważniejsze sprawy nie wymagają teraz reakcji."
           />
         }
       </div>
@@ -62,7 +62,7 @@
 
     <article class="surface panel">
       <div>
-        <p class="panel__eyebrow">Nadchodzace spotkania</p>
+        <p class="panel__eyebrow">Nadchodzące spotkania</p>
         <h2>Kalendarz</h2>
       </div>
       <div class="list">
@@ -76,8 +76,8 @@
         } @empty {
           <app-empty-state
             icon="calendar-days"
-            title="Brak spotkan"
-            description="W najblizszych 14 dniach nie ma zaplanowanych spotkan."
+            title="Brak spotkań"
+            description="W najbliższych 14 dniach nie ma zaplanowanych spotkań."
           />
         }
       </div>

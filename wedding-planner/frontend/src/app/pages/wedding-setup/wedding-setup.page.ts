@@ -49,12 +49,12 @@ export class WeddingSetupPage {
       })
       .subscribe({
         next: () => {
-          this.toast.show({ kind: 'success', message: 'Profil wesela zostal utworzony.' });
+          this.toast.show({ kind: 'success', message: 'Profil wesela został utworzony.' });
           this.router.navigateByUrl('/app');
         },
         error: () => {
           this.isSubmitting.set(false);
-          this.toast.show({ kind: 'error', message: 'Nie udalo sie utworzyc wesela.' });
+          this.toast.show({ kind: 'error', message: 'Nie udało się utworzyć wesela.' });
         },
       });
   }

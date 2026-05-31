@@ -2,6 +2,10 @@ const assert = require("node:assert/strict");
 const { afterEach, beforeEach, describe, it } = require("node:test");
 const { clearAppCache, close, createTestServer, request } = require("./helpers/http-app");
 
+// Dates relative to "now" so the upcoming-meetings window never rots over time.
+const DAY_MS = 24 * 60 * 60 * 1000;
+const isoDaysFromNow = (days) => new Date(Date.now() + days * DAY_MS).toISOString();
+
 describe("meetings CRUD", () => {
   let server;
   let db;
@@ -41,7 +45,7 @@ describe("meetings CRUD", () => {
   it("creates, updates, lists, gets upcoming, and deletes meetings", async () => {
     const created = await request(server, "POST", "/api/weddings/wedding-1/meetings", {
       title: "Omowic muzyke",
-      meetingDate: "2026-05-30T12:00:00.000Z",
+      meetingDate: isoDaysFromNow(3),
       vendorId: "vendor-1",
       notes: "Playlista",
     });

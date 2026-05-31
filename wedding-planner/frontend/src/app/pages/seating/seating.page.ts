@@ -222,7 +222,7 @@ export class SeatingPage implements OnInit {
     const weddingId = this.weddingService.wedding()?.id;
     if (!weddingId) return;
     this.guestsService.update(weddingId, guest.id, { seatNumber }).subscribe({
-      error: () => this.toast.error('Nie udalo sie przypisac krzesla.'),
+      error: () => this.toast.error('Nie udało się przypisać krzesła.'),
     });
   }
 
@@ -230,7 +230,7 @@ export class SeatingPage implements OnInit {
     const weddingId = this.weddingService.wedding()?.id;
     if (!weddingId) return;
     this.guestsService.update(weddingId, guest.id, { seatNumber: null }).subscribe({
-      error: () => this.toast.error('Nie udalo sie zwolnic krzesla.'),
+      error: () => this.toast.error('Nie udało się zwolnić krzesła.'),
     });
   }
 

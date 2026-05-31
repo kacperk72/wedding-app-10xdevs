@@ -58,15 +58,15 @@ export class DashboardPage implements OnInit {
 
     return [
       {
-        label: 'Goscie',
+        label: 'Goście',
         value: `${guests.confirmed} / ${guests.invited}`,
-        meta: `${guests.pending} oczekuje - ${guests.declined} odmow`,
+        meta: `${guests.pending} oczekuje - ${guests.declined} odmów`,
         progress: invitedProgress,
         tone: guests.pending > 0 ? 'warning' : 'ok',
         icon: 'users',
       },
       {
-        label: 'Budzet',
+        label: 'Budżet',
         value: formatPLN(budget.spentTotal),
         meta: `Plan: ${formatPLN(budget.plannedTotal)}`,
         progress: budgetProgress,
@@ -74,7 +74,7 @@ export class DashboardPage implements OnInit {
         icon: 'wallet',
       },
       {
-        label: 'Platnosci',
+        label: 'Płatności',
         value: payments.upcomingCount.toString(),
         meta: `${formatPLN(payments.upcomingAmount)} w 30 dni - ${payments.overdueCount} po terminie`,
         progress: payments.upcomingCount ? 100 : 0,
@@ -84,7 +84,7 @@ export class DashboardPage implements OnInit {
       {
         label: 'Zadania',
         value: tasks.activeCount.toString(),
-        meta: `${tasks.overdueCount} opoznionych`,
+        meta: `${tasks.overdueCount} opóźnionych`,
         progress: tasks.activeCount ? Math.max(10, 100 - tasks.overdueCount * 20) : 0,
         tone: tasks.overdueCount ? 'danger' : 'ok',
         icon: 'list-checks',
@@ -117,7 +117,7 @@ export class DashboardPage implements OnInit {
         }
         this.toast.error('Najpierw skonfiguruj wesele.');
       },
-      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
+      error: () => this.toast.error('Nie udało się pobrać wesela.'),
     });
   }
 
@@ -146,16 +146,20 @@ export class DashboardPage implements OnInit {
     return formatDDMMYYYY(value);
   }
 
+  protected formatDate(value: string): string {
+    return formatDDMMYYYY(value);
+  }
+
   protected openTasks(): void {
     this.router.navigateByUrl('/app/zadania');
   }
 
   private loadDashboard(weddingId: string): void {
     this.dashboardService.load(weddingId).subscribe({
-      error: () => this.toast.error('Nie udalo sie pobrac dashboardu.'),
+      error: () => this.toast.error('Nie udało się pobrać dashboardu.'),
     });
     this.tasksService.loadTasks(weddingId).subscribe({
-      error: () => this.toast.error('Nie udalo sie pobrac zadan.'),
+      error: () => this.toast.error('Nie udało się pobrać zadań.'),
     });
   }
 }

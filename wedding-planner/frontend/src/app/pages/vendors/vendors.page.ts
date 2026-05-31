@@ -106,7 +106,7 @@ export class VendorsPage implements OnInit {
         }
         this.toast.error('Najpierw skonfiguruj wesele.');
       },
-      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
+      error: () => this.toast.error('Nie udało się pobrać wesela.'),
     });
   }
 
@@ -118,7 +118,7 @@ export class VendorsPage implements OnInit {
     const total = this.newTotal();
     if (this.newContractEnabled() && total && total > 0) {
       if (this.newSumMismatch()) {
-        this.toast.error('Suma zaliczki i kwoty do zaplaty musi rownac sie kwocie calkowitej.');
+        this.toast.error('Suma zaliczki i kwoty do zapłaty musi równać się kwocie całkowitej.');
         return;
       }
       const bundle = this.buildBundle(total);
@@ -131,9 +131,9 @@ export class VendorsPage implements OnInit {
       next: () => {
         this.resetNewForm();
         this.refreshMissing(weddingId);
-        this.toast.success('Kontrahent zostal dodany.');
+        this.toast.success('Kontrahent został dodany.');
       },
-      error: () => this.toast.error('Nie udalo sie dodac kontrahenta.'),
+      error: () => this.toast.error('Nie udało się dodać kontrahenta.'),
     });
   }
 
@@ -160,22 +160,23 @@ export class VendorsPage implements OnInit {
       next: () => {
         this.editingVendorId.set(null);
         this.refreshMissing(weddingId);
-        this.toast.success('Kontrahent zostal zapisany.');
+        this.toast.success('Kontrahent został zapisany.');
       },
-      error: () => this.toast.error('Nie udalo sie zapisac kontrahenta.'),
+      error: () => this.toast.error('Nie udało się zapisać kontrahenta.'),
     });
   }
 
   protected removeVendor(id: string): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
+    if (!window.confirm('Usunąć tego kontrahenta?')) return;
 
     this.vendorsService.remove(weddingId, id).subscribe({
       next: () => {
         this.refreshMissing(weddingId);
-        this.toast.success('Kontrahent zostal usuniety.');
+        this.toast.success('Kontrahent został usunięty.');
       },
-      error: () => this.toast.error('Nie udalo sie usunac kontrahenta.'),
+      error: () => this.toast.error('Nie udało się usunąć kontrahenta.'),
     });
   }
 
@@ -213,6 +214,13 @@ export class VendorsPage implements OnInit {
     return VENDOR_CATEGORY_LABELS[category];
   }
 
+  protected missingCategoryLabels(): string {
+    return this.vendorsService
+      .missingCategories()
+      .map((category) => VENDOR_CATEGORY_LABELS[category as VendorCategory] ?? category)
+      .join(', ');
+  }
+
   protected statusLabel(status: VendorStatus): string {
     return VENDOR_STATUS_LABELS[status];
   }
@@ -238,7 +246,7 @@ export class VendorsPage implements OnInit {
     const hasDeposit = deposit.amount > 0;
     const hasFinal = final.amount > 0;
     if (!hasDeposit && !hasFinal) {
-      this.toast.error('Podaj kwote zaliczki lub kwote do zaplaty.');
+      this.toast.error('Podaj kwotę zaliczki lub kwotę do zapłaty.');
       return null;
     }
     if (hasDeposit && !deposit.dueDate) {
@@ -267,13 +275,13 @@ export class VendorsPage implements OnInit {
 
   private loadResources(weddingId: string): void {
     forkJoin([this.vendorsService.list(weddingId), this.vendorsService.missing(weddingId)]).subscribe({
-      error: () => this.toast.error('Nie udalo sie pobrac kontrahentow.'),
+      error: () => this.toast.error('Nie udało się pobrać kontrahentów.'),
     });
   }
 
   private refreshMissing(weddingId: string): void {
     this.vendorsService.missing(weddingId).subscribe({
-      error: () => this.toast.error('Nie udalo sie odswiezyc brakujacych kategorii.'),
+      error: () => this.toast.error('Nie udało się odświeżyć brakujących kategorii.'),
     });
   }
 

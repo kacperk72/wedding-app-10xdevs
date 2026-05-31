@@ -1,10 +1,10 @@
-<app-page-header title="Konfiguracja wesela" subtitle="Utworz profil pary i podstawowe dane dnia" />
+<app-page-header title="Konfiguracja wesela" subtitle="Utwórz profil pary i podstawowe dane dnia" />
 
 <div class="page-stack">
   <section class="surface panel">
     <form class="form-grid" (ngSubmit)="submit()">
       <div class="field">
-        <label for="partnerAName">Imie partnera A</label>
+        <label for="partnerAName">Imię partnera A</label>
         <input
           id="partnerAName"
           name="partnerAName"
@@ -14,7 +14,7 @@
         />
       </div>
       <div class="field">
-        <label for="partnerBName">Imie partnera B</label>
+        <label for="partnerBName">Imię partnera B</label>
         <input
           id="partnerBName"
           name="partnerBName"
@@ -24,7 +24,7 @@
         />
       </div>
       <div class="field">
-        <label for="weddingDate">Data slubu</label>
+        <label for="weddingDate">Data ślubu</label>
         <input
           id="weddingDate"
           name="weddingDate"
@@ -45,7 +45,7 @@
       </div>
       <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
         <button type="submit" class="button-like" [disabled]="isSubmitting()">
-          Utworz wesele
+          Utwórz wesele
         </button>
       </div>
     </form>

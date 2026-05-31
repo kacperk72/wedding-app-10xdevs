@@ -23,20 +23,20 @@ begin
     (p_wedding_id, 'Kwiaty', 4),
     (p_wedding_id, 'Dekoracje', 5),
     (p_wedding_id, 'Muzyka / DJ', 6),
-    (p_wedding_id, 'Stylizacja panny mlodej', 7),
-    (p_wedding_id, 'Stylizacja pana mlodego', 8),
-    (p_wedding_id, 'USC / formalnosci', 9),
+    (p_wedding_id, 'Stylizacja panny młodej', 7),
+    (p_wedding_id, 'Stylizacja pana młodego', 8),
+    (p_wedding_id, 'USC / formalności', 9),
     (p_wedding_id, 'Alkohol', 10),
     (p_wedding_id, 'Tort', 11),
-    (p_wedding_id, 'Transport gosci', 12),
-    (p_wedding_id, 'Hotel dla gosci', 13),
-    (p_wedding_id, 'Obraczki', 14),
+    (p_wedding_id, 'Transport gości', 12),
+    (p_wedding_id, 'Hotel dla gości', 13),
+    (p_wedding_id, 'Obrączki', 14),
     (p_wedding_id, 'Zaproszenia i papeteria', 15)
   on conflict (wedding_id, name) do nothing;
   get diagnostics v_budget_count = row_count;
 
   insert into tables (wedding_id, name, seats_count, sort_order)
-  select p_wedding_id, 'Stol ' || n::text, 8, n
+  select p_wedding_id, 'Stół ' || n::text, 8, n
     from generate_series(1, 12) as n
   on conflict (wedding_id, name) do nothing;
   get diagnostics v_table_count = row_count;

@@ -31,11 +31,12 @@
 
   <div class="header__account">
     <app-couple-avatar-pair
-      [initialA]="wedding.coupleInitials().a || 'W'"
-      [initialB]="wedding.coupleInitials().b || 'K'"
+      [initialA]="accountInitials().a"
+      [initialB]="accountInitials().b"
+      [label]="accountLabel()"
     />
     <button type="button" class="header__avatar" aria-label="Menu konta">
-      {{ wedding.coupleInitials().a || 'W' }}{{ wedding.coupleInitials().b || 'K' }}
+      {{ accountInitials().a }}{{ accountInitials().b }}
     </button>
   </div>
 </header>

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { formatPLN } from '../../core/format/currency.format';
+import { formatDDMMYYYY } from '../../core/format/date.format';
 import {
   CONTRACT_STATUS_LABELS,
   Contract,
@@ -75,7 +76,7 @@ export class ContractsPage implements OnInit {
         }
         this.toast.error('Najpierw skonfiguruj wesele.');
       },
-      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
+      error: () => this.toast.error('Nie udało się pobrać wesela.'),
     });
   }
 
@@ -88,22 +89,23 @@ export class ContractsPage implements OnInit {
       next: () => {
         this.newContract.set({ vendorId: '', totalAmount: 0, signedDate: null });
         this.reloadContracts(weddingId);
-        this.toast.success('Umowa zostala dodana.');
+        this.toast.success('Umowa została dodana.');
       },
-      error: () => this.toast.error('Nie udalo sie dodac umowy.'),
+      error: () => this.toast.error('Nie udało się dodać umowy.'),
     });
   }
 
   protected removeContract(id: string): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
+    if (!window.confirm('Usunąć tę umowę?')) return;
 
     this.contractsService.remove(weddingId, id).subscribe({
       next: () => {
         this.reloadContracts(weddingId);
-        this.toast.success('Umowa zostala usunieta.');
+        this.toast.success('Umowa została usunięta.');
       },
-      error: () => this.toast.error('Nie udalo sie usunac umowy.'),
+      error: () => this.toast.error('Nie udało się usunąć umowy.'),
     });
   }
 
@@ -142,9 +144,9 @@ export class ContractsPage implements OnInit {
           return next;
         });
         this.reloadContracts(weddingId);
-        this.toast.success('Platnosc zostala dodana.');
+        this.toast.success('Płatność została dodana.');
       },
-      error: () => this.toast.error('Nie udalo sie dodac platnosci.'),
+      error: () => this.toast.error('Nie udało się dodać płatności.'),
     });
   }
 
@@ -159,25 +161,30 @@ export class ContractsPage implements OnInit {
       })
       .subscribe({
         next: () => this.reloadContracts(weddingId),
-        error: () => this.toast.error('Nie udalo sie zapisac platnosci.'),
+        error: () => this.toast.error('Nie udało się zapisać płatności.'),
       });
   }
 
   protected removePayment(contractId: string, paymentId: string): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
+    if (!window.confirm('Usunąć tę płatność?')) return;
 
     this.paymentsService.remove(weddingId, contractId, paymentId).subscribe({
       next: () => {
         this.reloadContracts(weddingId);
-        this.toast.success('Platnosc zostala usunieta.');
+        this.toast.success('Płatność została usunięta.');
       },
-      error: () => this.toast.error('Nie udalo sie usunac platnosci.'),
+      error: () => this.toast.error('Nie udało się usunąć płatności.'),
     });
   }
 
   protected money(value: number | null | undefined): string {
     return formatPLN(value);
+  }
+
+  protected date(value: string | null | undefined): string {
+    return formatDDMMYYYY(value) || '-';
   }
 
   protected contractStatusLabel(contract: Contract): string {
@@ -224,7 +231,7 @@ export class ContractsPage implements OnInit {
       this.contractsService.list(weddingId),
       this.contractsService.upcomingPaymentsList(weddingId),
     ]).subscribe({
-      error: () => this.toast.error('Nie udalo sie pobrac umow.'),
+      error: () => this.toast.error('Nie udało się pobrać umów.'),
     });
   }
 
@@ -233,7 +240,7 @@ export class ContractsPage implements OnInit {
       this.contractsService.list(weddingId),
       this.contractsService.upcomingPaymentsList(weddingId),
     ]).subscribe({
-      error: () => this.toast.error('Nie udalo sie odswiezyc umow.'),
+      error: () => this.toast.error('Nie udało się odświeżyć umów.'),
     });
   }
 

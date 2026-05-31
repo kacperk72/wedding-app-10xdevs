@@ -72,7 +72,7 @@ export class GuestsPage implements OnInit {
       ['Zaproszonych', a.invited.toString()],
       ['Potwierdzonych', a.confirmed.toString()],
       ['Oczekuje', a.pending.toString()],
-      ['Odmow', a.declined.toString()],
+      ['Odmów', a.declined.toString()],
       ['Wege', a.vegeOrVegan.toString()],
       ['Dzieci', a.children.toString()],
       ['Bez dania', a.noMealPick.toString()],
@@ -94,7 +94,7 @@ export class GuestsPage implements OnInit {
         }
         this.toast.error('Najpierw skonfiguruj wesele.');
       },
-      error: () => this.toast.error('Nie udalo sie pobrac wesela.'),
+      error: () => this.toast.error('Nie udało się pobrać wesela.'),
     });
   }
 
@@ -104,7 +104,7 @@ export class GuestsPage implements OnInit {
       this.mealOptionsService.list(weddingId),
       this.tablesService.list(weddingId),
     ]).subscribe({
-      error: () => this.toast.error('Nie udalo sie pobrac danych gosci.'),
+      error: () => this.toast.error('Nie udało się pobrać danych gości.'),
     });
   }
 
@@ -158,9 +158,9 @@ export class GuestsPage implements OnInit {
             diet: 'standard',
           });
           this.isAddDialogOpen.set(false);
-          this.toast.success('Gosc zostal dodany.');
+          this.toast.success('Gość został dodany.');
         },
-        error: () => this.toast.error('Nie udalo sie dodac goscia.'),
+        error: () => this.toast.error('Nie udało się dodać gościa.'),
       });
   }
 
@@ -194,9 +194,9 @@ export class GuestsPage implements OnInit {
     this.guestsService.update(weddingId, guest.id, { firstName, lastName }).subscribe({
       next: () => {
         this.closeEditDialog();
-        this.toast.success('Dane goscia zostaly zapisane.');
+        this.toast.success('Dane gościa zostały zapisane.');
       },
-      error: () => this.toast.error('Nie udalo sie zapisac zmian.'),
+      error: () => this.toast.error('Nie udało się zapisać zmian.'),
     });
   }
 
@@ -204,16 +204,17 @@ export class GuestsPage implements OnInit {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
     this.guestsService.update(weddingId, guest.id, patch).subscribe({
-      error: () => this.toast.error('Nie udalo sie zapisac zmian.'),
+      error: () => this.toast.error('Nie udało się zapisać zmian.'),
     });
   }
 
   protected removeGuest(guest: Guest): void {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
+    if (!window.confirm(`Usunąć gościa "${guest.firstName} ${guest.lastName}"?`)) return;
     this.guestsService.remove(weddingId, guest.id).subscribe({
-      next: () => this.toast.success('Gosc zostal usuniety.'),
-      error: () => this.toast.error('Nie udalo sie usunac goscia.'),
+      next: () => this.toast.success('Gość został usunięty.'),
+      error: () => this.toast.error('Nie udało się usunąć gościa.'),
     });
   }
 

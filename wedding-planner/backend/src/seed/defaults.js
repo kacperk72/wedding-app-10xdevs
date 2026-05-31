@@ -5,14 +5,14 @@ const DEFAULT_BUDGET_CATEGORIES = [
   "Kwiaty",
   "Dekoracje",
   "Muzyka / DJ",
-  "Stylizacja panny mlodej",
-  "Stylizacja pana mlodego",
-  "USC / formalnosci",
+  "Stylizacja panny młodej",
+  "Stylizacja pana młodego",
+  "USC / formalności",
   "Alkohol",
   "Tort",
-  "Transport gosci",
-  "Hotel dla gosci",
-  "Obraczki",
+  "Transport gości",
+  "Hotel dla gości",
+  "Obrączki",
   "Zaproszenia i papeteria",
 ].map((name, sortOrder) => ({
   name,
@@ -20,7 +20,7 @@ const DEFAULT_BUDGET_CATEGORIES = [
 }));
 
 const DEFAULT_TABLES = Array.from({ length: 12 }, (_, index) => ({
-  name: `Stol ${index + 1}`,
+  name: `Stół ${index + 1}`,
   seats_count: 8,
   sort_order: index + 1,
 }));

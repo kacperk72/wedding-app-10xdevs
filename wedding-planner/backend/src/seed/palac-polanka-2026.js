@@ -12,15 +12,15 @@ const packages = [
     name: "Srebrny",
     pricePerPerson: 339,
     isModifiable: true,
-    description: "Obiad, dwie cieple kolacje, bufety i napoje.",
+    description: "Obiad, dwie ciepłe kolacje, bufety i napoje.",
     sortOrder: 2,
   },
   {
     key: "gold",
-    name: "Zloty",
+    name: "Złoty",
     pricePerPerson: 374,
     isModifiable: true,
-    description: "Obiad, trzy cieple kolacje, rozszerzony bufet zimny, salatki i napoje.",
+    description: "Obiad, trzy ciepłe kolacje, rozszerzony bufet zimny, sałatki i napoje.",
     sortOrder: 3,
   },
   {
@@ -28,13 +28,13 @@ const packages = [
     name: "Diamentowy",
     pricePerPerson: 399,
     isModifiable: true,
-    description: "Najszerszy pakiet z czterema cieplymi kolacjami i najwiekszym bufetem.",
+    description: "Najszerszy pakiet z czterema ciepłymi kolacjami i największym bufetem.",
     sortOrder: 4,
   },
 ];
 
 const dishes = [
-  { key: "proziak", name: "Podkarpacki proziak z maslem czosnkowym" },
+  { key: "proziak", name: "Podkarpacki proziak z masłem czosnkowym" },
   { key: "focaccia", name: "Focaccia z humusem", isVegetarian: true },
   { key: "terrina", name: "Terrina drobiowa z konfitura cebulowa" },
   { key: "carpaccio_burak", name: "Carpaccio z buraka z serem kozim", isVegetarian: true },
@@ -79,7 +79,7 @@ const dishes = [
   { key: "panna_cotta", name: "Panna Cotta z sosem truskawkowym" },
   { key: "sernik", name: "Sernik czekoladowy" },
 
-  { key: "zimny_1", name: "Deska wedlin regionalnych" },
+  { key: "zimny_1", name: "Deska wędlin regionalnych" },
   { key: "zimny_2", name: "Deska serow z dodatkami" },
   { key: "zimny_3", name: "Tymbaliki drobiowe" },
   { key: "zimny_4", name: "Roladki z szynki z chrzanem" },
@@ -102,15 +102,15 @@ const dishes = [
   { key: "zimny_21", name: "Krewetki koktajlowe" },
   { key: "zimny_22", name: "Carpaccio wolowe" },
 
-  { key: "salatka_1", name: "Salatka Cezar z kurczakiem" },
-  { key: "salatka_2", name: "Salatka grecka", isVegetarian: true },
-  { key: "salatka_3", name: "Salatka z kasza bulgur i warzywami", isVegetarian: true, isVegan: true },
-  { key: "salatka_4", name: "Salatka jarzynowa" },
-  { key: "salatka_5", name: "Salatka z gruszka i serem plesniowym", isVegetarian: true },
-  { key: "salatka_6", name: "Salatka ziemniaczana" },
-  { key: "salatka_7", name: "Salatka z wedzonym kurczakiem" },
-  { key: "salatka_8", name: "Salatka makaronowa" },
-  { key: "salatka_9", name: "Salatka z burakiem i rukola", isVegetarian: true },
+  { key: "salatka_1", name: "Sałatka Cezar z kurczakiem" },
+  { key: "salatka_2", name: "Sałatka grecka", isVegetarian: true },
+  { key: "salatka_3", name: "Sałatka z kaszą bulgur i warzywami", isVegetarian: true, isVegan: true },
+  { key: "salatka_4", name: "Sałatka jarzynowa" },
+  { key: "salatka_5", name: "Sałatka z gruszką i serem pleśniowym", isVegetarian: true },
+  { key: "salatka_6", name: "Sałatka ziemniaczana" },
+  { key: "salatka_7", name: "Sałatka z wędzonym kurczakiem" },
+  { key: "salatka_8", name: "Sałatka makaronowa" },
+  { key: "salatka_9", name: "Sałatka z burakiem i rukolą", isVegetarian: true },
 
   { key: "napoje_bez_limitu", name: "Kawa, herbata, soki owocowe, woda mineralna - bez limitu" },
 ];
@@ -137,10 +137,10 @@ const dishGroups = {
 
 const courses = [
   { key: "chef_soup", packageKey: "chef", courseType: "obiad_zupa", title: "Obiad / zupa", selectionMode: "all_served", choiceLimit: null, sortOrder: 10 },
-  { key: "chef_main", packageKey: "chef", courseType: "obiad_danie_glowne", title: "Obiad / danie glowne", selectionMode: "all_served", choiceLimit: null, sortOrder: 20 },
+  { key: "chef_main", packageKey: "chef", courseType: "obiad_danie_glowne", title: "Obiad / danie główne", selectionMode: "all_served", choiceLimit: null, sortOrder: 20 },
   { key: "chef_dessert", packageKey: "chef", courseType: "obiad_deser", title: "Obiad / deser", selectionMode: "all_served", choiceLimit: null, sortOrder: 30 },
-  { key: "chef_dinner_1", packageKey: "chef", courseType: "kolacja_ciepla", title: "Kolacja ciepla I", selectionMode: "all_served", choiceLimit: null, sortOrder: 40 },
-  { key: "chef_dinner_2", packageKey: "chef", courseType: "kolacja_ciepla", title: "Kolacja ciepla II", selectionMode: "all_served", choiceLimit: null, sortOrder: 50 },
+  { key: "chef_dinner_1", packageKey: "chef", courseType: "kolacja_ciepla", title: "Kolacja ciepła I", selectionMode: "all_served", choiceLimit: null, sortOrder: 40 },
+  { key: "chef_dinner_2", packageKey: "chef", courseType: "kolacja_ciepla", title: "Kolacja ciepła II", selectionMode: "all_served", choiceLimit: null, sortOrder: 50 },
   { key: "chef_cold", packageKey: "chef", courseType: "bufet_zimny", title: "Bufet zimny", selectionMode: "couple_picks", choiceLimit: 8, sortOrder: 60 },
   { key: "chef_drinks", packageKey: "chef", courseType: "napoje", title: "Napoje", selectionMode: "all_served", choiceLimit: null, sortOrder: 70 },
   ...["silver", "gold", "diamond"].flatMap((packageKey) => {
@@ -148,18 +148,18 @@ const courses = [
     const coldLimit = packageKey === "silver" ? 9 : packageKey === "gold" ? 10 : 11;
     const base = [
       { key: `${packageKey}_soup`, courseType: "obiad_zupa", title: "Obiad / zupa", selectionMode: "couple_picks", choiceLimit: 1, sortOrder: 10 },
-      { key: `${packageKey}_main`, courseType: "obiad_danie_glowne", title: "Obiad / danie glowne", selectionMode: "guest_picks", choiceLimit: 3, sortOrder: 20 },
+      { key: `${packageKey}_main`, courseType: "obiad_danie_glowne", title: "Obiad / danie główne", selectionMode: "guest_picks", choiceLimit: 3, sortOrder: 20 },
       { key: `${packageKey}_dessert`, courseType: "obiad_deser", title: "Obiad / deser", selectionMode: "couple_picks", choiceLimit: 1, sortOrder: 30 },
       ...Array.from({ length: dinnerCount }, (_, index) => ({
         key: `${packageKey}_dinner_${index + 1}`,
         courseType: "kolacja_ciepla",
-        title: `Kolacja ciepla ${index + 1}`,
+        title: `Kolacja ciepła ${index + 1}`,
         selectionMode: "couple_picks",
         choiceLimit: 1,
         sortOrder: 40 + index * 10,
       })),
       { key: `${packageKey}_cold`, courseType: "bufet_zimny", title: "Bufet zimny", selectionMode: "couple_picks", choiceLimit: coldLimit, sortOrder: 90 },
-      { key: `${packageKey}_salads`, courseType: "bufet_salatkowy", title: "Bufet salatkowy", selectionMode: "couple_picks", choiceLimit: 3, sortOrder: 100 },
+      { key: `${packageKey}_salads`, courseType: "bufet_salatkowy", title: "Bufet sałatkowy", selectionMode: "couple_picks", choiceLimit: 3, sortOrder: 100 },
       { key: `${packageKey}_drinks`, courseType: "napoje", title: "Napoje", selectionMode: "all_served", choiceLimit: null, sortOrder: 110 },
     ];
     return base.map((course) => ({ ...course, packageKey }));
@@ -193,8 +193,8 @@ const links = courses.flatMap((course) =>
 const addons = [
   { key: "covers", name: "Pokrowce na krzesla", price: 18, pricingUnit: "per_person", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 1 },
   { key: "corkage", name: "Korkowe", price: 25, pricingUnit: "per_bottle", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 2 },
-  { key: "country_table", name: "Wiejski stol", price: 1500, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 3 },
-  { key: "sweet_table", name: "Slodki stol + tort", price: 2500, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 4 },
+  { key: "country_table", name: "Wiejski stół", price: 1500, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 3 },
+  { key: "sweet_table", name: "Słodki stół + tort", price: 2500, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 4 },
   { key: "soda", name: "Napoje gazowane", price: 12, pricingUnit: "per_person", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 5 },
   { key: "starter", name: "Przystawka serwowana", price: 24, pricingUnit: "per_person", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 6 },
   { key: "cake_service", name: "Ciastkowe", price: 600, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 7 },
