@@ -146,6 +146,7 @@ async function loadSongs(weddingId) {
     .from("timeline_songs")
     .select("*")
     .eq("wedding_id", weddingId)
+    .order("kind", { ascending: true })
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return data;
