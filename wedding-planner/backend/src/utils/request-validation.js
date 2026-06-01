@@ -81,6 +81,26 @@ function optionalDateString(body, key) {
   return dateString(body[key], key);
 }
 
+// Pora dnia HH:MM (zdarzenia harmonogramu, pola godzinowe). Akceptuje opcjonalne
+// sekundy, bo PostgREST serializuje kolumny `time` jako "HH:MM:SS" — bez tego
+// round-trip GET → re-PATCH tej samej sekcji odbijałby się o 400. Zwraca "HH:MM".
+function timeString(value, key) {
+  if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value)) {
+    throw new BadRequestError(`${key} must be a HH:MM time`);
+  }
+  return value.slice(0, 5);
+}
+
+function requireTimeString(body, key) {
+  return timeString(requireString(body, key), key);
+}
+
+function optionalTimeString(body, key) {
+  if (!body || body[key] === undefined) return undefined;
+  if (body[key] === null) return null;
+  return timeString(body[key], key);
+}
+
 function requireAtLeastOne(patch, message = "Request body must include at least one field") {
   if (Object.keys(patch).length === 0) {
     throw new BadRequestError(message);
@@ -98,7 +118,10 @@ module.exports = {
   optionalNonEmptyString,
   optionalNullableInteger,
   optionalString,
+  optionalTimeString,
   requireAtLeastOne,
   requireDateString,
   requireString,
+  requireTimeString,
+  timeString,
 };

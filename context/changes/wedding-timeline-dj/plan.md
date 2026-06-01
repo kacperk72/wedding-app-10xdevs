@@ -414,25 +414,25 @@ harmonogram, to osobna, późniejsza decyzja PO (poza zakresem tej zmiany).
 ### Phase 1: Schemat bazy + migracja
 
 #### Automated
-- [x] 1.1 Migracja aplikuje się czysto (`npx supabase db push`)
-- [x] 1.2 Liczba migracji na dysku zgadza się z `mcp list_migrations`
-- [x] 1.3 Backendowy test suite nadal przechodzi (`npm test`)
+- [x] 1.1 Migracja aplikuje się czysto (`npx supabase db push`) — 8a5eb6e
+- [x] 1.2 Liczba migracji na dysku zgadza się z `mcp list_migrations` — 8a5eb6e
+- [x] 1.3 Backendowy test suite nadal przechodzi (`npm test`) — 8a5eb6e
 
 #### Manual
-- [x] 1.4 Trzy tabele z włączonym RLS widoczne w Supabase
-- [x] 1.5 `get_advisors` bez nowych ostrzeżeń bezpieczeństwa
+- [x] 1.4 Trzy tabele z włączonym RLS widoczne w Supabase — 8a5eb6e
+- [x] 1.5 `get_advisors` bez nowych ostrzeżeń bezpieczeństwa — 8a5eb6e
 
 ### Phase 2: Backend — route, mappery, walidacja, testy
 
 #### Automated
-- [ ] 2.1 Cały backendowy suite zielony (`npm test`)
-- [ ] 2.2 `timeline-crud.test.js` przechodzi (CRUD + cross-wedding + limit 50 + HH:MM)
-- [ ] 2.3 Lint przechodzi (`npm run lint`)
+- [x] 2.1 Cały backendowy suite zielony (`npm test`)
+- [x] 2.2 `timeline-crud.test.js` przechodzi (CRUD + cross-wedding + limit 50 + HH:MM)
+- [x] 2.3 Lint przechodzi (`npm run lint`) — brak skryptu lint w backendzie (N/A)
 
 #### Manual
-- [ ] 2.4 `GET /timeline` na świeżym weselu zwraca pusty obiekt bez zapisu; lazy-create dopiero przy 1. PATCH
-- [ ] 2.5 `POST /events/seed-template` 2× nie tworzy duplikatów
-- [ ] 2.6 51. utwór must-play → 400 z czytelnym komunikatem
+- [x] 2.4 `GET /timeline` na świeżym weselu zwraca pusty obiekt bez zapisu; lazy-create dopiero przy 1. PATCH
+- [x] 2.5 `POST /events/seed-template` 2× nie tworzy duplikatów
+- [x] 2.6 51. utwór must-play → 400 z czytelnym komunikatem
 
 ### Phase 3: Frontend — serwis, strona, nawigacja, reuse danych
 

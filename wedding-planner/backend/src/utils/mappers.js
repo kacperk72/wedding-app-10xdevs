@@ -365,6 +365,77 @@ function mapMeeting(meeting, vendor = null) {
   };
 }
 
+// Kolumny `time` wracają z PostgREST jako "HH:MM:SS"; front (`<input type="time">`)
+// i walidator round-trip oczekują "HH:MM". Tniemy w jednym miejscu — w mapperze.
+function hhmm(value) {
+  return value == null ? null : String(value).slice(0, 5);
+}
+
+function mapTimeline(timeline) {
+  const row = timeline || {};
+  return {
+    id: row.id ?? null,
+    weddingId: row.wedding_id ?? null,
+    ceremonyType: row.ceremony_type ?? null,
+    ceremonyTime: hhmm(row.ceremony_time),
+    travelMinutes: row.travel_minutes == null ? null : Number(row.travel_minutes),
+    venueArrivalTime: hhmm(row.venue_arrival_time),
+    entranceOrder: row.entrance_order ?? null,
+    glassThrowing: row.glass_throwing ?? null,
+    wishesLocation: row.wishes_location ?? null,
+    danceFloorGroundFloor: row.dance_floor_ground_floor ?? null,
+    hasChildren: row.has_children ?? null,
+    gorzkoTolerance: row.gorzko_tolerance ?? null,
+    venueManagerName: row.venue_manager_name ?? null,
+    venueManagerPhone: row.venue_manager_phone ?? null,
+    witnesses: row.witnesses ?? null,
+    brideParents: row.bride_parents ?? null,
+    groomParents: row.groom_parents ?? null,
+    firstDanceTime: hhmm(row.first_dance_time),
+    firstDanceSong: row.first_dance_song ?? null,
+    firstDanceFull: row.first_dance_full ?? null,
+    parentsThanksEnabled: row.parents_thanks_enabled ?? null,
+    parentsThanksTime: hhmm(row.parents_thanks_time),
+    parentsThanksForm: row.parents_thanks_form ?? null,
+    parentsThanksSong: row.parents_thanks_song ?? null,
+    cakeTime: hhmm(row.cake_time),
+    cakeEntrySong: row.cake_entry_song ?? null,
+    cakeCuttingSong: row.cake_cutting_song ?? null,
+    genrePreferences: Array.isArray(row.genre_preferences) ? row.genre_preferences : [],
+    musicPerStage:
+      row.music_per_stage && typeof row.music_per_stage === "object" ? row.music_per_stage : {},
+    notes: row.notes ?? null,
+    createdAt: row.created_at ?? null,
+    updatedAt: row.updated_at ?? null,
+  };
+}
+
+function mapTimelineEvent(event) {
+  return {
+    id: event.id,
+    weddingId: event.wedding_id,
+    label: event.label,
+    eventTime: hhmm(event.event_time),
+    sortOrder: Number(event.sort_order),
+    notes: event.notes ?? null,
+    createdAt: event.created_at ?? null,
+    updatedAt: event.updated_at ?? null,
+  };
+}
+
+function mapTimelineSong(song) {
+  return {
+    id: song.id,
+    weddingId: song.wedding_id,
+    kind: song.kind,
+    title: song.title,
+    artist: song.artist ?? null,
+    sortOrder: Number(song.sort_order),
+    createdAt: song.created_at ?? null,
+    updatedAt: song.updated_at ?? null,
+  };
+}
+
 module.exports = {
   mapBudgetCategory,
   mapCateringAddon,
@@ -384,6 +455,9 @@ module.exports = {
   mapSeatingConflict,
   mapTable,
   mapTask,
+  mapTimeline,
+  mapTimelineEvent,
+  mapTimelineSong,
   mapVendor,
   mapWedding,
 };

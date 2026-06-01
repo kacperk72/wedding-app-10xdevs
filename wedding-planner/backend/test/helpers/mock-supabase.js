@@ -225,6 +225,9 @@ class QueryBuilder {
       "wedding_catering_dish_picks",
       "wedding_catering_addon_picks",
       "seating_conflicts",
+      "wedding_timeline",
+      "timeline_events",
+      "timeline_songs",
     ];
     for (const table of weddingScopedTables) {
       if (this.db[table]) this.db[table] = this.db[table].filter((row) => row.wedding_id !== weddingId);
@@ -403,6 +406,9 @@ function createMockSupabase(seed = {}) {
     seating_conflicts: [],
     tasks: [],
     task_templates: [],
+    wedding_timeline: [],
+    timeline_events: [],
+    timeline_songs: [],
     ...seed,
   };
 

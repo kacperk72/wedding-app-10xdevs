@@ -18,6 +18,7 @@ const contractsRouter = require("./routes/contracts");
 const paymentsRouter = require("./routes/payments");
 const tasksRouter = require("./routes/tasks");
 const meetingsRouter = require("./routes/meetings");
+const timelineRouter = require("./routes/timeline");
 const budgetRouter = require("./routes/budget");
 const expensesRouter = require("./routes/expenses");
 const seatingConflictsRouter = require("./routes/seating-conflicts");
@@ -58,6 +59,7 @@ app.use("/api/weddings/:weddingId/contracts/:contractId/payments", requireSsoAut
 app.use("/api/weddings/:weddingId/contracts", requireSsoAuth, contractsRouter);
 app.use("/api/weddings/:weddingId/tasks", requireSsoAuth, tasksRouter);
 app.use("/api/weddings/:weddingId/meetings", requireSsoAuth, meetingsRouter);
+app.use("/api/weddings/:weddingId/timeline", requireSsoAuth, timelineRouter);
 app.use("/api/weddings/:weddingId/budget", requireSsoAuth, budgetRouter);
 app.use("/api/weddings/:weddingId/expenses", requireSsoAuth, expensesRouter);
 app.use("/api/weddings/:weddingId/seating-conflicts", requireSsoAuth, seatingConflictsRouter);
