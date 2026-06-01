@@ -510,6 +510,87 @@ Wynik zasila `budget_categories` ("Catering" / "Sala") jako `reservedFromContrac
 
 ---
 
+### Harmonogram (ankieta DJ-a)
+
+Zakładka „Harmonogram" — para wypełnia ankietę otrzymaną od DJ-a (godzinowy przebieg dnia, pytania logistyczne, preferencje muzyczne, listy utworów) i eksportuje „Wersję dla DJ-a" do druku/PDF. Model hybrydowy: rekord 1:1 z weselem na pola skalarne + dwie tabele potomne na listy. Dane już znane (imiona pary, miejsce ceremonii, liczba gości, DJ/sala) są reużywane read-only z istniejących encji — nie dublujemy ich tutaj. Migracja: `20260601120000_wedding_timeline.sql`.
+
+#### `wedding_timeline` (1:1 z weselem)
+
+Pola skalarne ankiety. `music_per_stage` trzyma **tylko** etapy nie pokryte polami dedykowanymi (wejście pary, składanie życzeń, przerwy, rzut welonem/wstążki, rzut muszką/skrzynka, taniec „nowej" pary); pozycje pokrywające się (pierwszy taniec, tort, podziękowania) wyprowadzane są z pól dedykowanych w eksporcie.
+
+| Column                   | Type                                                              | Null | Default             | Notes                                                       |
+| ------------------------ | ---------------------------------------------------------------- | ---- | ------------------- | ----------------------------------------------------------- |
+| id                       | uuid PK                                                          | NO   | `gen_random_uuid()` |                                                             |
+| wedding_id               | uuid FK → weddings(id) ON DELETE CASCADE, **UNIQUE**             | NO   |                     | 1:1 z weselem (lazy-create przy 1. PATCH)                   |
+| ceremony_type            | text CHECK in (`koscielny`,`cywilny`)                           | YES  |                     | pyt. 1                                                      |
+| ceremony_time            | time                                                            | YES  |                     | pyt. 2 — API normalizuje do "HH:MM"                        |
+| travel_minutes           | smallint CHECK ≥ 0                                              | YES  |                     | pyt. 3 (droga kościół/USC → lokal)                         |
+| venue_arrival_time       | time                                                            | YES  |                     | pyt. 4                                                      |
+| entrance_order           | text CHECK in (`goscie_pierwsi`,`para_pierwsza`)               | YES  |                     | pyt. 5                                                      |
+| glass_throwing           | text CHECK in (`nie`,`zewnatrz`,`wewnatrz`)                     | YES  |                     | pyt. 6                                                      |
+| wishes_location          | text CHECK in (`pod_koscielem`,`lokal_przed_obiadem`,`lokal_po_obiedzie`) | YES |        | pyt. 7                                                      |
+| dance_floor_ground_floor | boolean                                                        | YES  |                     | pyt. 8                                                      |
+| has_children             | boolean                                                        | YES  |                     | pyt. 9                                                      |
+| gorzko_tolerance         | boolean                                                        | YES  |                     | pyt. 11                                                     |
+| venue_manager_name       | text                                                           | YES  |                     | ankieta pyt. 3                                             |
+| venue_manager_phone      | text                                                           | YES  |                     |                                                             |
+| witnesses                | text                                                           | YES  |                     | ankieta pyt. 5                                            |
+| bride_parents            | text                                                           | YES  |                     | ankieta pyt. 6                                            |
+| groom_parents            | text                                                           | YES  |                     | ankieta pyt. 7                                            |
+| first_dance_time         | time                                                           | YES  |                     | pyt. 9a                                                    |
+| first_dance_song         | text                                                           | YES  |                     | pyt. 9b                                                    |
+| first_dance_full         | boolean                                                        | YES  |                     | pyt. 9c (całość vs skrócona)                              |
+| parents_thanks_enabled   | boolean                                                        | YES  |                     | pyt. 10                                                    |
+| parents_thanks_time      | time                                                           | YES  |                     | pyt. 10a                                                   |
+| parents_thanks_form      | text                                                           | YES  |                     | pyt. 10b                                                   |
+| parents_thanks_song      | text                                                           | YES  |                     | pyt. 10c                                                   |
+| cake_time                | time                                                           | YES  |                     | pyt. 11a                                                   |
+| cake_entry_song          | text                                                           | YES  |                     | pyt. 11b (wjazd tortu)                                    |
+| cake_cutting_song        | text                                                           | YES  |                     | pyt. 11b (krojenie)                                      |
+| genre_preferences        | jsonb                                                          | NO   | `'[]'`              | pyt. 12 — tablica zaznaczonych z 10 kategorii            |
+| music_per_stage          | jsonb                                                          | NO   | `'{}'`              | pyt. 15 — tylko etapy nie pokryte polami dedykowanymi    |
+| notes                    | text                                                           | YES  |                     |                                                             |
+| created_at               | timestamptz                                                    | NO   | `now()`             |                                                             |
+| updated_at               | timestamptz                                                    | NO   | `now()`             | trigger `set_updated_at()`                                 |
+
+#### `timeline_events` (1:N — godzinowy przebieg dnia)
+
+Uporządkowana lista zdarzeń (ŚLUB → III gorące danie…). Startuje od szablonu DJ-a (`POST /events/seed-template`), edytowalna; reorder przyciskami ↑/↓ na `sort_order`.
+
+| Column      | Type                                     | Null | Default             | Notes                              |
+| ----------- | ---------------------------------------- | ---- | ------------------- | ---------------------------------- |
+| id          | uuid PK                                  | NO   | `gen_random_uuid()` |                                    |
+| wedding_id  | uuid FK → weddings(id) ON DELETE CASCADE | NO   |                     |                                    |
+| label       | text                                     | NO   |                     | "Pierwszy taniec", "Oczepiny"…     |
+| event_time  | time                                     | YES  |                     | API normalizuje do "HH:MM"         |
+| sort_order  | integer                                  | NO   | `0`                 | kolejność na osi dnia              |
+| notes       | text                                     | YES  |                     |                                    |
+| created_at  | timestamptz                              | NO   | `now()`             |                                    |
+| updated_at  | timestamptz                              | NO   | `now()`             | trigger `set_updated_at()`         |
+
+Indexes: `(wedding_id)`, `(wedding_id, sort_order)`.
+
+#### `timeline_songs` (1:N — listy must-play / do-not-play)
+
+Listy utworów (wiersze tytuł+wykonawca). Limit 50 dla `must` egzekwowany w Express; `do_not` bez limitu.
+
+| Column      | Type                                     | Null | Default             | Notes                              |
+| ----------- | ---------------------------------------- | ---- | ------------------- | ---------------------------------- |
+| id          | uuid PK                                  | NO   | `gen_random_uuid()` |                                    |
+| wedding_id  | uuid FK → weddings(id) ON DELETE CASCADE | NO   |                     |                                    |
+| kind        | text CHECK in (`must`,`do_not`)          | NO   |                     | pyt. 13 (must) / pyt. 14 (do_not)  |
+| title       | text                                     | NO   |                     |                                    |
+| artist      | text                                     | YES  |                     |                                    |
+| sort_order  | integer                                  | NO   | `0`                 |                                    |
+| created_at  | timestamptz                              | NO   | `now()`             |                                    |
+| updated_at  | timestamptz                              | NO   | `now()`             | trigger `set_updated_at()`         |
+
+Indexes: `(wedding_id)`, `(wedding_id, kind)`.
+
+> Wszystkie trzy tabele mają RLS deny-all (jak reszta) — backend (`service_role`) omija; autoryzacja w middleware `requireWeddingMember`. `ON DELETE CASCADE` na `wedding_id` sprząta harmonogram przy hard-delete wesela.
+
+---
+
 ## Full DDL
 
 ```sql
