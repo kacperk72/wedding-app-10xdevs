@@ -4,7 +4,7 @@
 > Ten plik mówi tylko **co JEST zrobione** — weryfikowane kodem, nie opowiadane.
 > Reguła: moduł = „done" tylko gdy istnieje **route + serwis frontu + test**.
 >
-> Testy: backend **100/100** (node:test). Front: **Vitest** skonfigurowany
+> Testy: backend **110/110** (node:test). Front: **Vitest** skonfigurowany
 > (`@angular/build:unit-test`, `ng test`) z seed-suite **15/15** (formattery + `GuestsService`);
 > szersze pokrycie w toku. Dodatkowo `npm run build` + ręczny/Playwright przegląd.
 
@@ -23,6 +23,7 @@
 | M8 | Seating + konflikty + wizualne przypisanie miejsc | ✅ done | `routes/{seating,seating-conflicts}.js`, `pages/seating/{round-table,conflicts-panel}`, `seating-crud.test.js` |
 | M9 | Eksport JSON / hard-delete wesela | ✅ done | `wedding-export.test.js`, `wedding-delete.test.js` |
 | M10 | Polish + wdrożenie | 🟡 w toku | wdrożenie+SSO ✅ LIVE; bugi i18n/format/demo naprawione; zostaje WCAG + runner testów frontu |
+| Harmonogram | Ankieta DJ-a (przebieg dnia + muzyka + listy utworów) | 🟡 w toku | `migrations/20260601120000_wedding_timeline`, `routes/timeline.js`, `timeline-crud.test.js`, `core/services/timeline.service.ts`, `pages/harmonogram`; eksport „Wersja dla DJ-a" (Faza 4) jeszcze nie zrobiony |
 
 ## Otwarte
 

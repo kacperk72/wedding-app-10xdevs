@@ -1,0 +1,61 @@
+@if (limit() !== null) {
+  <p class="song-counter" [class.song-counter--full]="atLimit()">
+    {{ songs().length }} / {{ limit() }} utworów
+  </p>
+}
+
+<form class="toolbar song-form" (ngSubmit)="addSong()">
+  <div class="field" style="flex: 1 1 200px">
+    <label>Tytuł</label>
+    <input
+      name="songTitle"
+      placeholder="Tytuł utworu"
+      [disabled]="atLimit()"
+      [ngModel]="newTitle()"
+      (ngModelChange)="newTitle.set($event)"
+    />
+  </div>
+  <div class="field" style="flex: 1 1 180px">
+    <label>Wykonawca</label>
+    <input
+      name="songArtist"
+      placeholder="Wykonawca (opcjonalnie)"
+      [disabled]="atLimit()"
+      [ngModel]="newArtist()"
+      (ngModelChange)="newArtist.set($event)"
+    />
+  </div>
+  <button type="submit" class="button-like button-like--secondary" [disabled]="atLimit()">
+    <app-icon name="plus" [size]="16" />
+    Dodaj
+  </button>
+</form>
+
+@if (songs().length > 0) {
+  <div class="list">
+    @for (song of songs(); track song.id) {
+      <div class="list-item">
+        <div>
+          <p class="list-item__title">{{ song.title }}</p>
+          @if (song.artist) {
+            <p class="list-item__meta">{{ song.artist }}</p>
+          }
+        </div>
+        <button
+          type="button"
+          class="button-like button-like--ghost button-like--icon"
+          aria-label="Usuń utwór"
+          (click)="removeSong(song)"
+        >
+          <app-icon name="x" [size]="16" />
+        </button>
+      </div>
+    }
+  </div>
+} @else {
+  <app-empty-state
+    icon="sparkles"
+    title="Lista jest pusta"
+    description="Dodaj utwory, które mają się tu znaleźć."
+  />
+}

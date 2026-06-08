@@ -12,7 +12,10 @@
       "mcp__plugin_playwright_playwright__browser_close",
       "Bash(npm test *)",
       "mcp__plugin_playwright_playwright__browser_console_messages",
-      "mcp__plugin_playwright_playwright__browser_type"
+      "mcp__plugin_playwright_playwright__browser_type",
+      "Bash(git add *)",
+      "Bash(echo \"EMPTY_DIFF_EXIT=$?\")",
+      "Skill(10x-impl-review)"
     ]
   }
 }

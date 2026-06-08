@@ -64,6 +64,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/tasks/tasks.page').then((m) => m.TasksPage),
       },
       {
+        path: 'harmonogram',
+        loadComponent: () =>
+          import('./pages/harmonogram/harmonogram.page').then((m) => m.HarmonogramPage),
+      },
+      {
         path: 'rozsadzenie',
         loadComponent: () =>
           import('./pages/seating/seating.page').then((m) => m.SeatingPage),

@@ -22,6 +22,7 @@ Aplikacja prowadzi narzeczonych przez cały proces przygotowań do ślubu. Adres
 - **Oferta sali / Catering** *(rozszerzenie poza prototypem, iteracja 3)* — konfigurator menu z pakietu cateringowego: para wprowadza ofertę swojej sali (uniwersalny model — nie pod konkretną firmę), wybiera pakiet cenowy, klika dania w ramach `choice_limit` (np. "8 z 20 pozycji bufetu"), zaznacza dodatki płatne (Pokrowce, Korkowe, Wiejski stół). App liczy końcową kwotę (`pakiet × goście + dodatki`), zasila Budżet jako rezerwację, synchronizuje wybrane warianty dań głównych z RSVP (`meal_options`), i — po akceptacji oferty — może wygenerować umowę z harmonogramem rat.
 - **Zadania** — auto-timeline (zadania generowane wstecz od daty ślubu) + zadania własne, pogrupowane na "Opóźnione / W tym tygodniu / W przyszłości"; widoki Lista/Kalendarz.
 - **Rozsadzenie gości** — drag-and-drop z lewej kolumny (nieprzypisani) na okrągłe stoły w środku; panel "Konflikty" po prawej.
+- **Harmonogram** *(rozszerzenie poza prototypem)* — ankieta dla DJ-a: godzinowy przebieg dnia (lista punktów z szablonem DJ-a + ↑/↓ sortowanie, bez drag-and-drop), pytania logistyczne, dane kontaktowe (menadżer sali, świadkowie, rodzice), szczegóły pierwszego tańca / podziękowań / tortu, preferencje muzyczne (10 kategorii + muzyka per etap) oraz listy must-play (limit 50) / do-not-play. Dane już znane (para, miejsce ceremonii, liczba gości, DJ/sala) są reużywane read-only. Eksport "Wersja dla DJ-a" do druku/PDF (iteracja eksportu).
 - **Ustawienia** — profil pary (imiona, data ślubu, miejsce ceremonii), połączone konto partnera, zmiana hasła, eksport danych do JSON. **Dodatek poza prototypem (Recommended)**: sekcja "Menu na wesele" do CRUD opcji dań (par-definiowane, źródło dla dropdownu na ekranie edycji gościa).
 
 ## Primary user flows
@@ -83,6 +84,7 @@ Aplikacja prowadzi narzeczonych przez cały proces przygotowań do ślubu. Adres
 | `/app/oferta-sali`    | Tak           | Konfigurator menu z pakietu (pakiety, wybór dań, dodatki, cena końcowa)       | *(brak — nowy ekran poza prototypem; design w `02-frontend.md`)* |
 | `/app/zadania`        | Tak           | Lista zadań pogrupowana (Opóźnione / W tym tygodniu / W przyszłości) + auto   | `screenshots/desktop/07-zadania.png`             |
 | `/app/rozsadzenie`    | Tak           | Drag-and-drop rozsadzenia gości na 12 okrągłych stołów + panel konfliktów     | `screenshots/desktop/08-rozsadzenie.png`         |
+| `/app/harmonogram`    | Tak           | Ankieta DJ-a: przebieg dnia, kontakty, preferencje muzyczne, listy utworów    | *(brak — nowy ekran poza prototypem)*            |
 | `/app/ustawienia`     | Tak           | Profil pary, połączone konto, hasło, eksport JSON                             | `screenshots/desktop/09-ustawienia.png`          |
 
 Mobile widoki: `screenshots/mobile/01-login.png`, `02-dashboard.png`, `03-goscie.png`. Sidebar zwija się do dolnej nawigacji (bottom-nav) z ikonami: Dashboard, Goście, Kontrahenci, … (przewijane).

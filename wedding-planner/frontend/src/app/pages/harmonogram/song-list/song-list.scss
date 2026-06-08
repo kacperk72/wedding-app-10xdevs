@@ -1,0 +1,14 @@
+.song-counter {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.song-counter--full {
+  color: var(--color-danger);
+}
+
+.song-form {
+  margin-bottom: var(--space-3);
+}

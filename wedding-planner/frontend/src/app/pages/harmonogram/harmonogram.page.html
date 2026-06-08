@@ -1,0 +1,493 @@
+<app-page-header
+  title="Harmonogram"
+  subtitle="Ankieta dla DJ-a — przebieg dnia, kontakty i muzyka"
+></app-page-header>
+
+@if (loaded()) {
+  <div class="page-stack">
+    <!-- Read-only kontekst reużywany z innych zakładek -->
+    <section class="surface panel reuse-panel">
+      <div>
+        <p class="panel__eyebrow">Dane z aplikacji</p>
+        <h2>{{ coupleLabel() || 'Wesele' }}</h2>
+      </div>
+      <div class="reuse-grid">
+        <div class="reuse-item">
+          <span class="reuse-item__label">Miejsce ceremonii</span>
+          <span class="reuse-item__value">{{ ceremonyLocation() || '—' }}</span>
+        </div>
+        <div class="reuse-item">
+          <span class="reuse-item__label">Goście (potwierdzeni / zaproszeni)</span>
+          <span class="reuse-item__value">
+            {{ guestCount().confirmed }} / {{ guestCount().invited }}
+          </span>
+        </div>
+        <div class="reuse-item">
+          <span class="reuse-item__label">DJ</span>
+          <span class="reuse-item__value">{{ djVendor()?.companyName || '—' }}</span>
+        </div>
+        <div class="reuse-item">
+          <span class="reuse-item__label">Sala</span>
+          <span class="reuse-item__value">{{ venueVendor()?.companyName || '—' }}</span>
+        </div>
+      </div>
+      <p class="muted reuse-hint">
+        Te dane pochodzą z innych zakładek i tutaj są tylko do podglądu.
+      </p>
+    </section>
+
+    <!-- Logistyka (pyt. 1–11) -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Pytania logistyczne</p>
+        <h3>Przebieg i ustalenia</h3>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="ceremonyType">Rodzaj ślubu</label>
+          <select
+            id="ceremonyType"
+            name="ceremonyType"
+            [ngModel]="form().ceremonyType"
+            (ngModelChange)="updateForm({ ceremonyType: $event })"
+          >
+            <option value="">—</option>
+            @for (option of ceremonyTypeOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="ceremonyTime">Godzina ślubu</label>
+          <input
+            id="ceremonyTime"
+            name="ceremonyTime"
+            type="time"
+            [ngModel]="form().ceremonyTime"
+            (ngModelChange)="updateForm({ ceremonyTime: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="travelMinutes">Dojazd do sali (min)</label>
+          <input
+            id="travelMinutes"
+            name="travelMinutes"
+            type="number"
+            min="0"
+            [ngModel]="form().travelMinutes"
+            (ngModelChange)="updateForm({ travelMinutes: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="venueArrivalTime">Przyjazd na salę</label>
+          <input
+            id="venueArrivalTime"
+            name="venueArrivalTime"
+            type="time"
+            [ngModel]="form().venueArrivalTime"
+            (ngModelChange)="updateForm({ venueArrivalTime: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="entranceOrder">Kolejność wejścia na salę</label>
+          <select
+            id="entranceOrder"
+            name="entranceOrder"
+            [ngModel]="form().entranceOrder"
+            (ngModelChange)="updateForm({ entranceOrder: $event })"
+          >
+            <option value="">—</option>
+            @for (option of entranceOrderOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="glassThrowing">Rzucanie kieliszków</label>
+          <select
+            id="glassThrowing"
+            name="glassThrowing"
+            [ngModel]="form().glassThrowing"
+            (ngModelChange)="updateForm({ glassThrowing: $event })"
+          >
+            <option value="">—</option>
+            @for (option of glassThrowingOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="wishesLocation">Miejsce składania życzeń</label>
+          <select
+            id="wishesLocation"
+            name="wishesLocation"
+            [ngModel]="form().wishesLocation"
+            (ngModelChange)="updateForm({ wishesLocation: $event })"
+          >
+            <option value="">—</option>
+            @for (option of wishesLocationOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="danceFloor">Parkiet na parterze?</label>
+          <select
+            id="danceFloor"
+            name="danceFloor"
+            [ngModel]="form().danceFloorGroundFloor"
+            (ngModelChange)="updateForm({ danceFloorGroundFloor: $event })"
+          >
+            <option value="">—</option>
+            <option value="yes">Tak</option>
+            <option value="no">Nie</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="hasChildren">Dzieci na weselu?</label>
+          <select
+            id="hasChildren"
+            name="hasChildren"
+            [ngModel]="form().hasChildren"
+            (ngModelChange)="updateForm({ hasChildren: $event })"
+          >
+            <option value="">—</option>
+            <option value="yes">Tak</option>
+            <option value="no">Nie</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="gorzko">Tolerancja na „gorzko"?</label>
+          <select
+            id="gorzko"
+            name="gorzko"
+            [ngModel]="form().gorzkoTolerance"
+            (ngModelChange)="updateForm({ gorzkoTolerance: $event })"
+          >
+            <option value="">—</option>
+            <option value="yes">Tak</option>
+            <option value="no">Nie</option>
+          </select>
+        </div>
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button type="button" class="button-like button-like--secondary" (click)="saveLogistics()">
+          Zapisz sekcję
+        </button>
+      </div>
+    </section>
+
+    <!-- Dane kontaktowe -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Dane kontaktowe</p>
+        <h3>Osoby na miejscu</h3>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="venueManagerName">Menadżer sali</label>
+          <input
+            id="venueManagerName"
+            name="venueManagerName"
+            [ngModel]="form().venueManagerName"
+            (ngModelChange)="updateForm({ venueManagerName: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="venueManagerPhone">Telefon do menadżera</label>
+          <input
+            id="venueManagerPhone"
+            name="venueManagerPhone"
+            type="tel"
+            [ngModel]="form().venueManagerPhone"
+            (ngModelChange)="updateForm({ venueManagerPhone: $event })"
+          />
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="witnesses">Świadkowie</label>
+          <input
+            id="witnesses"
+            name="witnesses"
+            placeholder="Imiona i telefony świadków"
+            [ngModel]="form().witnesses"
+            (ngModelChange)="updateForm({ witnesses: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="brideParents">Rodzice Panny Młodej</label>
+          <input
+            id="brideParents"
+            name="brideParents"
+            [ngModel]="form().brideParents"
+            (ngModelChange)="updateForm({ brideParents: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="groomParents">Rodzice Pana Młodego</label>
+          <input
+            id="groomParents"
+            name="groomParents"
+            [ngModel]="form().groomParents"
+            (ngModelChange)="updateForm({ groomParents: $event })"
+          />
+        </div>
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button type="button" class="button-like button-like--secondary" (click)="saveContacts()">
+          Zapisz sekcję
+        </button>
+      </div>
+    </section>
+
+    <!-- Przebieg dnia -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Przebieg dnia</p>
+        <h3>Godzinowy program</h3>
+      </div>
+      <app-timeline-event-list [weddingId]="weddingId()!" />
+    </section>
+
+    <!-- Pierwszy taniec -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Pierwszy taniec</p>
+        <h3>Szczegóły</h3>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="firstDanceTime">Planowana godzina</label>
+          <input
+            id="firstDanceTime"
+            name="firstDanceTime"
+            type="time"
+            [ngModel]="form().firstDanceTime"
+            (ngModelChange)="updateForm({ firstDanceTime: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="firstDanceFull">Cały utwór?</label>
+          <select
+            id="firstDanceFull"
+            name="firstDanceFull"
+            [ngModel]="form().firstDanceFull"
+            (ngModelChange)="updateForm({ firstDanceFull: $event })"
+          >
+            <option value="">—</option>
+            <option value="yes">Tak — cały</option>
+            <option value="no">Nie — skrócony</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="firstDanceSong">Utwór (tytuł + wykonawca)</label>
+          <input
+            id="firstDanceSong"
+            name="firstDanceSong"
+            [ngModel]="form().firstDanceSong"
+            (ngModelChange)="updateForm({ firstDanceSong: $event })"
+          />
+        </div>
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button type="button" class="button-like button-like--secondary" (click)="saveFirstDance()">
+          Zapisz sekcję
+        </button>
+      </div>
+    </section>
+
+    <!-- Podziękowania dla rodziców -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Podziękowania dla rodziców</p>
+        <h3>Szczegóły</h3>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="parentsThanksEnabled">Planujecie podziękowania?</label>
+          <select
+            id="parentsThanksEnabled"
+            name="parentsThanksEnabled"
+            [ngModel]="form().parentsThanksEnabled"
+            (ngModelChange)="updateForm({ parentsThanksEnabled: $event })"
+          >
+            <option value="">—</option>
+            <option value="yes">Tak</option>
+            <option value="no">Nie</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="parentsThanksTime">Planowana godzina</label>
+          <input
+            id="parentsThanksTime"
+            name="parentsThanksTime"
+            type="time"
+            [ngModel]="form().parentsThanksTime"
+            (ngModelChange)="updateForm({ parentsThanksTime: $event })"
+          />
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="parentsThanksForm">Forma podziękowań</label>
+          <input
+            id="parentsThanksForm"
+            name="parentsThanksForm"
+            placeholder="np. kwiaty, przemowa, prezenty"
+            [ngModel]="form().parentsThanksForm"
+            (ngModelChange)="updateForm({ parentsThanksForm: $event })"
+          />
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="parentsThanksSong">Utwór w tle</label>
+          <input
+            id="parentsThanksSong"
+            name="parentsThanksSong"
+            [ngModel]="form().parentsThanksSong"
+            (ngModelChange)="updateForm({ parentsThanksSong: $event })"
+          />
+        </div>
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button
+          type="button"
+          class="button-like button-like--secondary"
+          (click)="saveParentsThanks()"
+        >
+          Zapisz sekcję
+        </button>
+      </div>
+    </section>
+
+    <!-- Tort -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Tort</p>
+        <h3>Szczegóły</h3>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="cakeTime">Planowana godzina</label>
+          <input
+            id="cakeTime"
+            name="cakeTime"
+            type="time"
+            [ngModel]="form().cakeTime"
+            (ngModelChange)="updateForm({ cakeTime: $event })"
+          />
+        </div>
+        <div class="field">
+          <label for="cakeEntrySong">Utwór na wjazd tortu</label>
+          <input
+            id="cakeEntrySong"
+            name="cakeEntrySong"
+            [ngModel]="form().cakeEntrySong"
+            (ngModelChange)="updateForm({ cakeEntrySong: $event })"
+          />
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="cakeCuttingSong">Utwór na krojenie tortu</label>
+          <input
+            id="cakeCuttingSong"
+            name="cakeCuttingSong"
+            [ngModel]="form().cakeCuttingSong"
+            (ngModelChange)="updateForm({ cakeCuttingSong: $event })"
+          />
+        </div>
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button type="button" class="button-like button-like--secondary" (click)="saveCake()">
+          Zapisz sekcję
+        </button>
+      </div>
+    </section>
+
+    <!-- Preferencje muzyczne -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Preferencje muzyczne</p>
+        <h3>Gatunki i muzyka per etap</h3>
+      </div>
+
+      <p class="field-legend">Ulubione gatunki</p>
+      <div class="chip-row">
+        @for (genre of genreCategories; track genre.value) {
+          <button
+            type="button"
+            class="chip chip--toggle"
+            [class.chip--selected]="isGenreSelected(genre.value)"
+            [attr.aria-pressed]="isGenreSelected(genre.value)"
+            (click)="toggleGenre(genre.value)"
+          >
+            {{ genre.label }}
+          </button>
+        }
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button type="button" class="button-like button-like--secondary" (click)="saveGenres()">
+          Zapisz gatunki
+        </button>
+      </div>
+
+      <p class="field-legend field-legend--spaced">Muzyka per etap</p>
+      <div class="form-grid">
+        @for (stage of musicStages; track stage.value) {
+          <div class="field" style="grid-column: 1 / -1">
+            <label [attr.for]="'stage-' + stage.value">{{ stage.label }}</label>
+            <input
+              [id]="'stage-' + stage.value"
+              [name]="'stage-' + stage.value"
+              placeholder="Wykonawca / utwór / wskazówka"
+              [ngModel]="stageValue(stage.value)"
+              (ngModelChange)="updateStage(stage.value, $event)"
+            />
+          </div>
+        }
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button type="button" class="button-like button-like--secondary" (click)="saveStageMusic()">
+          Zapisz muzykę etapów
+        </button>
+      </div>
+    </section>
+
+    <!-- Listy utworów -->
+    <section class="section-grid section-grid--two">
+      <article class="surface panel">
+        <div>
+          <p class="panel__eyebrow">Lista „must-play"</p>
+          <h3>Te utwory muszą zagrać</h3>
+        </div>
+        <app-timeline-song-list [weddingId]="weddingId()!" kind="must" [limit]="mustPlayLimit" />
+      </article>
+
+      <article class="surface panel">
+        <div>
+          <p class="panel__eyebrow">Lista „do-not-play"</p>
+          <h3>Tych nie chcemy słyszeć</h3>
+        </div>
+        <app-timeline-song-list [weddingId]="weddingId()!" kind="do_not" />
+      </article>
+    </section>
+
+    <!-- Uwagi -->
+    <section class="surface panel">
+      <div>
+        <p class="panel__eyebrow">Uwagi dla DJ-a</p>
+        <h3>Dodatkowe informacje</h3>
+      </div>
+      <div class="field">
+        <label for="notes">Notatki</label>
+        <textarea
+          id="notes"
+          name="notes"
+          rows="4"
+          [ngModel]="form().notes"
+          (ngModelChange)="updateForm({ notes: $event })"
+        ></textarea>
+      </div>
+      <div class="toolbar" style="justify-content: flex-end">
+        <button type="button" class="button-like button-like--secondary" (click)="saveNotes()">
+          Zapisz uwagi
+        </button>
+      </div>
+    </section>
+  </div>
+}

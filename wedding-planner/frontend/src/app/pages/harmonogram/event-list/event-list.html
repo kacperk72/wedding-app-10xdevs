@@ -1,0 +1,82 @@
+<form class="toolbar event-form" (ngSubmit)="addEvent()">
+  <div class="field" style="flex: 1 1 220px">
+    <label for="newEventLabel">Punkt programu</label>
+    <input
+      id="newEventLabel"
+      name="newEventLabel"
+      placeholder="np. Tort"
+      [ngModel]="newLabel()"
+      (ngModelChange)="newLabel.set($event)"
+    />
+  </div>
+  <div class="field" style="width: 130px">
+    <label for="newEventTime">Godzina</label>
+    <input
+      id="newEventTime"
+      name="newEventTime"
+      type="time"
+      [ngModel]="newTime()"
+      (ngModelChange)="newTime.set($event)"
+    />
+  </div>
+  <button type="submit" class="button-like button-like--secondary">
+    <app-icon name="plus" [size]="16" />
+    Dodaj
+  </button>
+</form>
+
+@if (hasEvents()) {
+  <ol class="event-list">
+    @for (event of events(); track event.id; let i = $index) {
+      <li class="event-row">
+        <div class="event-row__order">
+          <button
+            type="button"
+            class="button-like button-like--ghost button-like--icon"
+            [disabled]="i === 0"
+            aria-label="Przesuń w górę"
+            (click)="moveUp(i)"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            class="button-like button-like--ghost button-like--icon"
+            [disabled]="i === events().length - 1"
+            aria-label="Przesuń w dół"
+            (click)="moveDown(i)"
+          >
+            ↓
+          </button>
+        </div>
+
+        <span class="event-row__label">{{ event.label }}</span>
+
+        <input
+          class="event-row__time"
+          type="time"
+          [attr.aria-label]="'Godzina: ' + event.label"
+          [ngModel]="event.eventTime"
+          (ngModelChange)="changeTime(event, $event)"
+        />
+
+        <button
+          type="button"
+          class="button-like button-like--ghost button-like--icon"
+          aria-label="Usuń punkt"
+          (click)="removeEvent(event)"
+        >
+          <app-icon name="x" [size]="16" />
+        </button>
+      </li>
+    }
+  </ol>
+} @else {
+  <app-empty-state
+    icon="calendar-days"
+    title="Brak punktów programu"
+    description="Zacznij od gotowego szablonu DJ-a — potem dostosuj godziny i kolejność."
+    ctaLabel="Wczytaj szablon DJ-a"
+    (cta)="seedTemplate()"
+  />
+}

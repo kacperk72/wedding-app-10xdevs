@@ -425,21 +425,21 @@ harmonogram, to osobna, późniejsza decyzja PO (poza zakresem tej zmiany).
 ### Phase 2: Backend — route, mappery, walidacja, testy
 
 #### Automated
-- [x] 2.1 Cały backendowy suite zielony (`npm test`)
-- [x] 2.2 `timeline-crud.test.js` przechodzi (CRUD + cross-wedding + limit 50 + HH:MM)
-- [x] 2.3 Lint przechodzi (`npm run lint`) — brak skryptu lint w backendzie (N/A)
+- [x] 2.1 Cały backendowy suite zielony (`npm test`) — d935925
+- [x] 2.2 `timeline-crud.test.js` przechodzi (CRUD + cross-wedding + limit 50 + HH:MM) — d935925
+- [x] 2.3 Lint przechodzi (`npm run lint`) — brak skryptu lint w backendzie (N/A) — d935925
 
 #### Manual
-- [x] 2.4 `GET /timeline` na świeżym weselu zwraca pusty obiekt bez zapisu; lazy-create dopiero przy 1. PATCH
-- [x] 2.5 `POST /events/seed-template` 2× nie tworzy duplikatów
-- [x] 2.6 51. utwór must-play → 400 z czytelnym komunikatem
+- [x] 2.4 `GET /timeline` na świeżym weselu zwraca pusty obiekt bez zapisu; lazy-create dopiero przy 1. PATCH — d935925
+- [x] 2.5 `POST /events/seed-template` 2× nie tworzy duplikatów — d935925
+- [x] 2.6 51. utwór must-play → 400 z czytelnym komunikatem — d935925
 
 ### Phase 3: Frontend — serwis, strona, nawigacja, reuse danych
 
 #### Automated
-- [ ] 3.1 Front buduje się (`npm run build`)
-- [ ] 3.2 Testy jednostkowe frontu przechodzą (`npm test`)
-- [ ] 3.3 Typecheck/lint przechodzą (`npm run lint`)
+- [x] 3.1 Front buduje się (`npm run build`)
+- [x] 3.2 Testy jednostkowe frontu przechodzą (`npm test`) — brak spec-ów we froncie dla zmienianych obszarów (N/A)
+- [x] 3.3 Typecheck/lint przechodzą (`npm run lint`) — brak skryptu lint we froncie; typecheck pokryty przez `ng build` (N/A)
 
 #### Manual
 - [ ] 3.4 „Harmonogram" w sidebarze i mobile-nav, trasa `/app/harmonogram` działa

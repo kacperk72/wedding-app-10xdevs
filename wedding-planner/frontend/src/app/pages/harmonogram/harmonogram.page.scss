@@ -1,0 +1,65 @@
+.reuse-panel {
+  background: var(--color-bg);
+}
+
+.reuse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.reuse-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface);
+}
+
+.reuse-item__label {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.reuse-item__value {
+  font-weight: 700;
+}
+
+.reuse-hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.field-legend {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field-legend--spaced {
+  margin-top: var(--space-5);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip--toggle {
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chip--selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}

@@ -29,6 +29,7 @@ export class AppSidebar {
     { label: 'Budżet', routerLink: '/app/budzet', icon: 'wallet', disabled: false },
     { label: 'Oferta sali', routerLink: '/app/oferta-sali', icon: 'handshake', disabled: false },
     { label: 'Zadania', routerLink: '/app/zadania', icon: 'list-checks', disabled: false },
+    { label: 'Harmonogram', routerLink: '/app/harmonogram', icon: 'calendar-days', disabled: false },
     { label: 'Rozsadzenie gości', routerLink: '/app/rozsadzenie', icon: 'sofa', disabled: false },
     { label: 'Ustawienia', routerLink: '/app/ustawienia', icon: 'settings', disabled: false },
   ];
