@@ -79,6 +79,10 @@
   align-items: center;
 }
 
+.toolbar:has(.field) {
+  align-items: flex-end;
+}
+
 .chip,
 .badge {
   display: inline-flex;
