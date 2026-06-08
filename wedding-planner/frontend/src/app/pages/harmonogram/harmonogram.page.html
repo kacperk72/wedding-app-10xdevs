@@ -2,6 +2,20 @@
   title="Harmonogram"
   subtitle="Ankieta dla DJ-a — przebieg dnia, kontakty i muzyka"
 >
+  @switch (saveStatus()) {
+    @case ('pending') {
+      <span class="autosave autosave--pending" aria-live="polite">Niezapisane zmiany…</span>
+    }
+    @case ('saving') {
+      <span class="autosave autosave--saving" aria-live="polite">Zapisywanie…</span>
+    }
+    @case ('saved') {
+      <span class="autosave autosave--saved" aria-live="polite">Zapisano · {{ lastSavedLabel() }}</span>
+    }
+    @case ('error') {
+      <span class="autosave autosave--error" role="alert">Nie udało się zapisać</span>
+    }
+  }
   <a routerLink="/harmonogram/dla-dj" class="button-like">Wersja dla DJ-a</a>
 </app-page-header>
 
@@ -172,11 +186,6 @@
           </select>
         </div>
       </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button type="button" class="button-like button-like--secondary" (click)="saveLogistics()">
-          Zapisz sekcję
-        </button>
-      </div>
     </section>
 
     <!-- Dane kontaktowe -->
@@ -234,11 +243,6 @@
           />
         </div>
       </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button type="button" class="button-like button-like--secondary" (click)="saveContacts()">
-          Zapisz sekcję
-        </button>
-      </div>
     </section>
 
     <!-- Przebieg dnia -->
@@ -289,11 +293,6 @@
             (ngModelChange)="updateForm({ firstDanceSong: $event })"
           />
         </div>
-      </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button type="button" class="button-like button-like--secondary" (click)="saveFirstDance()">
-          Zapisz sekcję
-        </button>
       </div>
     </section>
 
@@ -347,15 +346,6 @@
           />
         </div>
       </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button
-          type="button"
-          class="button-like button-like--secondary"
-          (click)="saveParentsThanks()"
-        >
-          Zapisz sekcję
-        </button>
-      </div>
     </section>
 
     <!-- Tort -->
@@ -394,11 +384,6 @@
           />
         </div>
       </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button type="button" class="button-like button-like--secondary" (click)="saveCake()">
-          Zapisz sekcję
-        </button>
-      </div>
     </section>
 
     <!-- Preferencje muzyczne -->
@@ -422,12 +407,6 @@
           </button>
         }
       </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button type="button" class="button-like button-like--secondary" (click)="saveGenres()">
-          Zapisz gatunki
-        </button>
-      </div>
-
       <p class="field-legend field-legend--spaced">Muzyka per etap</p>
       <div class="form-grid">
         @for (stage of musicStages; track stage.value) {
@@ -442,11 +421,6 @@
             />
           </div>
         }
-      </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button type="button" class="button-like button-like--secondary" (click)="saveStageMusic()">
-          Zapisz muzykę etapów
-        </button>
       </div>
     </section>
 
@@ -484,11 +458,6 @@
           [ngModel]="form().notes"
           (ngModelChange)="updateForm({ notes: $event })"
         ></textarea>
-      </div>
-      <div class="toolbar" style="justify-content: flex-end">
-        <button type="button" class="button-like button-like--secondary" (click)="saveNotes()">
-          Zapisz uwagi
-        </button>
       </div>
     </section>
   </div>

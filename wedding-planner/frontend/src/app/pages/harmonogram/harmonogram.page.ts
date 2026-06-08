@@ -1,7 +1,17 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { EMPTY, Subject, catchError, debounceTime, forkJoin, map, switchMap } from 'rxjs';
 import { GuestsService } from '../../core/services/guests.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Timeline, TimelinePatch, TimelineService } from '../../core/services/timeline.service';
@@ -80,6 +90,11 @@ const EMPTY_FORM: HarmonogramForm = {
   notes: '',
 };
 
+// Autozapis: PATCH leci 4 s po ostatniej zmianie (debounce). Nowa zmiana resetuje odliczanie.
+const AUTOSAVE_DELAY_MS = 4000;
+
+type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
+
 function tri(value: boolean | null): TriState {
   if (value === true) return 'yes';
   if (value === false) return 'no';
@@ -124,12 +139,13 @@ function formFrom(timeline: Timeline): HarmonogramForm {
   styleUrl: './harmonogram.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HarmonogramPage implements OnInit {
+export class HarmonogramPage implements OnInit, OnDestroy {
   private readonly timelineService = inject(TimelineService);
   private readonly weddingService = inject(WeddingService);
   private readonly guestsService = inject(GuestsService);
   private readonly vendorsService = inject(VendorsService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly ceremonyTypeOptions = CEREMONY_TYPE_OPTIONS;
   protected readonly entranceOrderOptions = ENTRANCE_ORDER_OPTIONS;
@@ -159,6 +175,58 @@ export class HarmonogramPage implements OnInit {
     () => this.vendorsService.vendors().find((v) => v.category === 'sala') ?? null,
   );
 
+  // Status autozapisu pokazywany dyskretnie w nagłówku (zamiast toasta co 4 s).
+  protected readonly saveStatus = signal<SaveStatus>('idle');
+  protected readonly lastSavedAt = signal<Date | null>(null);
+  protected readonly lastSavedLabel = computed(() => {
+    const at = this.lastSavedAt();
+    return at ? at.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
+  });
+
+  private readonly saveTrigger = new Subject<void>();
+  // Monotoniczne liczniki: jest niezapisana zmiana, gdy editSeq > savedSeq. Odporne na
+  // edycję w trakcie zapisu i na anulowanie żądania przy opuszczeniu strony.
+  private editSeq = 0;
+  private savedSeq = 0;
+
+  constructor() {
+    this.saveTrigger
+      .pipe(
+        debounceTime(AUTOSAVE_DELAY_MS),
+        switchMap(() => {
+          const weddingId = this.weddingId();
+          if (!weddingId) return EMPTY;
+          const firingSeq = this.editSeq;
+          this.saveStatus.set('saving');
+          return this.timelineService.patchFields(weddingId, this.buildPatch()).pipe(
+            map(() => firingSeq),
+            catchError(() => {
+              this.saveStatus.set('error');
+              this.toast.error('Nie udało się zapisać harmonogramu.');
+              return EMPTY;
+            }),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((firingSeq) => {
+        this.savedSeq = Math.max(this.savedSeq, firingSeq);
+        this.lastSavedAt.set(new Date());
+        // Jeśli w trakcie zapisu pojawiła się nowsza zmiana, wróć do stanu „oczekuje".
+        this.saveStatus.set(this.editSeq > this.savedSeq ? 'pending' : 'saved');
+      });
+  }
+
+  ngOnDestroy(): void {
+    // Wyjście ze strony przed upływem 4 s nie może gubić zmian — dosyłamy ostatni stan.
+    if (this.editSeq > this.savedSeq) {
+      const weddingId = this.weddingId();
+      if (weddingId) {
+        this.timelineService.patchFields(weddingId, this.buildPatch()).subscribe();
+      }
+    }
+  }
+
   ngOnInit(): void {
     const weddingId = this.weddingService.wedding()?.id;
     if (weddingId) {
@@ -180,12 +248,14 @@ export class HarmonogramPage implements OnInit {
 
   protected updateForm(patch: Partial<HarmonogramForm>): void {
     this.form.update((current) => ({ ...current, ...patch }));
+    this.queueSave();
   }
 
   protected toggleGenre(value: string): void {
     this.genres.update((current) =>
       current.includes(value) ? current.filter((g) => g !== value) : [...current, value],
     );
+    this.queueSave();
   }
 
   protected isGenreSelected(value: string): boolean {
@@ -198,10 +268,26 @@ export class HarmonogramPage implements OnInit {
 
   protected updateStage(key: string, value: string): void {
     this.stageMusic.update((current) => ({ ...current, [key]: value }));
+    this.queueSave();
   }
 
-  protected saveLogistics(): void {
+  // Każda zmiana pola planuje debounce'owany zapis CAŁEGO formularza (jeden PATCH).
+  // Pomijamy fazę ładowania — bootstrap() ustawia stan przez .set(), nie przez te metody.
+  private queueSave(): void {
+    if (!this.loaded()) return;
+    this.editSeq++;
+    this.saveStatus.set('pending');
+    this.saveTrigger.next();
+  }
+
+  private buildPatch(): TimelinePatch {
     const f = this.form();
+    // Usuń puste wpisy muzyki per etap, żeby nie zapisywać pustych łańcuchów.
+    const musicPerStage = Object.fromEntries(
+      Object.entries(this.stageMusic())
+        .map(([key, value]) => [key, value.trim()] as const)
+        .filter(([, value]) => value !== ''),
+    );
     const patch: TimelinePatch = {
       ceremonyType: (f.ceremonyType || null) as TimelinePatch['ceremonyType'],
       ceremonyTime: f.ceremonyTime || null,
@@ -210,70 +296,29 @@ export class HarmonogramPage implements OnInit {
       entranceOrder: (f.entranceOrder || null) as TimelinePatch['entranceOrder'],
       glassThrowing: (f.glassThrowing || null) as TimelinePatch['glassThrowing'],
       wishesLocation: (f.wishesLocation || null) as TimelinePatch['wishesLocation'],
-    };
-    this.applyTri(patch, 'danceFloorGroundFloor', f.danceFloorGroundFloor);
-    this.applyTri(patch, 'hasChildren', f.hasChildren);
-    this.applyTri(patch, 'gorzkoTolerance', f.gorzkoTolerance);
-    this.save(patch);
-  }
-
-  protected saveContacts(): void {
-    const f = this.form();
-    this.save({
       venueManagerName: f.venueManagerName.trim() || null,
       venueManagerPhone: f.venueManagerPhone.trim() || null,
       witnesses: f.witnesses.trim() || null,
       brideParents: f.brideParents.trim() || null,
       groomParents: f.groomParents.trim() || null,
-    });
-  }
-
-  protected saveFirstDance(): void {
-    const f = this.form();
-    const patch: TimelinePatch = {
       firstDanceTime: f.firstDanceTime || null,
       firstDanceSong: f.firstDanceSong.trim() || null,
-    };
-    this.applyTri(patch, 'firstDanceFull', f.firstDanceFull);
-    this.save(patch);
-  }
-
-  protected saveParentsThanks(): void {
-    const f = this.form();
-    const patch: TimelinePatch = {
       parentsThanksTime: f.parentsThanksTime || null,
       parentsThanksForm: f.parentsThanksForm.trim() || null,
       parentsThanksSong: f.parentsThanksSong.trim() || null,
-    };
-    this.applyTri(patch, 'parentsThanksEnabled', f.parentsThanksEnabled);
-    this.save(patch);
-  }
-
-  protected saveCake(): void {
-    const f = this.form();
-    this.save({
       cakeTime: f.cakeTime || null,
       cakeEntrySong: f.cakeEntrySong.trim() || null,
       cakeCuttingSong: f.cakeCuttingSong.trim() || null,
-    });
-  }
-
-  protected saveGenres(): void {
-    this.save({ genrePreferences: this.genres() });
-  }
-
-  protected saveStageMusic(): void {
-    // Usuń puste wpisy, żeby nie zapisywać pustych łańcuchów.
-    const cleaned = Object.fromEntries(
-      Object.entries(this.stageMusic())
-        .map(([key, value]) => [key, value.trim()] as const)
-        .filter(([, value]) => value !== ''),
-    );
-    this.save({ musicPerStage: cleaned });
-  }
-
-  protected saveNotes(): void {
-    this.save({ notes: this.form().notes.trim() || null });
+      notes: f.notes.trim() || null,
+      genrePreferences: this.genres(),
+      musicPerStage,
+    };
+    this.applyTri(patch, 'danceFloorGroundFloor', f.danceFloorGroundFloor);
+    this.applyTri(patch, 'hasChildren', f.hasChildren);
+    this.applyTri(patch, 'gorzkoTolerance', f.gorzkoTolerance);
+    this.applyTri(patch, 'firstDanceFull', f.firstDanceFull);
+    this.applyTri(patch, 'parentsThanksEnabled', f.parentsThanksEnabled);
+    return patch;
   }
 
   // `<input type="number">` emituje number|null (a po wpisaniu śmieci NaN) — sprowadzamy
@@ -288,18 +333,6 @@ export class HarmonogramPage implements OnInit {
     // optionalBoolean na backendzie odrzuca null — pole pomijamy, dopóki nie wybrano Tak/Nie.
     if (value === '') return;
     (patch as Record<string, unknown>)[key] = value === 'yes';
-  }
-
-  private save(patch: TimelinePatch): void {
-    const weddingId = this.weddingId();
-    if (!weddingId) {
-      this.toast.error('Najpierw skonfiguruj wesele.');
-      return;
-    }
-    this.timelineService.patchFields(weddingId, patch).subscribe({
-      next: () => this.toast.success('Zapisano.'),
-      error: () => this.toast.error('Nie udało się zapisać sekcji.'),
-    });
   }
 
   private bootstrap(weddingId: string): void {

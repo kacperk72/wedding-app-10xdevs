@@ -2,6 +2,28 @@
   background: var(--color-bg);
 }
 
+// Dyskretny status autozapisu w nagłówku (zamiast toasta po każdym zapisie).
+.autosave {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.autosave--pending,
+.autosave--saving {
+  color: var(--color-text-muted);
+}
+
+.autosave--saved {
+  color: var(--color-success);
+}
+
+.autosave--error {
+  color: var(--color-danger);
+}
+
 .reuse-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
