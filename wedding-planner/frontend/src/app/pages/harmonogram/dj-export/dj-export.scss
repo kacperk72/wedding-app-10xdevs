@@ -1,0 +1,184 @@
+:host {
+  display: block;
+  background: var(--color-bg);
+  min-height: 100vh;
+}
+
+.dj-export {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.export-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.sheet {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-10);
+  color: var(--color-text);
+}
+
+.sheet__head {
+  border-bottom: 2px solid var(--color-accent);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.sheet__eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sheet__head h1 {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  margin: 0;
+}
+
+.sheet__meta {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.sheet__section {
+  margin-bottom: var(--space-8);
+  break-inside: avoid;
+}
+
+.sheet__section h2 {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sheet__section h3 {
+  font-size: 0.95rem;
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+}
+
+.kv > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px dotted var(--color-border);
+}
+
+.kv dt {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.kv dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.run-sheet {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.run-sheet th,
+.run-sheet td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.run-sheet th {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.run-sheet__time {
+  font-weight: 700;
+  white-space: nowrap;
+  width: 90px;
+}
+
+.song-list {
+  margin: 0;
+  padding-left: var(--space-6);
+  columns: 2;
+  column-gap: var(--space-8);
+}
+
+.song-list li {
+  margin-bottom: var(--space-1);
+  break-inside: avoid;
+}
+
+.song-artist {
+  color: var(--color-text-muted);
+}
+
+.genres {
+  margin: 0;
+  font-weight: 600;
+}
+
+.notes {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+@media print {
+  :host,
+  .dj-export {
+    background: #fff;
+    padding: 0;
+    margin: 0;
+    max-width: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .sheet {
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .sheet__section {
+    margin-bottom: var(--space-6);
+  }
+}

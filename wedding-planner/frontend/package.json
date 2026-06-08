@@ -8,6 +8,7 @@
     "build-prod": "npm run build -- --configuration=production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:ci": "ng test --watch=false",
     "test:watch": "ng test --watch"
   },
   "prettier": {

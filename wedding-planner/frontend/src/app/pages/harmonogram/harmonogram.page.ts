@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { GuestsService } from '../../core/services/guests.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -118,7 +119,7 @@ function formFrom(timeline: Timeline): HarmonogramForm {
 
 @Component({
   selector: 'app-harmonogram-page',
-  imports: [FormsModule, PageHeader, TimelineEventList, TimelineSongList],
+  imports: [FormsModule, RouterLink, PageHeader, TimelineEventList, TimelineSongList],
   templateUrl: './harmonogram.page.html',
   styleUrl: './harmonogram.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

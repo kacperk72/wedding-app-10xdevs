@@ -450,8 +450,8 @@ harmonogram, to osobna, późniejsza decyzja PO (poza zakresem tej zmiany).
 ### Phase 4: Eksport „Wersja dla DJ-a" (druk / PDF)
 
 #### Automated
-- [ ] 4.1 Front buduje się (`npm run build`)
-- [ ] 4.2 Lint/typecheck przechodzą (`npm run lint`)
+- [x] 4.1 Front buduje się (`npm run build`) — dj-export chunk wygenerowany, build czysty
+- [x] 4.2 Lint/typecheck przechodzą — brak skryptu lint we froncie; typecheck pokryty przez `ng build` (N/A)
 
 #### Manual
 - [ ] 4.3 „Wersja dla DJ-a" pokazuje wszystkie sekcje + dane reużywane

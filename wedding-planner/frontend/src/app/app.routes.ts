@@ -81,6 +81,12 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'harmonogram/dla-dj',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/harmonogram/dj-export/dj-export').then((m) => m.DjExport),
+  },
+  {
     path: '**',
     loadComponent: () => import('./pages/error/error.page').then((m) => m.ErrorPage),
   },

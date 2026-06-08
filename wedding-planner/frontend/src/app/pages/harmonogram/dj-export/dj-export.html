@@ -1,0 +1,176 @@
+@if (loaded()) {
+  <div class="dj-export">
+    <!-- Pasek akcji — ukrywany przy druku -->
+    <div class="export-toolbar no-print">
+      <a routerLink="/app/harmonogram" class="button-like button-like--secondary">← Wróć do edycji</a>
+      <button type="button" class="button-like" (click)="print()">
+        Drukuj / zapisz PDF
+      </button>
+    </div>
+
+    <article class="sheet">
+      <header class="sheet__head">
+        <p class="sheet__eyebrow">Harmonogram wesela — wersja dla DJ-a</p>
+        <h1>{{ coupleLabel() || 'Wesele' }}</h1>
+        <p class="sheet__meta">
+          @if (wedding()?.weddingDate) {
+            <span>{{ wedding()!.weddingDate | date: 'dd.MM.yyyy' }}</span>
+          }
+          @if (wedding()?.ceremonyLocation) {
+            <span> · {{ wedding()!.ceremonyLocation }}</span>
+          }
+        </p>
+      </header>
+
+      <!-- Dane podstawowe (reuse) -->
+      <section class="sheet__section">
+        <h2>Dane podstawowe</h2>
+        <dl class="kv">
+          <div><dt>Goście (potwierdzeni / zaproszeni)</dt><dd>{{ guestCount().confirmed }} / {{ guestCount().invited }}</dd></div>
+          <div><dt>DJ</dt><dd>{{ text(djVendor()?.companyName ?? null) }}</dd></div>
+          <div><dt>Sala</dt><dd>{{ text(venueVendor()?.companyName ?? null) }}</dd></div>
+        </dl>
+      </section>
+
+      <!-- Logistyka -->
+      <section class="sheet__section">
+        <h2>Pytania logistyczne</h2>
+        <dl class="kv">
+          <div><dt>Rodzaj ślubu</dt><dd>{{ ceremonyTypeLabel(timeline()?.ceremonyType ?? null) }}</dd></div>
+          <div><dt>Godzina ślubu</dt><dd>{{ text(timeline()?.ceremonyTime ?? null) }}</dd></div>
+          <div><dt>Dojazd do sali (min)</dt><dd>{{ text(timeline()?.travelMinutes ?? null) }}</dd></div>
+          <div><dt>Przyjazd na salę</dt><dd>{{ text(timeline()?.venueArrivalTime ?? null) }}</dd></div>
+          <div><dt>Kolejność wejścia na salę</dt><dd>{{ entranceOrderLabel(timeline()?.entranceOrder ?? null) }}</dd></div>
+          <div><dt>Rzucanie kieliszków</dt><dd>{{ glassThrowingLabel(timeline()?.glassThrowing ?? null) }}</dd></div>
+          <div><dt>Miejsce składania życzeń</dt><dd>{{ wishesLocationLabel(timeline()?.wishesLocation ?? null) }}</dd></div>
+          <div><dt>Parkiet na parterze?</dt><dd>{{ yesNo(timeline()?.danceFloorGroundFloor ?? null) }}</dd></div>
+          <div><dt>Dzieci na weselu?</dt><dd>{{ yesNo(timeline()?.hasChildren ?? null) }}</dd></div>
+          <div><dt>Tolerancja na „gorzko"?</dt><dd>{{ yesNo(timeline()?.gorzkoTolerance ?? null) }}</dd></div>
+        </dl>
+      </section>
+
+      <!-- Dane kontaktowe -->
+      <section class="sheet__section">
+        <h2>Dane kontaktowe</h2>
+        <dl class="kv">
+          <div><dt>Menadżer sali</dt><dd>{{ text(timeline()?.venueManagerName ?? null) }}</dd></div>
+          <div><dt>Telefon do menadżera</dt><dd>{{ text(timeline()?.venueManagerPhone ?? null) }}</dd></div>
+          <div><dt>Świadkowie</dt><dd>{{ text(timeline()?.witnesses ?? null) }}</dd></div>
+          <div><dt>Rodzice Panny Młodej</dt><dd>{{ text(timeline()?.brideParents ?? null) }}</dd></div>
+          <div><dt>Rodzice Pana Młodego</dt><dd>{{ text(timeline()?.groomParents ?? null) }}</dd></div>
+        </dl>
+      </section>
+
+      <!-- Przebieg dnia -->
+      <section class="sheet__section">
+        <h2>Godzinowy przebieg dnia</h2>
+        @if (events().length) {
+          <table class="run-sheet">
+            <thead>
+              <tr><th>Godzina</th><th>Punkt programu</th><th>Uwagi</th></tr>
+            </thead>
+            <tbody>
+              @for (event of events(); track event.id) {
+                <tr>
+                  <td class="run-sheet__time">{{ text(event.eventTime) }}</td>
+                  <td>{{ event.label }}</td>
+                  <td>{{ text(event.notes) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <p class="empty">Brak zdefiniowanych punktów programu.</p>
+        }
+      </section>
+
+      <!-- Pierwszy taniec -->
+      <section class="sheet__section">
+        <h2>Pierwszy taniec</h2>
+        <dl class="kv">
+          <div><dt>Planowana godzina</dt><dd>{{ text(timeline()?.firstDanceTime ?? null) }}</dd></div>
+          <div><dt>Cały utwór?</dt><dd>{{ yesNo(timeline()?.firstDanceFull ?? null) }}</dd></div>
+          <div><dt>Utwór</dt><dd>{{ text(timeline()?.firstDanceSong ?? null) }}</dd></div>
+        </dl>
+      </section>
+
+      <!-- Podziękowania dla rodziców -->
+      <section class="sheet__section">
+        <h2>Podziękowania dla rodziców</h2>
+        <dl class="kv">
+          <div><dt>Planujecie podziękowania?</dt><dd>{{ yesNo(timeline()?.parentsThanksEnabled ?? null) }}</dd></div>
+          <div><dt>Planowana godzina</dt><dd>{{ text(timeline()?.parentsThanksTime ?? null) }}</dd></div>
+          <div><dt>Forma podziękowań</dt><dd>{{ text(timeline()?.parentsThanksForm ?? null) }}</dd></div>
+          <div><dt>Utwór w tle</dt><dd>{{ text(timeline()?.parentsThanksSong ?? null) }}</dd></div>
+        </dl>
+      </section>
+
+      <!-- Tort -->
+      <section class="sheet__section">
+        <h2>Tort</h2>
+        <dl class="kv">
+          <div><dt>Planowana godzina</dt><dd>{{ text(timeline()?.cakeTime ?? null) }}</dd></div>
+          <div><dt>Utwór na wjazd tortu</dt><dd>{{ text(timeline()?.cakeEntrySong ?? null) }}</dd></div>
+          <div><dt>Utwór na krojenie tortu</dt><dd>{{ text(timeline()?.cakeCuttingSong ?? null) }}</dd></div>
+        </dl>
+      </section>
+
+      <!-- Preferencje muzyczne -->
+      <section class="sheet__section">
+        <h2>Preferencje muzyczne</h2>
+        <h3>Ulubione gatunki</h3>
+        @if (selectedGenres().length) {
+          <p class="genres">{{ selectedGenres().join(' · ') }}</p>
+        } @else {
+          <p class="empty">Nie wskazano gatunków.</p>
+        }
+
+        <h3>Muzyka per etap</h3>
+        @if (stageMusic().length) {
+          <dl class="kv">
+            @for (stage of stageMusic(); track stage.label) {
+              <div><dt>{{ stage.label }}</dt><dd>{{ stage.value }}</dd></div>
+            }
+          </dl>
+        } @else {
+          <p class="empty">Brak wskazówek muzycznych per etap.</p>
+        }
+      </section>
+
+      <!-- Listy utworów -->
+      <section class="sheet__section">
+        <h2>Lista „must-play" — te utwory muszą zagrać</h2>
+        @if (mustPlay().length) {
+          <ol class="song-list">
+            @for (song of mustPlay(); track song.id) {
+              <li>{{ song.title }}@if (song.artist) { <span class="song-artist"> — {{ song.artist }}</span> }</li>
+            }
+          </ol>
+        } @else {
+          <p class="empty">Brak utworów na liście must-play.</p>
+        }
+      </section>
+
+      <section class="sheet__section">
+        <h2>Lista „do-not-play" — tych nie chcemy słyszeć</h2>
+        @if (doNotPlay().length) {
+          <ol class="song-list">
+            @for (song of doNotPlay(); track song.id) {
+              <li>{{ song.title }}@if (song.artist) { <span class="song-artist"> — {{ song.artist }}</span> }</li>
+            }
+          </ol>
+        } @else {
+          <p class="empty">Brak utworów na liście do-not-play.</p>
+        }
+      </section>
+
+      <!-- Uwagi -->
+      @if (timeline()?.notes) {
+        <section class="sheet__section">
+          <h2>Uwagi dla DJ-a</h2>
+          <p class="notes">{{ timeline()!.notes }}</p>
+        </section>
+      }
+    </article>
+  </div>
+}

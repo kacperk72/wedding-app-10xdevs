@@ -195,7 +195,7 @@ jobs:
         run: npm run lint --if-present
 
       - name: Test
-        run: npm test -- --watch=false --browsers=ChromeHeadless
+        run: npm run test:ci
 
       - name: Build
         run: npm run build -- --configuration=production
