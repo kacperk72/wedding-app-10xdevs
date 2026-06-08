@@ -24,7 +24,7 @@ const supabase = createClient(url, serviceRoleKey, {
 async function isReachable() {
   try {
     const { error } = await supabase
-      .from("task_templates")
+      .from("weddings")
       .select("id", { head: true })
       .limit(1);
     return !error;

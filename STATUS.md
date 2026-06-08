@@ -29,8 +29,9 @@
 
 - [ ] **Kontrast WCAG / focus-ring** — wymaga axe-core lub oceny wzrokowej, niski priorytet.
 - [x] ~~**Front: brak testów jednostkowych**~~ — Vitest skonfigurowany (`@angular/build:unit-test`, `ng test`), seed-suite 15/15 (`currency.format`, `date.format`, `guests.service`). Pozostaje rozszerzyć pokrycie na resztę serwisów i komponenty (F-01 cd.).
-- [ ] (opcjonalnie) Założyć `context/foundation/roadmap.md` albo usunąć martwe odwołania do niego z `CLAUDE.md`.
-- [ ] `docs/demo-app/04-database.md` — część o auto-taskach nieaktualna (feature usunięty migracją `strip_task_auto`), do sprzątnięcia przy okazji.
+- [x] ~~Założyć `context/foundation/roadmap.md`~~ — istnieje; zreconciliowany 2026-06-08 (auto-taski sparkowane, north star → S-05 production cutover).
+- [x] ~~`docs/demo-app/04-database.md` — część o auto-taskach nieaktualna~~ — posprzątane 2026-06-08 (sekcje auto-task oznaczone „USUNIĘTE 2026-05-26"; DDL/trigger/bootstrap/ER zaktualizowane).
+- [x] ~~Dryf stacku (Sequelize+MySQL → Supabase Postgres)~~ — posprzątane 2026-06-08: `tech-stack.md` + `infrastructure.md` poprawione (baner + treść); `context/deployment/deploy-plan.md` operacyjnie poprawiony (Supabase provisioning, `SUPABASE_*` env vary); `wedding-planner-koncepcja.md` + `shape-notes.md` dostały baner-korektę (historyczne, treść zachowana). `wedding-planner-deployment.md`/`CLAUDE.md`/`README.md` były już poprawne (MySQL = SSO).
 
 ## Jak utrzymać ten plik (żeby dryf nie wrócił)
 

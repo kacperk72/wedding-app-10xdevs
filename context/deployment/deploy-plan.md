@@ -7,6 +7,13 @@ Wykonywalna checklista wystawienia aplikacji na prod. Każdy punkt z `[ ]` to cz
 > - `context/foundation/infrastructure.md` — risk register, operational story
 > - `.github/workflows/deploy.yml` — co realnie się wykonuje przy `git push`
 
+> ⚠️ **Korekta bazy danych (2026-06-08):** ten plan powstał 2026-05-20 i zakładał
+> **MySQL na Hostingerze** dla wedding-plannera. To **nieaktualne** — dane planera
+> żyją w **Supabase Postgres** (klient `@supabase/supabase-js` `service_role`,
+> migracje `npx supabase db push`). Kroki „Create MySQL Database" i env vary `DB_*`
+> poniżej zostały zastąpione provisioningiem Supabase i `SUPABASE_URL` /
+> `SUPABASE_SERVICE_ROLE_KEY`. MySQL na pakiecie Hostinger należy wyłącznie do SSO.
+
 ---
 
 ## 0. Założenia (już rozstrzygnięte)
@@ -21,7 +28,7 @@ Wykonywalna checklista wystawienia aplikacji na prod. Każdy punkt z `[ ]` to cz
   - Frontend: `https://wedding-planner-kubitk.pl` (custom domain, FTP-deploy)
   - Backend: `https://deeppink-mole-431102.hostingersite.com` (auto-przypisana subdomena Hostingera, Git auto-pull)
   - SSO: `https://kubitksso.pl` (sibling repo, osobny deploy)
-- **MySQL**: osobna baza od bazy SSO, na tym samym serwerze.
+- **Baza danych**: **Supabase Postgres** (managed, off-host) dla danych wedding-plannera. MySQL na pakiecie Hostinger to baza SSO — wedding-planner jej nie używa.
 - **Auth**: zewnętrzny SSO (`kubitksso.pl`). Backend wedding-plannera tylko weryfikuje RS256 JWT przez JWKS — nigdy nie waliduje haseł.
 - **CORS**: setup jest **cross-origin** (front i back na różnych domenach). Backend musi mieć `FRONTEND_ORIGIN=https://wedding-planner-kubitk.pl` w env, a frontend musi w kodzie używać absolutnego URL-a backendu (`https://deeppink-mole-431102.hostingersite.com/api/...`). Patrz §5.4.
 
@@ -32,18 +39,18 @@ Wykonywalna checklista wystawienia aplikacji na prod. Każdy punkt z `[ ]` to cz
 Co już jest zrobione:
 
 - [x] Frontend Angular 21 zescaffoldowany w `wedding-planner/frontend/`
-- [x] Backend Express + Sequelize + JWKS middleware zescaffoldowany w `wedding-planner/backend/` (`npm audit` → 0 podatności)
+- [x] Backend Express + Supabase JS (`service_role`) + JWKS middleware zescaffoldowany w `wedding-planner/backend/` (`npm audit` → 0 podatności)
 - [x] `wedding-planner/frontend/src/index.html` zawiera tag `<script>` ładujący `https://kubitksso.pl/sdk/sso-sdk.js`
 - [x] `.github/workflows/deploy.yml` — tylko job `frontend` (backend zdjęty po decyzji o Hostinger auto-pull)
 - [x] Root `.gitignore` rozszerzony (Node, env, dist, OS)
 - [x] `infrastructure.md` zarchiwizowany w `context/foundation/`
 - [x] **Backend wdrożony** na `https://deeppink-mole-431102.hostingersite.com` — Hostinger Node.js app z auto-deploy z `main`
-- [x] `GET /api/health` zwraca poprawny JSON (`503 degraded` z `db: unreachable` — oczekiwane, baza jeszcze nie skonfigurowana / nie podpięta)
+- [x] `GET /api/health` zwraca poprawny JSON. _(Uwaga 2026-06-08: stan z 2026-05-20 mówił „503 degraded — baza nieskonfigurowana"; od tego czasu DB Supabase jest podpięta, a sonda `isReachable()` została naprawiona — pytała o usuniętą tabelę `task_templates`, teraz pyta o `weddings` — więc health zwraca `200 ok`.)_
 
 Czego brakuje (poniżej):
 
 - [ ] Konto FTP + GitHub Secrets dla deployu frontu
-- [ ] Baza MySQL utworzona i podpięta przez env vars Node.js app
+- [ ] Projekt Supabase utworzony, schema zapushowana (`npx supabase db push`), `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` w env vars Node.js app
 - [ ] Rejestracja apki `wedding-planner` w SSO + konta użytkowników
 - [ ] Pierwszy deploy frontu (push do `main` → FTP → SPA na `wedding-planner-kubitk.pl`)
 - [ ] End-to-end smoke test (SPA ładuje, `curl /api/health` zwraca `db: reachable`)
@@ -61,14 +68,16 @@ Czego brakuje (poniżej):
   - [ ] **NIE używaj master FTP** — wyciek w GitHub Secrets dałby dostęp do wszystkich domen na pakiecie
 - [ ] Zapisz: `HOSTINGER_FTP_HOST`, `HOSTINGER_FTP_USER`, `HOSTINGER_FTP_PASS`
 
-### 2.2 Baza MySQL
+### 2.2 Baza danych — Supabase Postgres
 
-- [ ] Hostinger → **Databases / MySQL** → **Create Database**
-  - [ ] Database name: np. `u<plan-id>_wedding`
-  - [ ] Username: np. `u<plan-id>_wedding_app`
-  - [ ] Password: wygeneruj silne
-- [ ] Z panelu skopiuj host (zwykle `localhost` z perspektywy Node.js app), port (3306), nazwę bazy, użytkownika, hasło
-- [ ] Po utworzeniu wróć do §2.4 i wpisz wartości w env vars Node.js app — wtedy `/api/health` zwróci `db: reachable`
+> Zastępuje pierwotny krok „Create MySQL Database" (nieaktualny — patrz baner na górze).
+> Wedding-planner **nie** tworzy bazy MySQL na Hostingerze.
+
+- [ ] [supabase.com](https://supabase.com) → **New project** (region najbliżej, np. `eu-central`)
+  - [ ] Zapisz hasło bazy w password managerze
+- [ ] Z **Project Settings → API** skopiuj `Project URL` (→ `SUPABASE_URL`) i klucz **`service_role`** (→ `SUPABASE_SERVICE_ROLE_KEY`, **sekret** — nigdy do frontu)
+- [ ] Z `wedding-planner/backend/` zapushuj schemę: `npx supabase db push` (15 migracji, RLS deny-all)
+- [ ] Po wpisaniu wartości w env vars Node.js app (§2.4) `/api/health` zwróci `200 ok` (`db: reachable`)
 
 ### 2.3 Node.js Application (backend) — JUŻ WDROŻONE
 
@@ -96,12 +105,8 @@ W panelu Node.js app → **Environment variables**:
 - [x] `NODE_ENV=production` *(ustawione przez Hostinger przy starcie aplikacji)*
 - [x] `PORT` — *Hostinger wstrzykuje to automatycznie, nie ustawiaj ręcznie*
 - [ ] `FRONTEND_ORIGIN=https://wedding-planner-kubitk.pl` ← **krytyczne dla CORS, ustaw zanim frontend wyląduje na prod**
-- [ ] `DB_HOST=localhost`
-- [ ] `DB_PORT=3306`
-- [ ] `DB_NAME=<z punktu 2.2>`
-- [ ] `DB_USER=<z punktu 2.2>`
-- [ ] `DB_PASSWORD=<z punktu 2.2>`
-- [ ] `DB_SSL=false` (localhost nie wymaga SSL)
+- [ ] `SUPABASE_URL=<Project URL z §2.2>`
+- [ ] `SUPABASE_SERVICE_ROLE_KEY=<service_role key z §2.2>` ← **sekret**, bypassuje RLS; nigdy do bundla frontu
 - [ ] `JWKS_URL=https://kubitksso.pl/.well-known/jwks.json`
 - [ ] `JWT_ISSUER=<patrz §5.3 — zostaw puste jeśli SSO nie ustawia>`
 
@@ -217,9 +222,9 @@ Po zielonym workflowie:
   - [ ] DevTools → Console: brak czerwonych błędów
   - [ ] DevTools → Network: `sso-sdk.js` ładuje się z kodem 200
 - [ ] `curl https://deeppink-mole-431102.hostingersite.com/api/health`
-  - [ ] Status 200 (jeśli env-y DB ustawione w §2.4)
+  - [ ] Status 200 (jeśli `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` ustawione w §2.4)
   - [ ] Odpowiedź: `{"status":"ok","db":"reachable","uptime":...,"time":...}`
-  - [ ] Jeśli `db:"unreachable"` → wróć do §2.4, najczęstszy winowajca to `DB_NAME` lub `DB_USER` (`DB_HOST=localhost` zwykle działa)
+  - [ ] Jeśli `db:"unreachable"` → wróć do §2.4, najczęstszy winowajca to literówka w `SUPABASE_URL` albo wklejony klucz `anon` zamiast `service_role` (lub niezapushowana schema — `npx supabase db push`)
 - [ ] Panel Node.js app w Hostingerze → logi: nie powinno być stack trace'ów
 
 Stan na 2026-05-20: backend zwraca `503 degraded` bo §2.2 i §2.4 jeszcze nie odhaczone — to oczekiwane.
@@ -261,9 +266,9 @@ Skoro Hostinger ciągnie z `main`, rollback = revert commitu na `main`. Po pushu
 
 - [ ] Backend na `api.wedding-planner-kubitk.pl` (CNAME + Application URL) zamiast `deeppink-mole-...` — ładniejszy URL, łatwiejszy do zakomunikowania
 - [ ] Backend pod tym samym originem co frontend przez reverse-proxy `.htaccess` (front i back na `wedding-planner-kubitk.pl`, `/api/*` ProxyPass do node'a) — wycina CORS, simpler debugging
-- [ ] Druga subdomena `staging.wedding-planner-kubitk.pl` + druga baza MySQL + osobny workflow trigger na branchu `staging`
+- [ ] Druga subdomena `staging.wedding-planner-kubitk.pl` + drugi projekt Supabase + osobny workflow trigger na branchu `staging`
 - [ ] Uptime monitoring (UptimeRobot, free tier) na `https://deeppink-mole-431102.hostingersite.com/api/health` — alert mail przy 503/timeout
-- [ ] Backup MySQL `mysqldump` cron raz w tygodniu na lokalny dysk (do dnia ślubu) — Hostinger ma daily backups, ale lokalna kopia to bezpiecznik na suspension konta
+- [ ] Backup bazy Supabase (`pg_dump` / eksport z dashboardu) raz w tygodniu na lokalny dysk (do dnia ślubu) — Supabase ma własne backupy, ale lokalna kopia to bezpiecznik
 - [ ] Backend testy (jest + supertest) — wtedy wróć do mechanizmu GitHub Actions SSH dla bramki "testy zielone zanim deploy", zamień Hostinger auto-pull na manualny pull triggerowany z workflowa
 
 ---

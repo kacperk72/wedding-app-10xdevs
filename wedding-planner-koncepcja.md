@@ -1,5 +1,14 @@
 # Wedding Planner — koncepcja projektu zaliczeniowego
 
+> ⚠️ **Dokument historyczny (koncepcja kursowa).** Zapis myślenia z wczesnej fazy —
+> **nie aktualizowany w miejscu**, żeby zachować ślad decyzji. Dwa punkty się
+> zdezaktualizowały: (1) **baza danych** — koncepcja zakłada „Express + Sequelize +
+> MySQL" i argumentuje „czemu nie Supabase"; faktycznie wedding-planner używa
+> **Supabase Postgres** (decyzja odwrócona 2026-05-23, patrz `wedding-planner-deployment.md`
+> i `CLAUDE.md`). MySQL/Sequelize należą wyłącznie do SSO. (2) **Auto-taski** —
+> opisane jako feature; usunięte 2026-05-26 (`strip_task_auto`), tasks są manualne.
+> Aktualny stan: `CLAUDE.md` + `context/foundation/{prd,roadmap,tech-stack,infrastructure}.md`.
+
 ## Pomysł w jednym zdaniu
 
 Aplikacja webowa dla pary młodej, która prowadzi przez cały proces przygotowań do ślubu — od pierwszej rezerwacji sali po układ stołów w dniu wesela — agregując zadania, kontrahentów, umowy, budżet i gości w jednym miejscu, z **fit-seats jako jednym z modułów**.

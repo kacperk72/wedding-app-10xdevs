@@ -42,7 +42,7 @@ erDiagram
   guests ||--o| tables : assigned_to
   guests ||--o| meal_options : picks
   guests ||--o{ seating_conflicts : in
-  task_templates ||--o{ tasks : seeds
+  %% task_templates ||--o{ tasks : seeds  — USUNIĘTE 2026-05-26 (strip_task_auto); tasks są manualne
   catering_offers ||--o{ catering_packages : tier
   catering_offers ||--o{ catering_dishes : library
   catering_offers ||--o{ catering_addons : extras
@@ -285,7 +285,7 @@ Indexes: `wedding_id`, `guest_a_id`, `guest_b_id`.
 
 ### `meetings` (Nadchodzące spotkania)
 
-Inferowane z sekcji "Nadchodzące spotkania" na Dashboardzie i z auto-tasków typu "Spotkanie z DJ-em".
+Inferowane z sekcji "Nadchodzące spotkania" na Dashboardzie. _(Pierwotnie wiązane też z auto-taskami typu "Spotkanie z DJ-em" — auto-taski usunięte 2026-05-26; spotkania pozostają niezależną encją.)_
 
 | Column        | Type                                                                | Null | Default              | Confidence | Notes                                  |
 | ------------- | ------------------------------------------------------------------- | ---- | -------------------- | ---------- | -------------------------------------- |
@@ -801,16 +801,12 @@ CREATE INDEX idx_expenses_category_id ON expenses(category_id);
 CREATE INDEX idx_expenses_wedding_recent ON expenses(wedding_id, spent_on DESC);
 CREATE INDEX idx_expenses_vendor_id ON expenses(vendor_id) WHERE vendor_id IS NOT NULL;
 
--- 9) Tasks (with templates)
-CREATE TABLE task_templates (
-  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  title                 text NOT NULL,
-  category              text NOT NULL CHECK (category IN
-    ('stroj','kontrahent','goscie','formalnosci','inne')),
-  days_before_wedding   integer NOT NULL,
-  sort_order            integer NOT NULL DEFAULT 0,
-  created_at            timestamptz NOT NULL DEFAULT now()
-);
+-- 9) Tasks
+-- ⚠️ USUNIĘTE 2026-05-26 (migracja strip_task_auto): tabela `task_templates`
+-- oraz kolumny `tasks.is_auto` i `tasks.template_id` NIE ISTNIEJĄ. Poniższy
+-- DDL `task_templates` jest historyczny — nie używać. Aktualny `tasks` to
+-- wersja BEZ `is_auto`/`template_id` (zadania są w pełni manualne).
+-- CREATE TABLE task_templates ( ... );  -- ← USUNIĘTE, patrz nota z 2026-05-26
 
 CREATE TABLE tasks (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -822,8 +818,7 @@ CREATE TABLE tasks (
   due_date      date NOT NULL,
   done          boolean NOT NULL DEFAULT false,
   done_at       timestamptz,
-  is_auto       boolean NOT NULL DEFAULT false,
-  template_id   uuid REFERENCES task_templates(id) ON DELETE SET NULL,
+  -- is_auto / template_id ← USUNIĘTE 2026-05-26 (strip_task_auto)
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -1002,34 +997,20 @@ CREATE TRIGGER tg_catering_addons_updated_at        BEFORE UPDATE ON catering_ad
 CREATE TRIGGER tg_wedding_catering_selection_updated_at BEFORE UPDATE ON wedding_catering_selection FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 ```
 
-### Auto-timeline regeneracja
+### ~~Auto-timeline regeneracja~~ — USUNIĘTE 2026-05-26
 
-Gdy para zmienia datę ślubu, niedokończone auto-zadania (`is_auto=true AND done=false`) muszą się przesunąć o tyle samo dni, co data ślubu — z zachowaniem `days_before_wedding` z templatu.
+> ⚠️ **Cała ta sekcja jest nieaktualna.** Funkcja `shift_auto_tasks_on_wedding_date_change()`,
+> trigger `tg_weddings_shift_auto_tasks` i endpoint `POST /tasks/regenerate-auto`
+> **nie istnieją** — usunięte migracją `20260526150000_strip_task_auto`. Zadania
+> są w pełni manualne; zmiana `wedding_date` nie wywołuje już żadnej regeneracji.
+> Poniższy SQL zostawiony wyłącznie jako zapis historyczny — **nie implementować
+> ponownie bez zgody PO** (patrz `CLAUDE.md`).
 
 ```sql
-CREATE OR REPLACE FUNCTION shift_auto_tasks_on_wedding_date_change()
-RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE
-  shift_days integer;
-BEGIN
-  IF NEW.wedding_date IS DISTINCT FROM OLD.wedding_date THEN
-    shift_days := NEW.wedding_date - OLD.wedding_date;
-    UPDATE tasks
-    SET due_date = due_date + shift_days
-    WHERE wedding_id = NEW.id
-      AND is_auto = true
-      AND done = false;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER tg_weddings_shift_auto_tasks
-  AFTER UPDATE OF wedding_date ON weddings
-  FOR EACH ROW EXECUTE FUNCTION shift_auto_tasks_on_wedding_date_change();
+-- HISTORYCZNE / USUNIĘTE — nie używać:
+-- CREATE OR REPLACE FUNCTION shift_auto_tasks_on_wedding_date_change() ...
+-- CREATE TRIGGER tg_weddings_shift_auto_tasks ...
 ```
-
-> **Uzasadnienie**: ukończonych zadań nie ruszamy (są historią). Manualne zadania (`is_auto=false`) też nie — para mogła je powiązać z konkretnym terminem (np. "Telefon do księdza 11.05"). Endpoint `POST /tasks/regenerate-auto` daje force-mode dla edge case'ów.
 
 ### `seating_conflicts` consistency check
 
@@ -1130,8 +1111,8 @@ CREATE TRIGGER tg_catering_course_dish_same_offer
 Po `INSERT INTO weddings` backend (lub dedykowana funkcja PG) seeduje:
 1. `wedding_members` (twórca jako `partner_a`).
 2. 15 `budget_categories` (lista z sekcji `budget_categories` powyżej).
-3. `tasks` z `task_templates` (`is_auto=true`, `due_date = wedding_date - days_before_wedding`).
-4. (Opcjonalnie) 12 stołów × 8 miejsc (z prototypu — daje rozpoznawalny start point).
+3. ~~`tasks` z `task_templates`~~ — **USUNIĘTE 2026-05-26 (strip_task_auto).** `bootstrap_wedding` nie seeduje już żadnych zadań; para tworzy je ręcznie.
+4. 12 stołów × 8 miejsc (z prototypu — daje rozpoznawalny start point).
 5. **Catering nie jest seedowany** — para sama dodaje ofertę swojej sali (lub kilka do porównania) na ekranie `/app/oferta-sali`. Domyślnie brak `wedding_catering_selection` (NULL). Dopiero gdy para wybierze pakiet i zacznie konfigurować menu, pojawia się rezerwacja w Budżecie.
 
 Implementacja w aplikacji (NestJS service) lub jako PG function `bootstrap_wedding(wedding_id uuid, creator_user_id uuid)`. Druga opcja jest atomowa i bezpieczniejsza pod kątem RLS.
@@ -1174,7 +1155,7 @@ revoke execute on function public.create_wedding_with_bootstrap(uuid, text, text
 
 -- Pinned search_path na funkcjach (chroni SECURITY DEFINER przed hijack'iem)
 alter function public.set_updated_at()                                              set search_path = public, pg_catalog;
-alter function public.shift_auto_tasks_on_wedding_date_change()                     set search_path = public, pg_catalog;
+-- alter function public.shift_auto_tasks_on_wedding_date_change() ... — USUNIĘTE 2026-05-26 (funkcja nie istnieje)
 alter function public.enforce_seating_conflict_wedding_match()                      set search_path = public, pg_catalog;
 alter function public.enforce_catering_course_dish_same_offer()                     set search_path = public, pg_catalog;
 alter function public.enforce_catering_selection_package_wedding()                  set search_path = public, pg_catalog;
@@ -1222,8 +1203,8 @@ Domknięte założenia z poprzedniej iteracji — wszystkie z labelem **Recommen
 4. **Hard-delete** dla wszystkich zasobów wesela. Soft-delete pomijamy w MVP. Cascade delete całego wesela tylko przez `created_by_user_id`.
 5. **Symetryczne uprawnienia** między partnerami (CRUD wszystko). Asymetryczny tylko hard-delete całego wesela (`weddings.created_by_user_id`).
 6. **Conflict reason** — `text` (free-form), nie enum. Każda para ma swoje powody.
-7. **Auto-timeline regeneracja** — trigger `tg_weddings_shift_auto_tasks` przesuwa nieskończone auto-zadania o delta dni przy zmianie `wedding_date`. Ukończonych i manualnych nie rusza. Endpoint `POST /tasks/regenerate-auto` daje force-mode.
-8. **Spotkania** są **niezależnymi encjami** od zadań. Zadanie "Spotkanie z DJ-em" (auto-task) i wpis w `meetings` to dwie różne rzeczy: pierwsze to checkpoint w timeline, drugie to konkretny umówiony termin. Można w przyszłości dodać `meetings.task_id` (link), ale w MVP nie łączymy.
+7. ~~**Auto-timeline regeneracja**~~ — **USUNIĘTE 2026-05-26 (strip_task_auto).** Trigger `tg_weddings_shift_auto_tasks` i endpoint `POST /tasks/regenerate-auto` nie istnieją; zmiana `wedding_date` nie przesuwa żadnych zadań (są manualne).
+8. **Spotkania** są **niezależnymi encjami** od zadań. Wpis w `meetings` to konkretny umówiony termin, niezależny od (manualnej) listy zadań. Można w przyszłości dodać `meetings.task_id` (link), ale w MVP nie łączymy.
 9. **JSON export** — pełny dump wesela (gości, kontrahentów, umów, płatności, budżetu, wydatków, zadań, stołów, konfliktów, spotkań, meal_options). Bez `users.password_hash`, `partner_invitations.token`. RODO: każdy partner widzi pełen stan wesela, do którego należy.
 10. **Konwencje walut**: wszędzie PLN, brak `currency` column. Jeśli kiedyś trzeba — migracja `ALTER TABLE … ADD COLUMN currency text NOT NULL DEFAULT 'PLN'`.
 11. **`vendors.contract_amount` vs `contracts.total_amount`**: pierwsza to "planowana / orientacyjna", widoczna od momentu dodania kontrahenta. Druga to "podpisana", obowiązkowa przy `INSERT INTO contracts`. Backend kopiuje wartość przy tworzeniu kontraktu, ale są to niezależne kolumny (po podpisaniu mogą się rozjechać — np. dopłata).

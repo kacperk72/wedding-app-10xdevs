@@ -48,7 +48,7 @@ Persona pierwotna — para jako jednostka, dwa zlinkowane konta.
 
 - **Izolacja per wesele**: zalogowana tożsamość należąca do innego wesela (lub do dowolnej innej aplikacji w tym samym ekosystemie single sign-on) musi otrzymać odrzucenie autoryzacyjne — nie pustą listę i nie "not found". Przeciek danych przez granicę wesela jest krytycznym incydentem i blokuje wdrożenie na produkcję.
 - **Polski UI 100% od pierwszego commita**: każda widoczna etykieta, status, treść walidacji, każda wartość mocowana w seedach, każdy format daty (`DD.MM.YYYY`), każdy format kwoty (`32 000 zł` ze spacją jako separatorem tysięcy) — po polsku. Brak english-leaków. Easier to write Polish from the start than to migrate enum values and copy later.
-- **Regeneracja wbudowanych zadań nie traci stanu pary**: po zmianie daty ślubu, regeneracja wstępnej listy zadań nigdy nie nadpisuje zadań, które para oznaczyła jako ukończone, i nigdy nie tyka zadań, które para utworzyła ręcznie. Wielokrotne uruchomienie regeneracji daje identyczny wynik. Bug w tym = utrata stanu planowania pary; niezaakceptowalne.
+- ~~**Regeneracja wbudowanych zadań nie traci stanu pary**~~: **NIEAKTUALNE (2026-05-26).** Dotyczył auto-tasków (FR-024/027/034), które zostały usunięte — tasks są w pełni manualne, nie ma regeneracji, więc nie ma ryzyka nadpisania stanu. Guardrail zachowany historycznie; gdyby auto-taski wróciły za zgodą PO, ten warunek wraca jako wymóg.
 
 ## User Stories
 
@@ -114,10 +114,10 @@ Persona pierwotna — para jako jednostka, dwa zlinkowane konta.
 
 ### Zadania
 
-- FR-024: System generuje wstępną listę zadań liczonych wstecz od daty ślubu, na podstawie wbudowanego zestawu typowych zadań ślubnych. Priority: must-have
+- ~~FR-024: System generuje wstępną listę zadań liczonych wstecz od daty ślubu, na podstawie wbudowanego zestawu typowych zadań ślubnych.~~ **DESCOPED (2026-05-26).** Auto-taski usunięte migracją `strip_task_auto`; tasks są w pełni manualne (FR-025). Nie przywracać bez zgody PO. Priority: ~~must-have~~ descoped
 - FR-025: Para może dodać, edytować i usunąć własne zadanie (deadline, opis, tag). Priority: must-have
 - FR-026: Para widzi listę zadań pogrupowaną na "Opóźnione / W tym tygodniu / W przyszłości" oraz alternatywny widok kalendarza. Priority: must-have
-- FR-027: System regeneruje wbudowane zadania po zmianie daty ślubu w dwóch trybach: (a) **przesunięcie (merge)** — przesuwa terminy nieukończonych zadań wbudowanych; nie tyka zadań ukończonych ani zadań utworzonych ręcznie; (b) **generowanie od nowa (reset)** — usuwa wszystkie nieukończone zadania wbudowane i tworzy je od nowa z wbudowanego zestawu; nadal nie tyka zadań ukończonych ani utworzonych ręcznie. Priority: must-have
+- ~~FR-027: System regeneruje wbudowane zadania po zmianie daty ślubu w dwóch trybach: (a) **przesunięcie (merge)** — przesuwa terminy nieukończonych zadań wbudowanych; nie tyka zadań ukończonych ani zadań utworzonych ręcznie; (b) **generowanie od nowa (reset)** — usuwa wszystkie nieukończone zadania wbudowane i tworzy je od nowa z wbudowanego zestawu; nadal nie tyka zadań ukończonych ani utworzonych ręcznie.~~ **DESCOPED (2026-05-26)** wraz z FR-024. Priority: ~~must-have~~ descoped
   > Socrates: Rozważony counter-argument: "co jeśli para CHCE pełny reset po dużej zmianie daty (np. lipiec → październik) — przesunięcie zostawia 'zrobione' rzeczy, które mogą już nie być relewantne". Resolution: zmieniono — confirm dialog (FR-034) oferuje dwie jawne opcje (przesunięcie vs generowanie od nowa); domyślny tryb: przesunięcie. Idempotentność dotyczy przesunięcia; tryb generowania od nowa jest jawny i destrukcyjny tylko dla zadań nieukończonych.
 
 ### Rozsadzenie
@@ -133,7 +133,7 @@ Persona pierwotna — para jako jednostka, dwa zlinkowane konta.
 - FR-032: Para może dodać, edytować i usunąć pozycje listy "opcji dań" dla swojego wesela — to jest źródło danych dla wyboru dania w edytorze gościa. Priority: must-have
 - FR-033: Para może wyeksportować pełny zrzut swoich danych do pliku JSON, z wykluczeniem wrażliwych danych uwierzytelniających i niejawnych identyfikatorów zaproszeń. Priority: nice-to-have
   > Socrates: Rozważony counter-argument: "scope creep — para nigdy nie użyje, platforma hostingu robi codzienny backup, to feature dla 'może kiedyś'". Resolution: zdemoted z must-have do nice-to-have. Implementacja eksportu po stronie systemu może istnieć (rozstrzygnięto w planie implementacji), ale UI dla eksportu nie jest wymagane w MVP. Wraca jako must-have w v2, jeśli pojawi się realna potrzeba.
-- FR-034: System pokazuje confirm dialog przy zmianie daty ślubu z dwoma jawnymi opcjami: "Przesuń zadania (zachowaj zrobione i własne)" oraz "Wygeneruj zadania od zera (zachowaj zrobione)". Domyślny tryb: przesunięcie. Priority: must-have
+- ~~FR-034: System pokazuje confirm dialog przy zmianie daty ślubu z dwoma jawnymi opcjami: "Przesuń zadania (zachowaj zrobione i własne)" oraz "Wygeneruj zadania od zera (zachowaj zrobione)". Domyślny tryb: przesunięcie.~~ **DESCOPED (2026-05-26)** — bez auto-tasków zmiana daty ślubu (FR-031) nie wymaga dialogu regeneracji. Priority: ~~must-have~~ descoped
 
 ## Non-Functional Requirements
 
@@ -143,12 +143,12 @@ Persona pierwotna — para jako jednostka, dwa zlinkowane konta.
 
 ## Business Logic
 
-**Aplikacja zamienia datę ślubu w ciągle aktualizowany sygnał priorytetu: dla każdej wieczornej sesji mówi parze "co teraz wymaga uwagi", komponując cztery niezależne strumienie domenowe — (a) listę zadań liczoną wstecz od daty ślubu z wbudowanego zestawu typowych zadań ślubnych, (b) harmonogram nadchodzących płatności z umów, (c) lukę kompletności RSVP (goście niepotwierdzeni / bez wybranej diety / bez wybranego dania), (d) przekroczenia budżetowe per kategoria — w jedną rankowaną listę "opóźnione + due w 30 dniach".**
+**Aplikacja zamienia datę ślubu w ciągle aktualizowany sygnał priorytetu: dla każdej wieczornej sesji mówi parze "co teraz wymaga uwagi", komponując cztery niezależne strumienie domenowe — (a) listę zadań z deadline'ami (zadania **manualne** — FR-025; auto-generacja FR-024 descoped 2026-05-26), (b) harmonogram nadchodzących płatności z umów, (c) lukę kompletności RSVP (goście niepotwierdzeni / bez wybranej diety / bez wybranego dania), (d) przekroczenia budżetowe per kategoria — w jedną rankowaną listę "opóźnione + due w 30 dniach".**
 
 To jest reguła kompozycji, nie pojedyncza decyzja. Wejścia, w terminach widocznych dla użytkownika:
 
 - Data ślubu, wpisana w Ustawieniach przez parę.
-- Wbudowany, niezmienny w MVP zestaw typowych zadań ślubnych z relatywnymi przesunięciami od daty ślubu (np. "Rezerwacja sali" — 365 dni przed, "Spotkanie z DJ-em" — 240 dni przed, "Próba sukni" — 30 dni przed).
+- Zadania utworzone ręcznie przez parę, każde z własnym deadline'em (FR-025). _(Pierwotnie: wbudowany zestaw typowych zadań z relatywnymi przesunięciami — descoped 2026-05-26 wraz z FR-024.)_
 - Stan każdego kontrahenta (rozważany, spotkanie, zarezerwowany, zapłacony, wykonany) i harmonogram płatności w jego umowie.
 - Status RSVP każdego gościa i jego wybór dania.
 - Pozycje budżetowe (plan, faktycznie wydane, zarezerwowane z umów).

@@ -46,6 +46,14 @@ checkpoint:
 
 # Shape notes — Wedding Planner
 
+> ⚠️ **Dokument historyczny (zapis shapingu z 2026-05-19).** Nie aktualizowany w
+> miejscu — zachowuje „jak myśleliśmy wtedy". Dwie decyzje zostały później odwrócone:
+> (1) **baza** — notatki mówią „MySQL na Hostingerze", „MySQL doesn't have RLS",
+> „Avoid Supabase/Postgres"; faktycznie wedding-planner używa **Supabase Postgres**
+> z **RLS deny-all** (pivot 2026-05-23). MySQL/Sequelize należą tylko do SSO.
+> (2) **auto-taski** — opisane jako feature; usunięte 2026-05-26 (`strip_task_auto`),
+> tasks są manualne. Aktualny stan: `CLAUDE.md` + `context/foundation/{prd,roadmap,tech-stack,infrastructure}.md`.
+
 Seed source: existing docs in this repo (`docs/demo-app/01-overview.md`, `wedding-planner-deployment.md`, `wedding-planner-koncepcja.md`). Decisions already locked in those docs are echoed back and confirmed here — not relitigated.
 
 ## Vision & Problem Statement
