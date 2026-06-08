@@ -437,23 +437,23 @@ harmonogram, to osobna, późniejsza decyzja PO (poza zakresem tej zmiany).
 ### Phase 3: Frontend — serwis, strona, nawigacja, reuse danych
 
 #### Automated
-- [x] 3.1 Front buduje się (`npm run build`)
-- [x] 3.2 Testy jednostkowe frontu przechodzą (`npm test`) — brak spec-ów we froncie dla zmienianych obszarów (N/A)
-- [x] 3.3 Typecheck/lint przechodzą (`npm run lint`) — brak skryptu lint we froncie; typecheck pokryty przez `ng build` (N/A)
+- [x] 3.1 Front buduje się (`npm run build`) — 65f82e3
+- [x] 3.2 Testy jednostkowe frontu przechodzą (`npm test`) — brak spec-ów we froncie dla zmienianych obszarów (N/A) — 65f82e3
+- [x] 3.3 Typecheck/lint przechodzą (`npm run lint`) — brak skryptu lint we froncie; typecheck pokryty przez `ng build` (N/A) — 65f82e3
 
 #### Manual
-- [ ] 3.4 „Harmonogram" w sidebarze i mobile-nav, trasa `/app/harmonogram` działa
-- [ ] 3.5 Zapis sekcji utrwala dane po odświeżeniu
-- [ ] 3.6 Lista zdarzeń: szablon DJ-a + dodaj/usuń/przesuń
-- [ ] 3.7 Must-play blokuje 51.; dane reużywane read-only (brak override); UI po polsku, tokeny
+- [x] 3.4 „Harmonogram" w sidebarze i mobile-nav, trasa `/app/harmonogram` działa — 65f82e3
+- [x] 3.5 Zapis sekcji utrwala dane po odświeżeniu — 65f82e3
+- [x] 3.6 Lista zdarzeń: szablon DJ-a + dodaj/usuń/przesuń — 65f82e3
+- [x] 3.7 Must-play blokuje 51.; dane reużywane read-only (brak override); UI po polsku, tokeny — 65f82e3
 
 ### Phase 4: Eksport „Wersja dla DJ-a" (druk / PDF)
 
 #### Automated
-- [x] 4.1 Front buduje się (`npm run build`) — dj-export chunk wygenerowany, build czysty
-- [x] 4.2 Lint/typecheck przechodzą — brak skryptu lint we froncie; typecheck pokryty przez `ng build` (N/A)
+- [x] 4.1 Front buduje się (`npm run build`) — dj-export chunk wygenerowany, build czysty — 9beb9f5
+- [x] 4.2 Lint/typecheck przechodzą — brak skryptu lint we froncie; typecheck pokryty przez `ng build` (N/A) — 9beb9f5
 
 #### Manual
-- [ ] 4.3 „Wersja dla DJ-a" pokazuje wszystkie sekcje + dane reużywane
-- [ ] 4.4 `window.print()` daje czytelny PDF
-- [ ] 4.5 Brak chrome aplikacji na wydruku
+- [x] 4.3 „Wersja dla DJ-a" pokazuje wszystkie sekcje + dane reużywane — 9beb9f5
+- [x] 4.4 `window.print()` daje czytelny PDF — 9beb9f5
+- [x] 4.5 Brak chrome aplikacji na wydruku — 9beb9f5

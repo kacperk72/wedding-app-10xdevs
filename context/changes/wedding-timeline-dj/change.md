@@ -1,9 +1,9 @@
 ---
 id: wedding-timeline-dj
 title: Zakładka „Harmonogram" — ankieta DJ-a (przebieg wesela + muzyka)
-status: implementing
+status: implemented
 created: 2026-06-01
-updated: 2026-06-03
+updated: 2026-06-08
 ---
 
 # Harmonogram wesela (ankieta DJ-a)
