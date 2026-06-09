@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
 import { formatPLN } from '../../core/format/currency.format';
 import {
   ContractBundleInput,
@@ -130,7 +129,6 @@ export class VendorsPage implements OnInit {
     this.vendorsService.create(weddingId, dto).subscribe({
       next: () => {
         this.resetNewForm();
-        this.refreshMissing(weddingId);
         this.toast.success('Kontrahent został dodany.');
       },
       error: () => this.toast.error('Nie udało się dodać kontrahenta.'),
@@ -159,7 +157,6 @@ export class VendorsPage implements OnInit {
     this.vendorsService.update(weddingId, id, dto).subscribe({
       next: () => {
         this.editingVendorId.set(null);
-        this.refreshMissing(weddingId);
         this.toast.success('Kontrahent został zapisany.');
       },
       error: () => this.toast.error('Nie udało się zapisać kontrahenta.'),
@@ -173,7 +170,6 @@ export class VendorsPage implements OnInit {
 
     this.vendorsService.remove(weddingId, id).subscribe({
       next: () => {
-        this.refreshMissing(weddingId);
         this.toast.success('Kontrahent został usunięty.');
       },
       error: () => this.toast.error('Nie udało się usunąć kontrahenta.'),
@@ -212,13 +208,6 @@ export class VendorsPage implements OnInit {
 
   protected categoryLabel(category: VendorCategory): string {
     return VENDOR_CATEGORY_LABELS[category];
-  }
-
-  protected missingCategoryLabels(): string {
-    return this.vendorsService
-      .missingCategories()
-      .map((category) => VENDOR_CATEGORY_LABELS[category as VendorCategory] ?? category)
-      .join(', ');
   }
 
   protected statusLabel(status: VendorStatus): string {
@@ -276,14 +265,8 @@ export class VendorsPage implements OnInit {
   }
 
   private loadResources(weddingId: string): void {
-    forkJoin([this.vendorsService.list(weddingId), this.vendorsService.missing(weddingId)]).subscribe({
+    this.vendorsService.list(weddingId).subscribe({
       error: () => this.toast.error('Nie udało się pobrać kontrahentów.'),
-    });
-  }
-
-  private refreshMissing(weddingId: string): void {
-    this.vendorsService.missing(weddingId).subscribe({
-      error: () => this.toast.error('Nie udało się odświeżyć brakujących kategorii.'),
     });
   }
 

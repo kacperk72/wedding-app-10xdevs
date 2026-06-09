@@ -4,23 +4,6 @@
 
 <div class="page-stack">
   <section class="surface panel">
-    <div class="panel__header">
-      <div>
-        <p class="panel__eyebrow">Wymaga uwagi</p>
-        <h2>Brakujące kategorie</h2>
-      </div>
-      <span class="badge badge--warning">{{ vendorsService.missingCategories().length }} kategorii</span>
-    </div>
-    <p class="muted">
-      @if (vendorsService.missingCategories().length) {
-        Do potwierdzenia: {{ missingCategoryLabels() }}.
-      } @else {
-        Najważniejsze kategorie są zabezpieczone.
-      }
-    </p>
-  </section>
-
-  <section class="surface panel">
     <form class="form-grid" (ngSubmit)="addVendor()">
       <div class="field">
         <label for="newCategory">Kategoria</label>

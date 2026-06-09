@@ -11,19 +11,10 @@ export class VendorsService {
   private readonly _vendors = signal<Vendor[]>([]);
   readonly vendors = this._vendors.asReadonly();
 
-  private readonly _missingCategories = signal<string[]>([]);
-  readonly missingCategories = this._missingCategories.asReadonly();
-
   list(weddingId: string): Observable<Vendor[]> {
     return this.http
       .get<Vendor[]>(apiUrl(`/weddings/${weddingId}/vendors`))
       .pipe(tap((vendors) => this._vendors.set(vendors)));
-  }
-
-  missing(weddingId: string): Observable<string[]> {
-    return this.http
-      .get<string[]>(apiUrl(`/weddings/${weddingId}/vendors/missing`))
-      .pipe(tap((categories) => this._missingCategories.set(categories)));
   }
 
   create(weddingId: string, dto: CreateVendorDto): Observable<Vendor> {
