@@ -75,12 +75,6 @@ function sum(rows, key) {
   return rows.reduce((total, row) => total + Number(row[key] || 0), 0);
 }
 
-function daysUntil(dateValue, now = new Date()) {
-  const today = new Date(`${dateOnly(now)}T00:00:00.000Z`);
-  const target = new Date(`${dateValue}T00:00:00.000Z`);
-  return Math.ceil((target.getTime() - today.getTime()) / 86400000);
-}
-
 async function listWeddingRows(table, weddingId, columns = "*") {
   const { data, error } = await supabase.from(table).select(columns).eq("wedding_id", weddingId);
   if (error) throw error;

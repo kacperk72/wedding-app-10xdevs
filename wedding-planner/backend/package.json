@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "lint": "eslint \"src/**/*.js\" \"test/**/*.js\"",
     "test": "node --test test/*.test.js"
   },
   "engines": {
@@ -22,5 +23,10 @@
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^3.1.0",
     "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "globals": "^17.6.0"
   }
 }
