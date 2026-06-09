@@ -159,7 +159,7 @@ Indexes: `wedding_id`, `(wedding_id, rsvp_status)`, `(wedding_id, table_id)`, `(
 | contact_person   | text                                                                       | YES  |                      | Observed   | "Joanna Wójcik"                                |
 | phone            | text                                                                       | YES  |                      | Observed   | "+48 600 100 200"                              |
 | email            | text                                                                       | YES  |                      | Observed   | "biuro@palacpodlipami.pl"                      |
-| status           | text CHECK (status IN ('rozwazany','spotkanie','zarezerwowany','zaplacony','wykonany')) | NO | `'rozwazany'` | Observed | 5 statusów w chips na górze            |
+| status           | text CHECK (status IN ('rozwazany','spotkanie','zarezerwowany','umowa_podpisana','zaliczka_wplacona','oplacony','zrealizowany')) | NO | `'rozwazany'` | Observed | 7 statusów — pełna oś postępu (migracja `vendor_status_rework`, 2026-06-09: `zaplacony`→`oplacony`, `wykonany`→`zrealizowany`) |
 | contract_amount  | numeric(12,2)                                                              | YES  |                      | Observed   | **Planowana / orientacyjna** kwota — widoczna na karcie kontrahenta nawet zanim umowa zostanie podpisana. Po podpisaniu źródłem prawdy staje się `contracts.total_amount` (zwykle ta sama wartość — backend kopiuje przy `POST /contracts`). |
 | notes            | text                                                                       | YES  |                      | Recommended| Useful w produkcji, brak w UI                  |
 | created_at       | timestamptz                                                                | NO   | `now()`              | Recommended|                                                |
@@ -663,7 +663,7 @@ CREATE TABLE vendors (
   phone             text,
   email             text,
   status            text NOT NULL DEFAULT 'rozwazany' CHECK (status IN
-    ('rozwazany','spotkanie','zarezerwowany','zaplacony','wykonany')),
+    ('rozwazany','spotkanie','zarezerwowany','umowa_podpisana','zaliczka_wplacona','oplacony','zrealizowany')),
   contract_amount   numeric(12,2),
   notes             text,
   created_at        timestamptz NOT NULL DEFAULT now(),
