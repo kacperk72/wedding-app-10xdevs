@@ -289,30 +289,41 @@ describe("scoped wedding resource CRUD", () => {
       contactPerson: "Tomasz",
       phone: "+48 500 300 400",
       email: "foto@example.com",
-      status: "rozwazany",
+      status: "zaliczka_wplacona",
       contractAmount: 8500,
     });
 
     assert.equal(created.status, 201);
     assert.equal(created.body.companyName, "Kadr i Swiatlo");
+    assert.equal(created.body.status, "zaliczka_wplacona");
     assert.equal(created.body.hasContract, false);
 
     const updated = await request(
       server,
       "PATCH",
       `/api/weddings/wedding-1/vendors/${created.body.id}`,
-      { status: "zarezerwowany", notes: "Podpis do potwierdzenia" },
+      { status: "umowa_podpisana", notes: "Podpis do potwierdzenia" },
     );
     assert.equal(updated.status, 200);
-    assert.equal(updated.body.status, "zarezerwowany");
+    assert.equal(updated.body.status, "umowa_podpisana");
 
-    const list = await request(server, "GET", "/api/weddings/wedding-1/vendors?status=zarezerwowany");
+    const list = await request(
+      server,
+      "GET",
+      "/api/weddings/wedding-1/vendors?status=umowa_podpisana",
+    );
     assert.equal(list.status, 200);
     assert.equal(list.body.length, 1);
 
+    const legacyStatus = await request(server, "POST", "/api/weddings/wedding-1/vendors", {
+      category: "dj",
+      companyName: "Stary Enum",
+      status: "zaplacony",
+    });
+    assert.equal(legacyStatus.status, 400);
+
     const missing = await request(server, "GET", "/api/weddings/wedding-1/vendors/missing");
-    assert.equal(missing.status, 200);
-    assert.equal(missing.body.includes("fotograf"), false);
+    assert.equal(missing.status, 404);
 
     const removed = await request(
       server,

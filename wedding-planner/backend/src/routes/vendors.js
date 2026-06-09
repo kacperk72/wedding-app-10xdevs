@@ -26,8 +26,15 @@ const VENDOR_CATEGORIES = [
   "slodki_stol_tort",
   "ciasta_pozegnalne",
 ];
-const VENDOR_STATUSES = ["rozwazany", "spotkanie", "zarezerwowany", "zaplacony", "wykonany"];
-const SECURED_STATUSES = ["zarezerwowany", "zaplacony", "wykonany"];
+const VENDOR_STATUSES = [
+  "rozwazany",
+  "spotkanie",
+  "zarezerwowany",
+  "umowa_podpisana",
+  "zaliczka_wplacona",
+  "oplacony",
+  "zrealizowany",
+];
 const PAYMENT_METHODS = ["gotowka", "przelew"];
 
 function optionalAmount(body, key) {
@@ -183,25 +190,6 @@ async function attachContractFlags(vendors) {
 }
 
 router.use(requireWeddingMember());
-
-router.get("/missing", async (req, res, next) => {
-  try {
-    const { data, error } = await supabase
-      .from("vendors")
-      .select("category, status")
-      .eq("wedding_id", req.params.weddingId);
-
-    if (error) throw error;
-    const secured = new Set(
-      data
-        .filter((vendor) => SECURED_STATUSES.includes(vendor.status))
-        .map((vendor) => vendor.category),
-    );
-    res.json(VENDOR_CATEGORIES.filter((category) => !secured.has(category)));
-  } catch (err) {
-    next(err);
-  }
-});
 
 router.get("/", async (req, res, next) => {
   try {
