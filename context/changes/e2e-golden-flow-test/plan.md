@@ -513,30 +513,30 @@ deployment doc.
 
 #### Automated
 
-- [x] 2.1 Backend suite passes: `npm test` in `wedding-planner/backend`
-- [x] 2.2 Seam accepts a valid locally-signed token (correct `req.user`) when enabled
-- [x] 2.3 Seam rejects a wrong-signature token with 401 when enabled
-- [x] 2.4 Boot guard throws when `AUTH_TEST_MODE` set under `NODE_ENV=production`
-- [x] 2.5 Live JWKS path unchanged when test mode off (existing tests pass)
+- [x] 2.1 Backend suite passes: `npm test` in `wedding-planner/backend` — f9aa708
+- [x] 2.2 Seam accepts a valid locally-signed token (correct `req.user`) when enabled — f9aa708
+- [x] 2.3 Seam rejects a wrong-signature token with 401 when enabled — f9aa708
+- [x] 2.4 Boot guard throws when `AUTH_TEST_MODE` set under `NODE_ENV=production` — f9aa708
+- [x] 2.5 Live JWKS path unchanged when test mode off (existing tests pass) — f9aa708
 
 #### Manual
 
-- [x] 2.6 Env contract documented; unset default is the live JWKS path
-- [x] 2.7 Inspection confirms no prod entrypoint reaches the seam without the env flag
+- [x] 2.6 Env contract documented; unset default is the live JWKS path — f9aa708
+- [x] 2.7 Inspection confirms no prod entrypoint reaches the seam without the env flag — f9aa708
 
 ### Phase 3: Playwright bootstrap + FE SDK stub
 
 #### Automated
 
-- [ ] 3.1 `npm run e2e` boots FE + BE and runs Playwright headless
-- [ ] 3.2 Smoke spec passes: stubbed login lands on `/app` (no redirect to `/`)
-- [ ] 3.3 `npx playwright install` documented as a prerequisite
+- [x] 3.1 `npm run e2e` boots FE + BE and runs Playwright headless
+- [x] 3.2 Smoke spec passes: stubbed login lands on `/app` (no redirect to `/`)
+- [x] 3.3 `npx playwright install` documented as a prerequisite
 
 #### Manual
 
-- [ ] 3.4 BE under e2e runs with `AUTH_TEST_MODE` and is confirmed not reachable as prod
-- [ ] 3.5 SSO stub requires no network to `kubitksso.pl`
-- [ ] 3.6 Smoke run deterministic across 3 consecutive runs (no flake)
+- [x] 3.4 BE under e2e runs with `AUTH_TEST_MODE` and is confirmed not reachable as prod
+- [x] 3.5 SSO stub requires no network to `kubitksso.pl`
+- [x] 3.6 Smoke run deterministic across 3 consecutive runs (no flake)
 
 ### Phase 4: Golden-flow e2e + cookbook / test-plan backport
 
