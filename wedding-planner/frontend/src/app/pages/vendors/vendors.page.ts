@@ -227,11 +227,13 @@ export class VendorsPage implements OnInit {
 
   protected statusClass(status: VendorStatus): string {
     return {
-      spotkanie: 'badge--warning',
-      zarezerwowany: 'badge--success',
-      zaplacony: 'badge--info',
-      wykonany: 'badge--success',
       rozwazany: 'badge--neutral',
+      spotkanie: 'badge--warning',
+      zarezerwowany: 'badge--info',
+      umowa_podpisana: 'badge--success',
+      zaliczka_wplacona: 'badge--success',
+      oplacony: 'badge--success',
+      zrealizowany: 'badge--success',
     }[status];
   }
 

@@ -10,7 +10,14 @@ export type VendorCategory =
   | 'slodki_stol_tort'
   | 'ciasta_pozegnalne';
 
-export type VendorStatus = 'rozwazany' | 'spotkanie' | 'zarezerwowany' | 'zaplacony' | 'wykonany';
+export type VendorStatus =
+  | 'rozwazany'
+  | 'spotkanie'
+  | 'zarezerwowany'
+  | 'umowa_podpisana'
+  | 'zaliczka_wplacona'
+  | 'oplacony'
+  | 'zrealizowany';
 
 export type PaymentMethod = 'gotowka' | 'przelew';
 
@@ -70,10 +77,12 @@ export const VENDOR_CATEGORY_LABELS: Record<VendorCategory, string> = {
 
 export const VENDOR_STATUS_LABELS: Record<VendorStatus, string> = {
   rozwazany: 'rozważany',
-  spotkanie: 'spotkanie',
+  spotkanie: 'spotkanie umówione',
   zarezerwowany: 'zarezerwowany',
-  zaplacony: 'zapłacony',
-  wykonany: 'wykonany',
+  umowa_podpisana: 'umowa podpisana',
+  zaliczka_wplacona: 'zaliczka wpłacona',
+  oplacony: 'opłacony w całości',
+  zrealizowany: 'zrealizowany',
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
