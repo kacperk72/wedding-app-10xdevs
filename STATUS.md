@@ -25,6 +25,10 @@
 | M10 | Polish + wdrożenie | 🟡 w toku | wdrożenie+SSO ✅ LIVE; bugi i18n/format/demo naprawione; zostaje WCAG + runner testów frontu |
 | Harmonogram | Ankieta DJ-a (przebieg dnia + muzyka + listy utworów) | 🟡 w toku | `migrations/20260601120000_wedding_timeline`, `routes/timeline.js`, `timeline-crud.test.js`, `core/services/timeline.service.ts`, `pages/harmonogram`; eksport „Wersja dla DJ-a" (Faza 4) jeszcze nie zrobiony |
 
+## Bieżące
+
+- 2026-06-09: przebudowa zakładki kontrahentów — 7-stopniowa oś statusów (migracja `vendor_status_rework`), usunięte wpisy o brakujących kontrahentach (dashboard + strona kontrahentów + `GET /vendors/missing`), naprawiony checkbox harmonogramu płatności, kafelki bez myślników.
+
 ## Otwarte
 
 - [ ] **Kontrast WCAG / focus-ring** — wymaga axe-core lub oceny wzrokowej, niski priorytet.
