@@ -223,14 +223,24 @@
             <span class="badge {{ statusClass(vendor.status) }}">{{ statusLabel(vendor.status) }}</span>
           </div>
           <div class="list">
-            <div>
-              <p class="list-item__title">{{ vendor.contactPerson || '-' }}</p>
-              <p class="list-item__meta">{{ vendor.phone || '-' }}</p>
-            </div>
-            <div>
-              <p class="list-item__meta">{{ vendor.email || '-' }}</p>
-              <p class="list-item__title">{{ money(vendor.contractAmount) }}</p>
-            </div>
+            @if (vendor.contactPerson || vendor.phone || vendor.email) {
+              <div>
+                @if (vendor.contactPerson) {
+                  <p class="list-item__title">{{ vendor.contactPerson }}</p>
+                }
+                @if (vendor.phone) {
+                  <p class="list-item__meta">{{ vendor.phone }}</p>
+                }
+                @if (vendor.email) {
+                  <p class="list-item__meta">{{ vendor.email }}</p>
+                }
+              </div>
+            }
+            @if (vendor.contractAmount !== null) {
+              <div>
+                <p class="list-item__title">{{ money(vendor.contractAmount) }}</p>
+              </div>
+            }
           </div>
           <div class="toolbar">
             <button type="button" class="button-like button-like--secondary" (click)="startEdit(vendor)">
