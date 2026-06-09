@@ -498,31 +498,31 @@ deployment doc.
 
 #### Automated
 
-- [x] 1.1 Backend suite passes: `npm test` in `wedding-planner/backend`
-- [x] 1.2 `isolation-gate.test.js` asserts 403 on GET `/`, GET `/aggregates`, POST, PATCH, DELETE as `sso-b`
-- [x] 1.3 Positive control (`sso-a` not 403) passes in the same file
-- [x] 1.4 `jwks-auth.test.js` asserts 401 for missing / expired / malformed tokens and `next()` for valid
-- [x] 1.5 Cache-header assertion (`no-store` + `Vary: Authorization`) passes
-- [x] 1.6 No network calls occur during the suite (JWKS not contacted)
+- [x] 1.1 Backend suite passes: `npm test` in `wedding-planner/backend` — 80d3401
+- [x] 1.2 `isolation-gate.test.js` asserts 403 on GET `/`, GET `/aggregates`, POST, PATCH, DELETE as `sso-b` — 80d3401
+- [x] 1.3 Positive control (`sso-a` not 403) passes in the same file — 80d3401
+- [x] 1.4 `jwks-auth.test.js` asserts 401 for missing / expired / malformed tokens and `next()` for valid — 80d3401
+- [x] 1.5 Cache-header assertion (`no-store` + `Vary: Authorization`) passes — 80d3401
+- [x] 1.6 No network calls occur during the suite (JWKS not contacted) — 80d3401
 
 #### Manual
 
-- [x] 1.7 Test/file counts increase as expected; no time-bomb dates introduced
+- [x] 1.7 Test/file counts increase as expected; no time-bomb dates introduced — 80d3401
 
 ### Phase 2: Backend test-auth seam (`AUTH_TEST_MODE`, prod-safe)
 
 #### Automated
 
-- [ ] 2.1 Backend suite passes: `npm test` in `wedding-planner/backend`
-- [ ] 2.2 Seam accepts a valid locally-signed token (correct `req.user`) when enabled
-- [ ] 2.3 Seam rejects a wrong-signature token with 401 when enabled
-- [ ] 2.4 Boot guard throws when `AUTH_TEST_MODE` set under `NODE_ENV=production`
-- [ ] 2.5 Live JWKS path unchanged when test mode off (existing tests pass)
+- [x] 2.1 Backend suite passes: `npm test` in `wedding-planner/backend`
+- [x] 2.2 Seam accepts a valid locally-signed token (correct `req.user`) when enabled
+- [x] 2.3 Seam rejects a wrong-signature token with 401 when enabled
+- [x] 2.4 Boot guard throws when `AUTH_TEST_MODE` set under `NODE_ENV=production`
+- [x] 2.5 Live JWKS path unchanged when test mode off (existing tests pass)
 
 #### Manual
 
-- [ ] 2.6 Env contract documented; unset default is the live JWKS path
-- [ ] 2.7 Inspection confirms no prod entrypoint reaches the seam without the env flag
+- [x] 2.6 Env contract documented; unset default is the live JWKS path
+- [x] 2.7 Inspection confirms no prod entrypoint reaches the seam without the env flag
 
 ### Phase 3: Playwright bootstrap + FE SDK stub
 

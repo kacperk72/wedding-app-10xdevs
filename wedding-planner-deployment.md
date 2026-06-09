@@ -381,6 +381,22 @@ W `wedding-planner/frontend/index.html` (dev):
 ></script>
 ```
 
+### Hermetyczny seam test-auth (tylko e2e / lokalne testy — NIGDY produkcja)
+
+Backend ma furtkę uwierzytelniania dla testów e2e, sterowaną dwiema zmiennymi:
+
+```env
+AUTH_TEST_MODE=1                 # włącza seam; w produkcji MUSI być puste/nieustawione
+AUTH_TEST_SECRET=<dowolny-sekret> # wspólny sekret HS256 dla stubu SSO i backendu
+```
+
+Gdy `AUTH_TEST_MODE=1` **i** `NODE_ENV != production`, backend akceptuje token
+HS256 podpisany `AUTH_TEST_SECRET` zamiast weryfikacji przez JWKS. Obrona
+wielowarstwowa: seam aktywuje się tylko poza produkcją, a serwer **odmawia
+startu** (`assertTestAuthConfigSafe` rzuca przy boote), jeśli `AUTH_TEST_MODE=1`
+trafi pod `NODE_ENV=production`. W panelu env Hostingera obie zmienne zostają
+puste. (Patrz `wedding-planner/backend/src/middleware/test-auth.js`.)
+
 **W panelu SSO** (`http://localhost:3000/apps`) zarejestruj apkę z `domain: http://localhost:4200` — wtedy bramka zaakceptuje redirect na localhost:4200.
 
 ## Workflow dewelopera

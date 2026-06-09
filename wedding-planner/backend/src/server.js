@@ -7,6 +7,7 @@ require("dotenv").config();
 const corsOptions = require("./config/cors");
 const errorHandler = require("./middleware/error-handler");
 const requireSsoAuth = require("./middleware/jwks-auth");
+const { assertTestAuthConfigSafe } = require("./middleware/test-auth");
 const healthRouter = require("./routes/health");
 const meRouter = require("./routes/me");
 const weddingsRouter = require("./routes/weddings");
@@ -28,6 +29,10 @@ const cateringPackagesRouter = require("./routes/catering-packages");
 const cateringDishesRouter = require("./routes/catering-dishes");
 const cateringAddonsRouter = require("./routes/catering-addons");
 const cateringSelectionRouter = require("./routes/catering-selection");
+
+// Fail-closed: refuse to boot if the hermetic test-auth seam is ever enabled
+// in production. Runs on both import and `node src/server.js`.
+assertTestAuthConfigSafe();
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;

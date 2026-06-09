@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const jwksClient = require("jwks-rsa");
+const { isTestAuthEnabled, verifyTestToken } = require("./test-auth");
 require("dotenv").config();
 
 // One JWKS client per process. Pulls keys from the SSO at JWKS_URL,
@@ -35,6 +36,22 @@ function requireSsoAuth(req, res, next) {
     return res
       .status(401)
       .json({ error: "Access denied. No token provided." });
+  }
+
+  // Hermetic e2e/integration seam — only active when AUTH_TEST_MODE is set AND
+  // NODE_ENV !== "production" (see middleware/test-auth.js). Verifies a
+  // locally-signed token without touching the live JWKS. The live path below
+  // is unchanged when the seam is off.
+  if (isTestAuthEnabled()) {
+    try {
+      req.user = verifyTestToken(token);
+      return next();
+    } catch (err) {
+      if (err.name === "TokenExpiredError") {
+        return res.status(401).json({ error: "Token expired." });
+      }
+      return res.status(401).json({ error: "Invalid token." });
+    }
   }
 
   jwt.verify(token, getSigningKey, verifyOptions, (err, decoded) => {
