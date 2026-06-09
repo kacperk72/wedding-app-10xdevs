@@ -25,19 +25,6 @@ const router = express.Router();
 const WEDDING_SELECT =
   "id, partner_a_name, partner_b_name, wedding_date, ceremony_location, budget_total, created_by_user_id, wedding_members(user_id, role, linked_at, users(email, first_name, last_name))";
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
-const VENDOR_CATEGORIES = [
-  "sala",
-  "catering",
-  "fotograf",
-  "dj",
-  "dekoratorka",
-  "kosciol",
-  "makijaz",
-  "dekoracje",
-  "slodki_stol_tort",
-  "ciasta_pozegnalne",
-];
-const SECURED_VENDOR_STATUSES = ["zarezerwowany", "zaplacony", "wykonany"];
 
 const acceptInviteLimit = rateLimit({
   windowMs: 60_000,
@@ -112,15 +99,6 @@ async function loadContractsAndPayments(weddingId) {
   return { contracts, payments: payments || [] };
 }
 
-function missingVendorCategories(vendors) {
-  const secured = new Set(
-    vendors
-      .filter((vendor) => SECURED_VENDOR_STATUSES.includes(vendor.status))
-      .map((vendor) => vendor.category),
-  );
-  return VENDOR_CATEGORIES.filter((category) => !secured.has(category));
-}
-
 async function buildDashboard(weddingId) {
   const now = new Date();
   const today = dateOnly(now);
@@ -155,7 +133,6 @@ async function buildDashboard(weddingId) {
   const overdueTasks = activeTasks
     .filter((task) => task.due_date < today)
     .sort((a, b) => a.due_date.localeCompare(b.due_date));
-  const missingVendors = missingVendorCategories(vendors);
   const plannedPayments = payments.filter((payment) => payment.status !== "paid");
   const overduePayments = plannedPayments
     .filter((payment) => payment.status === "overdue" || payment.due_date < today)
@@ -170,12 +147,6 @@ async function buildDashboard(weddingId) {
       title: task.title,
       meta: `Termin: ${task.due_date}`,
       route: "/app/zadania",
-    })),
-    ...missingVendors.map((category) => ({
-      type: "vendor",
-      title: `Brakuje kontrahenta: ${category}`,
-      meta: "Kategoria nie ma zabezpieczonego statusu",
-      route: "/app/kontrahenci",
     })),
     ...overduePayments.map((payment) => {
       const contract = contractsById.get(payment.contract_id);

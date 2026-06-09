@@ -107,8 +107,13 @@ describe("dashboard aggregate", () => {
     assert.equal(response.body.kpis.payments.upcomingCount, 1);
     assert.equal(response.body.kpis.payments.overdueCount, 1);
     assert.equal(response.body.kpis.tasks.overdueCount, 1);
-    assert.equal(response.body.attentionItems.length, 5);
+    assert.equal(response.body.attentionItems.length, 2);
     assert.equal(response.body.attentionItems[0].type, "task");
+    assert.equal(response.body.attentionItems[1].type, "payment");
+    assert.equal(
+      response.body.attentionItems.some((item) => item.type === "vendor"),
+      false,
+    );
     assert.equal(response.body.upcomingMeetings[0].vendorName, "Palac");
   });
 });
