@@ -6,7 +6,7 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-06-08 (Phase 1 change opened)
+> Last updated: 2026-06-09 (§3 Phase 1 complete — `integration + e2e`; §6.3/§6.6 filled)
 
 ## 1. Strategy
 
@@ -75,6 +75,15 @@ of scope for a two-user MVP and is noted in §7.
 | #6 | An export of a wedding that has a password_hash and an invite token contains **neither** | "Spec says minus-secrets ⇒ code redacts" | Which fields the export traverses; where secrets live in the dumped graph | Backend integration | Asserting only that the export is non-empty / well-formed |
 | #7 | Drag assigns to the correct table and persists `seat_number`; Tab + Enter/Space achieves the same assignment; ARIA announces the result | "Mouse works ⇒ keyboard works" | The seat-assignment persistence path; the keyboard focus/activation model; the ARIA contract | Frontend component/integration | Snapshot-without-meaning; testing drag while never exercising the fallback |
 
+**Phase 1 research correction (2026-06-09).** Risk #1 proved cheapest at the
+**backend integration** layer, not e2e: the membership guard runs above every
+method, so 403 read/write parity is one integration file against the existing
+harness. Risk #2's API half ("B's GET returns A's write") is low-signal — the
+read is wedding-scoped by construction, so an API symmetry test mirrors the
+implementation. The genuine #2 signal is the browser re-fetch (two-context
+e2e) plus the cheap cache-header contract (`no-store` + `Vary: Authorization`)
+at integration level. §3 Phase 1 is therefore `integration + e2e`.
+
 ## 3. Phased Rollout
 
 Each row is a discrete rollout phase that will open its own change folder
@@ -83,7 +92,7 @@ orchestrator updates Status as artifacts appear on disk.
 
 | # | Phase name | Goal (one line) | Risks covered | Test types | Status | Change folder |
 |---|------------|-----------------|----------------|-----------|--------|---------------|
-| 1 | E2E golden flow + isolation gate | Bootstrap the e2e layer (none today); prove US-01 cross-account write→read AND foreign-identity 403; assert Polish validation + `DD.MM.YYYY` inline | #1, #2 | e2e | change opened | context/changes/e2e-golden-flow-test/ |
+| 1 | E2E golden flow + isolation gate | Bootstrap the e2e layer (none today); prove US-01 cross-account write→read AND foreign-identity 403; assert Polish validation + `DD.MM.YYYY` inline | #1, #2 | integration + e2e | complete | context/changes/e2e-golden-flow-test/ |
 | 2 | CI gate + migration-drift guard + smoke | Add lint config; run BE+FE+E2E before deploy; fail CI on disk-vs-applied migration drift; post-deploy `/api/health` smoke | #3 | quality-gate | not started | — |
 | 3 | Money + signal + egress (backend integration, oracle-safe) | Independent-fixture tests for the 30-day payment window, contract-status sync, budget overflow flag, dashboard signal, and export secret-redaction | #4, #5, #6 | integration | not started | — |
 | 4 | Seating correctness + accessible fallback | Verify seat assignment + `seat_number` persistence; keyboard-only path equivalence + ARIA announcements | #7 | component/integration | not started | — |
@@ -101,7 +110,7 @@ The classic test base for this project. AI-native tools (if any) carry a
 | backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 19 files / 110 tests; mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
 | frontend unit | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Sparse** — 3 specs / 15 tests (formatters + `GuestsService`); seed suite only |
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
-| e2e | none yet — see §3 Phase 1 | — | Playwright is the proposed choice (TS-native, Angular-friendly per roadmap F-01) |
+| e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
 | accessibility | none yet — see §3 Phase 4 | — | Seating keyboard fallback (FR-029) is the only hard a11y requirement; axe-core optional |
 | CI quality gate | GitHub Actions | — | `deploy.yml` only; test step is a no-op placeholder — see §3 Phase 2 |
 
@@ -148,7 +157,14 @@ the relevant rollout phase ships; before that, it reads "TBD — see §3 Phase <
 - **Run locally**: `ng test` (Vitest via `@angular/build:unit-test`) in `wedding-planner/frontend`.
 
 ### 6.3 Adding an e2e test
-- TBD — see §3 Phase 1 (cross-account golden flow + 403 isolation gate).
+- **Location**: `wedding-planner/frontend/e2e/*.spec.ts` (outside `src/`, so Vitest ignores it).
+- **Runner**: Playwright (`@playwright/test`); config in `wedding-planner/frontend/playwright.config.ts` boots BOTH servers (`webServer`): the Express backend with `NODE_ENV=test AUTH_TEST_MODE=1 DB_TEST_MODE=1` (hermetic: locally-signed HS256 tokens + in-memory seeded DB — no Supabase, no `kubitksso.pl`) and `ng serve`.
+- **Auth pattern**: never drive the real SSO. Call `authenticateAs(context, 'a' | 'b')` from `e2e/support/sso-stub.ts` — it injects a fake `window.SSOAuth` via `addInitScript`, signs the token locally, and aborts the real SDK `<script>`.
+- **Two-account pattern**: create two `browser.newContext()`s and `authenticateAs` each as a different member; contexts have separate storage by construction. Seeded members live in `wedding-planner/backend/test/helpers/e2e-seed.js` (`user-a`/`user-b`, both members of `wedding-1`, wedding date `2026-09-12`).
+- **Assertion rule**: target rendered DOM only (toasts via `ToastService`, `formatDDMMYYYY` output) — backend error bodies are mixed-locale.
+- **Reference tests**: `e2e/golden-flow.spec.ts` (two-context cross-account read), `e2e/smoke.spec.ts` (auth harness).
+- **Prerequisite**: `npx playwright install chromium` (see `e2e/README.md`).
+- **Run locally**: `npm run e2e` in `wedding-planner/frontend`.
 
 ### 6.4 Adding a test for a new API endpoint
 - **Test type**: backend integration (preferred) — follow the new-resource convention in CLAUDE.md (router + mapper + `assertWeddingRecordExists` + cross-wedding rejection test).
@@ -159,6 +175,8 @@ the relevant rollout phase ships; before that, it reads "TBD — see §3 Phase <
 
 ### 6.6 Per-rollout-phase notes
 (Filled in by `/10x-implement` as phases land.)
+
+- **§3 Phase 1 (e2e golden flow + isolation gate, shipped 2026-06-09)** — landed as `integration + e2e`, not pure e2e (research: Risk #1 and the 401 auth boundary are cheapest at the backend integration layer; only Risk #2's browser re-fetch needs e2e). Backend: `isolation-gate.test.js` (non-member 403 parity on read+write + cache headers), `jwks-auth.test.js` (401 paths), `test-auth-seam.test.js` + `db-seam.test.js` (hermetic seams, fail-closed boot guards verified under `NODE_ENV=production`). Frontend: Playwright bootstrap + `smoke.spec.ts` + `golden-flow.spec.ts`. The two prod-safety boot guards (`AUTH_TEST_MODE`, `DB_TEST_MODE`) are the security-critical invariant — never weaken them.
 
 ## 7. What We Deliberately Don't Test
 

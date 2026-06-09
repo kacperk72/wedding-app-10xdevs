@@ -528,28 +528,28 @@ deployment doc.
 
 #### Automated
 
-- [x] 3.1 `npm run e2e` boots FE + BE and runs Playwright headless
-- [x] 3.2 Smoke spec passes: stubbed login lands on `/app` (no redirect to `/`)
-- [x] 3.3 `npx playwright install` documented as a prerequisite
+- [x] 3.1 `npm run e2e` boots FE + BE and runs Playwright headless — ba8ec82
+- [x] 3.2 Smoke spec passes: stubbed login lands on `/app` (no redirect to `/`) — ba8ec82
+- [x] 3.3 `npx playwright install` documented as a prerequisite — ba8ec82
 
 #### Manual
 
-- [x] 3.4 BE under e2e runs with `AUTH_TEST_MODE` and is confirmed not reachable as prod
-- [x] 3.5 SSO stub requires no network to `kubitksso.pl`
-- [x] 3.6 Smoke run deterministic across 3 consecutive runs (no flake)
+- [x] 3.4 BE under e2e runs with `AUTH_TEST_MODE` and is confirmed not reachable as prod — ba8ec82
+- [x] 3.5 SSO stub requires no network to `kubitksso.pl` — ba8ec82
+- [x] 3.6 Smoke run deterministic across 3 consecutive runs (no flake) — ba8ec82
 
 ### Phase 4: Golden-flow e2e + cookbook / test-plan backport
 
 #### Automated
 
-- [ ] 4.1 `npm run e2e` passes including `golden-flow.spec.ts`
-- [ ] 4.2 Two-context test: B's page renders A's guest after fresh load
-- [ ] 4.3 Polish validation/feedback copy asserted in the DOM
-- [ ] 4.4 `DD.MM.YYYY` formatting asserted in the DOM
-- [ ] 4.5 Full backend suite (`npm test`) and frontend unit suite (`ng test`) still green
+- [x] 4.1 `npm run e2e` passes including `golden-flow.spec.ts`
+- [x] 4.2 Two-context test: B's page renders A's guest after fresh load
+- [x] 4.3 Polish validation/feedback copy asserted in the DOM
+- [x] 4.4 `DD.MM.YYYY` formatting asserted in the DOM
+- [x] 4.5 Full backend suite (`npm test`) and frontend unit suite (`ng test`) still green
 
 #### Manual
 
-- [ ] 4.6 Golden-flow run deterministic across 3 consecutive runs (no flake)
-- [ ] 4.7 test-plan §6.3, §6.6, §3 Phase 1 (`integration + e2e`, `complete`), §2 note updated and consistent
-- [ ] 4.8 Visual confirmation in `--headed` mode that B loads a separate session
+- [x] 4.6 Golden-flow run deterministic across 3 consecutive runs (no flake)
+- [x] 4.7 test-plan §6.3, §6.6, §3 Phase 1 (`integration + e2e`, `complete`), §2 note updated and consistent
+- [x] 4.8 Visual confirmation in `--headed` mode that B loads a separate session
