@@ -84,7 +84,14 @@ describe("catering offers", () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.packages.length, 4);
-    assert.ok(response.body.packages.find((pkg) => pkg.name === "Złoty").courses.length > 0);
+    const gold = response.body.packages.find((pkg) => pkg.name === "Złoty");
+    assert.ok(gold.courses.length > 0);
+    // Złoty = 2 ciepłe kolacje + 1 ostatnia kolacja (zgodnie z PDF Pałac Polanka)
+    const warmDinners = gold.courses.filter((course) => course.title.startsWith("Kolacja ciepła"));
+    const lastDinner = gold.courses.find((course) => course.title === "Ostatnia kolacja");
+    assert.equal(warmDinners.length, 2);
+    assert.ok(lastDinner, "Złoty powinien mieć kurs 'Ostatnia kolacja'");
+    assert.equal(lastDinner.dishes.length, 4);
     assert.equal(response.body.addons.length, 7);
   });
 

@@ -28,6 +28,10 @@ export class CourseSection {
     () => this.course().dishes.filter((dish) => this.pickedDishIds().has(dish.dishId)).length,
   );
 
+  protected readonly selectedName = computed(
+    () => this.course().dishes.find((dish) => this.pickedDishIds().has(dish.dishId))?.name ?? null,
+  );
+
   protected hint(course: CateringCourse): string {
     if (course.selectionMode === 'all_served') return 'Bez wyboru, podawane wszystkim';
     if (course.selectionMode === 'guest_picks') return `Opcje dla RSVP: ${this.pickedCount()} / ${course.choiceLimit}`;

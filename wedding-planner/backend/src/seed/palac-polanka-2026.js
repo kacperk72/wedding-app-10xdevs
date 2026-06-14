@@ -150,14 +150,18 @@ const courses = [
       { key: `${packageKey}_soup`, courseType: "obiad_zupa", title: "Obiad / zupa", selectionMode: "couple_picks", choiceLimit: 1, sortOrder: 10 },
       { key: `${packageKey}_main`, courseType: "obiad_danie_glowne", title: "Obiad / danie główne", selectionMode: "guest_picks", choiceLimit: 3, sortOrder: 20 },
       { key: `${packageKey}_dessert`, courseType: "obiad_deser", title: "Obiad / deser", selectionMode: "couple_picks", choiceLimit: 1, sortOrder: 30 },
-      ...Array.from({ length: dinnerCount }, (_, index) => ({
-        key: `${packageKey}_dinner_${index + 1}`,
-        courseType: "kolacja_ciepla",
-        title: `Kolacja ciepła ${index + 1}`,
-        selectionMode: "couple_picks",
-        choiceLimit: 1,
-        sortOrder: 40 + index * 10,
-      })),
+      ...Array.from({ length: dinnerCount }, (_, index) => {
+        const isLast = index === dinnerCount - 1;
+        return {
+          key: `${packageKey}_dinner_${index + 1}`,
+          courseType: "kolacja_ciepla",
+          title: isLast ? "Ostatnia kolacja" : `Kolacja ciepła ${["I", "II", "III"][index]}`,
+          lastDinner: isLast,
+          selectionMode: "couple_picks",
+          choiceLimit: 1,
+          sortOrder: 40 + index * 10,
+        };
+      }),
       { key: `${packageKey}_cold`, courseType: "bufet_zimny", title: "Bufet zimny", selectionMode: "couple_picks", choiceLimit: coldLimit, sortOrder: 90 },
       { key: `${packageKey}_salads`, courseType: "bufet_salatkowy", title: "Bufet sałatkowy", selectionMode: "couple_picks", choiceLimit: 3, sortOrder: 100 },
       { key: `${packageKey}_drinks`, courseType: "napoje", title: "Napoje", selectionMode: "all_served", choiceLimit: null, sortOrder: 110 },
@@ -175,7 +179,7 @@ function dishesForCourse(course) {
   if (course.courseType === "obiad_zupa") return dishGroups.soups;
   if (course.courseType === "obiad_danie_glowne") return dishGroups.mains;
   if (course.courseType === "obiad_deser") return dishGroups.desserts;
-  if (course.courseType === "kolacja_ciepla") return course.key.endsWith("_4") ? dishGroups.lastDinner : dishGroups.dinners;
+  if (course.courseType === "kolacja_ciepla") return course.lastDinner ? dishGroups.lastDinner : dishGroups.dinners;
   if (course.courseType === "bufet_zimny") return dishGroups.cold;
   if (course.courseType === "bufet_salatkowy") return dishGroups.salads;
   if (course.courseType === "napoje") return dishGroups.drinks;

@@ -1,4 +1,8 @@
-<label class="dish-card" [class.dish-card--disabled]="disabled()">
+<label
+  class="dish-card"
+  [class.dish-card--disabled]="disabled()"
+  [class.dish-card--selected]="selected() && controlType() !== 'none'"
+>
   @if (controlType() !== 'none') {
     <input
       [type]="controlType()"

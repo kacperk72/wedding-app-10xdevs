@@ -3,23 +3,64 @@
     <div>
       <p class="panel__eyebrow">{{ hint(course()) }}</p>
       <h3>{{ course().title }}</h3>
+      @if (controlType(course()) === 'radio' && selectedName()) {
+        <p class="course-section__chosen">Wybrano: <strong>{{ selectedName() }}</strong></p>
+      }
     </div>
     @if (!packageModifiable()) {
       <span class="badge badge--neutral">fixed</span>
     }
   </div>
 
-  <div class="dish-grid">
-    @for (dish of course().dishes; track dish.dishId) {
-      <app-dish-card
-        [dish]="dish"
-        [selected]="course().selectionMode === 'all_served' || pickedDishIds().has(dish.dishId)"
-        [disabled]="isDisabled(course())"
-        [controlType]="controlType(course())"
-        (toggled)="pickChanged.emit({ course: course(), dish, selected: $event })"
-      />
-    }
-  </div>
+  @if (controlType(course()) === 'radio') {
+    <ul class="dish-list" role="radiogroup" [attr.aria-label]="course().title">
+      @for (dish of course().dishes; track dish.dishId) {
+        <li>
+          <label class="dish-row" [class.dish-row--selected]="pickedDishIds().has(dish.dishId)">
+            <input
+              type="radio"
+              [name]="'course-' + course().id"
+              [checked]="pickedDishIds().has(dish.dishId)"
+              [disabled]="isDisabled(course())"
+              (change)="pickChanged.emit({ course: course(), dish, selected: true })"
+            />
+            <span class="dish-row__body">
+              <span class="dish-row__name">{{ dish.name }}</span>
+              @if (dish.description) {
+                <span class="dish-row__desc">{{ dish.description }}</span>
+              }
+            </span>
+            <span class="dish-row__flags">
+              @if (dish.isVegetarian) {
+                <span class="badge badge--success" title="Wegetariańskie">vege</span>
+              }
+              @if (dish.isVegan) {
+                <span class="badge badge--success" title="Wegańskie">vegan</span>
+              }
+              @if (dish.isGlutenFree) {
+                <span class="badge badge--info" title="Bez glutenu">GF</span>
+              }
+              @if (dish.allergens.length > 0) {
+                <span class="badge badge--warning" [title]="dish.allergens.join(', ')">alergeny</span>
+              }
+            </span>
+          </label>
+        </li>
+      }
+    </ul>
+  } @else {
+    <div class="dish-grid">
+      @for (dish of course().dishes; track dish.dishId) {
+        <app-dish-card
+          [dish]="dish"
+          [selected]="course().selectionMode === 'all_served' || pickedDishIds().has(dish.dishId)"
+          [disabled]="isDisabled(course())"
+          [controlType]="controlType(course())"
+          (toggled)="pickChanged.emit({ course: course(), dish, selected: $event })"
+        />
+      }
+    </div>
+  }
 
   @if (packageModifiable()) {
     <div class="custom-dish">

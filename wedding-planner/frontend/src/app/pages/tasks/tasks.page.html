@@ -57,6 +57,14 @@
                   <button
                     type="button"
                     class="button-like button-like--ghost button-like--icon"
+                    aria-label="Edytuj zadanie"
+                    (click)="openEditDialog(task)"
+                  >
+                    <app-icon name="edit" [size]="16" />
+                  </button>
+                  <button
+                    type="button"
+                    class="button-like button-like--ghost button-like--icon"
                     aria-label="Usuń zadanie"
                     (click)="removeTask(task)"
                   >
@@ -144,6 +152,84 @@
             Anuluj
           </button>
           <button type="submit" class="button-like">Dodaj</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (editingTask(); as editing) {
+  <div class="modal-backdrop" role="presentation" (click)="editingTask.set(null)">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="editTaskTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Edycja zadania</p>
+          <h2 id="editTaskTitle">Edytuj zadanie</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="editingTask.set(null)">
+          Zamknij
+        </button>
+      </div>
+
+      <form class="form-grid" (ngSubmit)="saveEdit()">
+        <div class="field">
+          <label for="editTaskTitle-input">Tytuł</label>
+          <input
+            id="editTaskTitle-input"
+            name="editTaskTitle"
+            required
+            [ngModel]="editing.draft.title"
+            (ngModelChange)="updateEditTask({ title: $event })"
+          />
+        </div>
+
+        <div class="field">
+          <label for="editTaskCategory">Kategoria</label>
+          <select
+            id="editTaskCategory"
+            name="editTaskCategory"
+            [ngModel]="editing.draft.category"
+            (ngModelChange)="setEditTaskCategory($event)"
+          >
+            @for (option of categoryOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="editTaskDueDate">Termin</label>
+          <input
+            id="editTaskDueDate"
+            name="editTaskDueDate"
+            type="date"
+            required
+            [ngModel]="editing.draft.dueDate"
+            (ngModelChange)="updateEditTask({ dueDate: $event })"
+          />
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="editTaskDescription">Opis</label>
+          <textarea
+            id="editTaskDescription"
+            name="editTaskDescription"
+            [ngModel]="editing.draft.description"
+            (ngModelChange)="updateEditTask({ description: $event })"
+          ></textarea>
+        </div>
+
+        <div class="toolbar" style="grid-column: 1 / -1; justify-content: flex-end">
+          <button type="button" class="button-like button-like--secondary" (click)="editingTask.set(null)">
+            Anuluj
+          </button>
+          <button type="submit" class="button-like">Zapisz</button>
         </div>
       </form>
     </section>

@@ -63,6 +63,7 @@ export class TasksPage implements OnInit {
     dueDate: '',
     description: '',
   });
+  protected readonly editingTask = signal<{ id: string; draft: CreateTaskDto } | null>(null);
 
   protected readonly defaultDueDate = computed(() => this.weddingService.wedding()?.weddingDate ?? '');
 
@@ -165,6 +166,52 @@ export class TasksPage implements OnInit {
       dueDate: current.dueDate || this.defaultDueDate(),
     }));
     this.isAddDialogOpen.set(true);
+  }
+
+  protected openEditDialog(task: Task): void {
+    this.editingTask.set({
+      id: task.id,
+      draft: {
+        title: task.title,
+        category: task.category,
+        dueDate: task.dueDate,
+        description: task.description ?? '',
+      },
+    });
+  }
+
+  protected updateEditTask(patch: Partial<CreateTaskDto>): void {
+    this.editingTask.update((current) =>
+      current ? { ...current, draft: { ...current.draft, ...patch } } : current,
+    );
+  }
+
+  protected setEditTaskCategory(value: string): void {
+    this.updateEditTask({ category: this.isTaskCategory(value) ? value : 'inne' });
+  }
+
+  protected saveEdit(): void {
+    const weddingId = this.requireWeddingId();
+    const editing = this.editingTask();
+    if (!weddingId || !editing) return;
+
+    const title = editing.draft.title.trim();
+    if (!title || !editing.draft.dueDate) return;
+
+    this.tasksService
+      .updateTask(weddingId, editing.id, {
+        title,
+        category: editing.draft.category,
+        dueDate: editing.draft.dueDate,
+        description: editing.draft.description?.trim() || null,
+      })
+      .subscribe({
+        next: () => {
+          this.editingTask.set(null);
+          this.toast.success('Zadanie zostało zaktualizowane.');
+        },
+        error: () => this.toast.error('Nie udało się zapisać zadania.'),
+      });
   }
 
   protected toggleDone(task: Task, done: boolean): void {

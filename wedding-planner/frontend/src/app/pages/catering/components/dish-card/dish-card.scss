@@ -7,10 +7,28 @@
   border-radius: var(--radius-md);
   padding: var(--space-3);
   background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.dish-card:hover {
+  background: rgba(63, 92, 58, 0.05);
+}
+
+.dish-card input {
+  accent-color: var(--color-accent);
+}
+
+.dish-card--selected {
+  border-color: var(--color-accent);
+  background: rgba(63, 92, 58, 0.08);
 }
 
 .dish-card--disabled {
   opacity: 0.62;
+  cursor: default;
 }
 
 .dish-card__body {
