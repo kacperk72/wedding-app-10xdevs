@@ -50,6 +50,9 @@ export class SeatingPage implements OnInit {
   protected readonly editingTable = signal<Table | null>(null);
   protected readonly editTableName = signal('');
   protected readonly editTableSeats = signal(8);
+  protected readonly showAddTable = signal(false);
+  protected readonly newTableName = signal('');
+  protected readonly newTableSeats = signal(8);
 
   private readonly fullTableToastAt = new Map<string, number>();
 
@@ -234,6 +237,34 @@ export class SeatingPage implements OnInit {
     });
   }
 
+  protected openAddTable(): void {
+    this.newTableName.set(`Stół ${this.tables().length + 1}`);
+    this.newTableSeats.set(8);
+    this.showAddTable.set(true);
+  }
+
+  protected closeAddTable(): void {
+    this.showAddTable.set(false);
+  }
+
+  protected createTable(): void {
+    const weddingId = this.requireWeddingId();
+    if (!weddingId) return;
+    const name = this.newTableName().trim();
+    const seats = Math.max(1, Math.min(24, Math.round(this.newTableSeats() || 0)));
+    if (!name) {
+      this.toast.error('Nazwa stołu jest wymagana.');
+      return;
+    }
+    this.tablesService.create(weddingId, { name, seatsCount: seats }).subscribe({
+      next: () => {
+        this.closeAddTable();
+        this.toast.success('Stół dodany.');
+      },
+      error: () => this.toast.error('Nie udało się dodać stołu.'),
+    });
+  }
+
   protected openTableEditor(table: Table): void {
     this.editingTable.set(table);
     this.editTableName.set(table.name);
@@ -284,6 +315,22 @@ export class SeatingPage implements OnInit {
         this.toast.success('Stół usunięty.');
       },
       error: () => this.toast.error('Nie udało się usunąć stołu.'),
+    });
+  }
+
+  protected releaseTable(): void {
+    const table = this.editingTable();
+    const weddingId = this.requireWeddingId();
+    if (!table || !weddingId) return;
+    const occupied = this.guestsForTable(table.id).length;
+    if (occupied === 0) {
+      this.toast.warning('Przy tym stole nie ma gości.');
+      return;
+    }
+    if (!window.confirm(`Zwolnić wszystkich gości (${occupied}) przy stole „${table.name}”?`)) return;
+    this.seating.releaseTable(weddingId, table.id).subscribe({
+      next: () => this.toast.success('Stół zwolniony.'),
+      error: () => this.toast.error('Nie udało się zwolnić stołu.'),
     });
   }
 

@@ -159,6 +159,60 @@ describe("seating", () => {
     assert.equal(db.guests.find((item) => item.id === "guest-2").table_id, null);
   });
 
+  it("releases a table, unseating all assigned guests at once", async () => {
+    // Druga osoba przy tym samym stole + numer krzesła, by sprawdzić pełne czyszczenie.
+    db.guests.push(guest("guest-4", "table-1"));
+    db.guests.find((item) => item.id === "guest-2").seat_number = 1;
+    db.guests.find((item) => item.id === "guest-4").seat_number = 2;
+
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/tables/table-1/release",
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.released, 2);
+    for (const id of ["guest-2", "guest-4"]) {
+      const guestRow = db.guests.find((item) => item.id === id);
+      assert.equal(guestRow.table_id, null);
+      assert.equal(guestRow.seat_number, null);
+    }
+    // Gość przy innym stole pozostaje nietknięty.
+    assert.equal(db.guests.find((item) => item.id === "guest-3").table_id, "full-table");
+  });
+
+  it("returns released: 0 when the table has no guests", async () => {
+    db.tables.push({
+      id: "empty-table",
+      wedding_id: "wedding-1",
+      name: "Pusty stol",
+      seats_count: 4,
+      sort_order: 3,
+      position_x: null,
+      position_y: null,
+    });
+
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/tables/empty-table/release",
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.released, 0);
+  });
+
+  it("rejects releasing a table that does not belong to the wedding", async () => {
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/tables/missing-table/release",
+    );
+
+    assert.equal(response.status, 404);
+  });
+
   it("returns seating stats", async () => {
     db.tables = [
       { id: "table-1", wedding_id: "wedding-1", name: "Stol 1", seats_count: 2, sort_order: 1 },

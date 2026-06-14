@@ -89,6 +89,15 @@ export class SeatingService {
       .pipe(tap(() => this.refreshSeating(weddingId)));
   }
 
+  releaseTable(weddingId: string, tableId: string): Observable<{ released: number }> {
+    return this.http
+      .post<{ released: number }>(
+        apiUrl(`/weddings/${weddingId}/tables/${tableId}/release`),
+        {},
+      )
+      .pipe(tap(() => this.refreshSeating(weddingId)));
+  }
+
   private refreshSeating(weddingId: string): void {
     this.guestsService.list(weddingId).subscribe();
     this.loadStats(weddingId).subscribe();

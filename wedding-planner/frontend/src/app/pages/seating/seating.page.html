@@ -94,7 +94,13 @@
         <p class="panel__eyebrow">Stoły</p>
         <h2>{{ tables().length }} stołów</h2>
       </div>
-      <span class="badge badge--info">{{ stats().unseatedCount }} bez miejsca</span>
+      <div class="toolbar">
+        <span class="badge badge--info">{{ stats().unseatedCount }} bez miejsca</span>
+        <button type="button" class="button-like button-like--secondary" (click)="openAddTable()">
+          <app-icon name="plus" [size]="16" />
+          Dodaj stół
+        </button>
+      </div>
     </div>
 
     <div class="table-grid">
@@ -109,7 +115,7 @@
           (editTable)="openTableEditor($event)"
         />
       } @empty {
-        <p class="empty-copy">Dodaj stoły w module gości, aby rozpocząć rozsadzanie.</p>
+        <p class="empty-copy">Użyj przycisku „Dodaj stół”, aby rozpocząć rozsadzanie.</p>
       }
     </div>
   </main>
@@ -200,7 +206,67 @@
         <button type="button" class="button-like button-like--ghost" (click)="deleteTable()">
           Usuń stół
         </button>
+        <button
+          type="button"
+          class="button-like button-like--secondary"
+          [disabled]="guestsForTable(table.id).length === 0"
+          (click)="releaseTable()"
+        >
+          Zwolnij stół
+        </button>
         <button type="button" class="button-like" (click)="saveTableEdit()">Zapisz</button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (showAddTable()) {
+  <div class="modal-backdrop" role="presentation" (click)="closeAddTable()">
+    <section
+      class="modal surface panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="addTableTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="panel__header">
+        <div>
+          <p class="panel__eyebrow">Nowy stół</p>
+          <h2 id="addTableTitle">Dodaj stół</h2>
+        </div>
+        <button type="button" class="button-like button-like--ghost" (click)="closeAddTable()">
+          Zamknij
+        </button>
+      </div>
+
+      <div class="field">
+        <label for="newTableName">Nazwa</label>
+        <input
+          id="newTableName"
+          name="newTableName"
+          [ngModel]="newTableName()"
+          (ngModelChange)="newTableName.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="newTableSeats">Liczba miejsc</label>
+        <input
+          id="newTableSeats"
+          name="newTableSeats"
+          type="number"
+          min="1"
+          max="24"
+          [ngModel]="newTableSeats()"
+          (ngModelChange)="newTableSeats.set(+$event)"
+        />
+      </div>
+
+      <div class="toolbar assign-actions">
+        <button type="button" class="button-like button-like--ghost" (click)="closeAddTable()">
+          Anuluj
+        </button>
+        <button type="button" class="button-like" (click)="createTable()">Dodaj</button>
       </div>
     </section>
   </div>

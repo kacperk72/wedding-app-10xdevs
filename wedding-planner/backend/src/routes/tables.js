@@ -120,6 +120,46 @@ router.patch("/:tableId", async (req, res, next) => {
   }
 });
 
+// Zwolnij stół — usuwa z miejsc wszystkich przypisanych gości naraz
+// (czyści table_id i seat_number). Nie kasuje stołu.
+router.post("/:tableId/release", async (req, res, next) => {
+  try {
+    const { weddingId, tableId } = req.params;
+
+    const { data: table, error: tableError } = await supabase
+      .from("tables")
+      .select("id")
+      .eq("id", tableId)
+      .eq("wedding_id", weddingId)
+      .maybeSingle();
+
+    if (tableError) throw tableError;
+    if (!table) throw new NotFoundError("Table not found");
+
+    const { data: seated, error: seatedError } = await supabase
+      .from("guests")
+      .select("id")
+      .eq("wedding_id", weddingId)
+      .eq("table_id", tableId);
+
+    if (seatedError) throw seatedError;
+
+    if (seated.length > 0) {
+      const { error: updateError } = await supabase
+        .from("guests")
+        .update({ table_id: null, seat_number: null })
+        .eq("wedding_id", weddingId)
+        .eq("table_id", tableId);
+
+      if (updateError) throw updateError;
+    }
+
+    res.json({ released: seated.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete("/:tableId", async (req, res, next) => {
   try {
     const { data, error } = await supabase
