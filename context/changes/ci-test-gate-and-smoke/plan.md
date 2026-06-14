@@ -475,25 +475,25 @@ and fails with an actionable message.
 
 #### Automated
 
-- [x] 1.1 Backend lint passes
-- [x] 1.2 Backend test suite passes
-- [x] 1.3 Frontend lint passes
-- [x] 1.4 Frontend unit tests pass
-- [x] 1.5 Frontend production build passes
+- [x] 1.1 Backend lint passes - f4a5407
+- [x] 1.2 Backend test suite passes - f4a5407
+- [x] 1.3 Frontend lint passes - f4a5407
+- [x] 1.4 Frontend unit tests pass - f4a5407
+- [x] 1.5 Frontend production build passes - f4a5407
 
 #### Manual
 
-- [x] 1.6 Lint is a gate, not an auto-fixer
-- [x] 1.7 No secrets are copied into scripts or config
+- [x] 1.6 Lint is a gate, not an auto-fixer - f4a5407
+- [x] 1.7 No secrets are copied into scripts or config - f4a5407
 
 ### Phase 2: Deterministic CI gates before frontend deploy
 
 #### Automated
 
-- [ ] 2.1 Workflow runs backend install lint and tests before FTP deploy
-- [ ] 2.2 Workflow runs frontend install lint tests and build before FTP deploy
-- [ ] 2.3 Workflow installs Chromium and runs Playwright E2E before FTP deploy
-- [ ] 2.4 Local deterministic commands still pass
+- [x] 2.1 Workflow runs backend install lint and tests before FTP deploy
+- [x] 2.2 Workflow runs frontend install lint tests and build before FTP deploy
+- [x] 2.3 Workflow installs Chromium and runs Playwright E2E before FTP deploy
+- [x] 2.4 Local deterministic commands still pass
 
 #### Manual
 

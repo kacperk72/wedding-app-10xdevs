@@ -1,4 +1,4 @@
-name: Build, test and deploy frontend
+name: CI gates and frontend deploy
 
 on:
   push:
@@ -9,14 +9,15 @@ on:
 # z main przy każdym pushu (Application root: wedding-planner/backend),
 # robi npm install i restartuje Node.js app. Workflow trzyma tylko frontend
 # (statyczne pliki, Hostinger ich nie buduje).
+#
+# UWAGA: przez auto-pull Hostingera te bramki CI są silnym sygnałem release'u
+# i twardo blokują TYLKO deploy frontendu (FTP). Zły push na main i tak trafi
+# do backendu na Hostingerze — zmiana tej topologii jest poza zakresem F-02.
 
 jobs:
-  frontend:
-    name: Build & deploy Angular SPA
+  gates-and-deploy:
+    name: Quality gates, build & deploy Angular SPA
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: wedding-planner/frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,19 +27,54 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: wedding-planner/frontend/package-lock.json
+          cache-dependency-path: |
+            wedding-planner/backend/package-lock.json
+            wedding-planner/frontend/package-lock.json
 
-      - name: Install
+      # --- Backend: deterministyczne bramki ---
+
+      - name: Backend install
+        working-directory: wedding-planner/backend
         run: npm ci
 
-      - name: Lint (if configured)
-        run: npm run lint --if-present
+      - name: Backend lint
+        working-directory: wedding-planner/backend
+        run: npm run lint
 
-      - name: Test
+      - name: Backend tests
+        working-directory: wedding-planner/backend
+        run: npm test
+
+      # --- Frontend: deterministyczne bramki ---
+
+      - name: Frontend install
+        working-directory: wedding-planner/frontend
+        run: npm ci
+
+      - name: Frontend lint
+        working-directory: wedding-planner/frontend
+        run: npm run lint
+
+      - name: Frontend unit tests
+        working-directory: wedding-planner/frontend
         run: npm run test:ci
 
-      - name: Build
-        run: npm run build -- --configuration=production
+      - name: Frontend production build
+        working-directory: wedding-planner/frontend
+        run: npm run build-prod
+
+      # --- E2E: hermetyczny Playwright (DB_TEST_MODE + AUTH_TEST_MODE,
+      #     bez Supabase i bez live SSO — patrz playwright.config.ts) ---
+
+      - name: Install Playwright Chromium
+        working-directory: wedding-planner/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright E2E
+        working-directory: wedding-planner/frontend
+        run: npm run e2e
+
+      # --- Deploy frontendu dopiero po przejściu wszystkich bramek ---
 
       - name: Deploy frontend to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
