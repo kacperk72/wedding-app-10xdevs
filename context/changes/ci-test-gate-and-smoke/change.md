@@ -3,7 +3,7 @@ change_id: ci-test-gate-and-smoke
 title: CI test gate and smoke
 status: implementing
 created: 2026-06-09
-updated: 2026-06-09
+updated: 2026-06-15
 archived_at: null
 ---
 

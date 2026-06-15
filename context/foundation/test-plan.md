@@ -6,7 +6,11 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-06-09 (§3 Phase 1 complete — `integration + e2e`; §6.3/§6.6 filled)
+> Last updated: 2026-06-15 (§3 Phase 2 — ALL gates now wired in `deploy.yml`:
+> deterministic gates + migration-drift guard + post-deploy `/api/health` smoke.
+> Status stays `implementing` only until the user configures the 3 Supabase
+> secrets and lands one green `workflow_dispatch`. §4/§5/§6.5/§6.6 synced.
+> Phase 1 remains complete.)
 
 ## 1. Strategy
 
@@ -93,12 +97,22 @@ orchestrator updates Status as artifacts appear on disk.
 | # | Phase name | Goal (one line) | Risks covered | Test types | Status | Change folder |
 |---|------------|-----------------|----------------|-----------|--------|---------------|
 | 1 | E2E golden flow + isolation gate | Bootstrap the e2e layer (none today); prove US-01 cross-account write→read AND foreign-identity 403; assert Polish validation + `DD.MM.YYYY` inline | #1, #2 | integration + e2e | complete | context/changes/e2e-golden-flow-test/ |
-| 2 | CI gate + migration-drift guard + smoke | Add lint config; run BE+FE+E2E before deploy; fail CI on disk-vs-applied migration drift; post-deploy `/api/health` smoke | #3 | quality-gate | not started | — |
+| 2 | CI gate + migration-drift guard + smoke | Add lint config; run BE+FE+E2E before deploy; fail CI on disk-vs-applied migration drift; post-deploy `/api/health` smoke | #3 | quality-gate | implementing | context/changes/ci-test-gate-and-smoke/ |
 | 3 | Money + signal + egress (backend integration, oracle-safe) | Independent-fixture tests for the 30-day payment window, contract-status sync, budget overflow flag, dashboard signal, and export secret-redaction | #4, #5, #6 | integration | not started | — |
 | 4 | Seating correctness + accessible fallback | Verify seat assignment + `seat_number` persistence; keyboard-only path equivalence + ARIA announcements | #7 | component/integration | not started | — |
 
 **Status vocabulary** (fixed — parser literals): `not started` → `change opened`
 → `researched` → `planned` → `implementing` → `complete`.
+
+**Phase 2 split (2026-06-15).** Phase 2 is `implementing` — **all gate code has
+landed**; the remaining work is operational (user-side), not code. Wired in
+`.github/workflows/deploy.yml`: the *deterministic* gates (backend lint+tests,
+frontend lint+unit+build, hermetic Playwright E2E) plus the two *networked*
+gates — the Supabase migration-drift guard (Risk #3) and the post-deploy
+`/api/health` smoke (change `ci-test-gate-and-smoke`, Phases 1–4). Phase 2 flips
+to `complete` once the user (a) adds the three Supabase secrets — see §6.5 — and
+(b) lands one green `workflow_dispatch` run proving the drift + smoke steps pass
+against the live project. See §6.6.
 
 ## 4. Stack
 
@@ -112,7 +126,8 @@ The classic test base for this project. AI-native tools (if any) carry a
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
 | e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
 | accessibility | none yet — see §3 Phase 4 | — | Seating keyboard fallback (FR-029) is the only hard a11y requirement; axe-core optional |
-| CI quality gate | GitHub Actions | — | `deploy.yml` only; test step is a no-op placeholder — see §3 Phase 2 |
+| CI quality gate | GitHub Actions | — | `deploy.yml` now runs real gates (BE lint+tests, FE lint+unit+build, hermetic E2E) before FTP deploy; migration-drift + smoke pending — see §3 Phase 2 / §6.5 |
+| lint | ESLint (`eslint.config.js`) | flat config | Shipped both packages: BE `src/**/*.js`+`test/**/*.js`, FE `src/**/*.ts`+`*.html`; `npm run lint` in each (gate, not auto-fix) |
 
 **Stack grounding tools (current session):**
 - Docs: none (Context7 / framework docs MCP not available in current session) — relied on local manifests, `package.json` scripts, and known Angular/Express stack; checked: 2026-06-08
@@ -128,12 +143,12 @@ phase lands; before that, the gate is `planned`.
 
 | Gate | Where | Required? | Catches |
 |------|-------|-----------|---------|
-| lint + typecheck | local + CI | required after §3 Phase 2 | syntactic / type drift (no lint config exists today) |
-| backend unit + integration | local + CI | required after §3 Phase 2 | logic regressions (suite exists; not yet a CI gate) |
-| frontend unit | local + CI | required after §3 Phase 2 | service/formatter regressions |
-| e2e on critical flows | CI on PR | required after §3 Phase 1 | broken cross-account flow + isolation gate |
-| migration-drift check | CI on PR | required after §3 Phase 2 | code referencing unpushed schema |
-| pre-prod smoke (`/api/health`) | between merge + prod | required after §3 Phase 2 | environment-specific boot failures |
+| lint + typecheck | local + CI | **live in CI** (`deploy.yml`) | syntactic / type drift (eslint configs shipped both packages; typecheck via `build-prod`) |
+| backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (110-test suite now gates the deploy) |
+| frontend unit | local + CI | **live in CI** (`deploy.yml`) | service/formatter regressions (`test:ci`) |
+| e2e on critical flows | CI on push to `main` | **live in CI** (`deploy.yml`) | broken cross-account flow + isolation gate (hermetic Playwright) |
+| migration-drift check | CI on push | planned — §3 Phase 2 (change Phase 3; not yet shipped) | code referencing unpushed schema |
+| pre-prod smoke (`/api/health`) | between deploy + prod | planned — §3 Phase 2 (change Phase 4; route exists, not wired to CI) | environment-specific boot failures |
 | accessibility (seating keyboard path) | local/CI | optional after §3 Phase 4 | broken keyboard fallback (FR-029) |
 
 ## 6. Cookbook Patterns
@@ -171,12 +186,18 @@ the relevant rollout phase ships; before that, it reads "TBD — see §3 Phase <
 - **When to add e2e instead**: only when the failure mode needs the full deployed shape (SSO JWT + membership + cross-account), per §3 Phase 1.
 
 ### 6.5 Adding a quality gate / migration-drift check
-- TBD — see §3 Phase 2.
+- **Workflow**: `.github/workflows/deploy.yml`, job `gates-and-deploy` (triggers: push to `main` + `workflow_dispatch`). Deterministic gates run *before* the FTP deploy step.
+- **Live gates** (shipped 2026-06-10): backend `npm ci && npm run lint && npm test`; frontend `npm ci && npm run lint && npm run test:ci && npm run build-prod`; then `npx playwright install --with-deps chromium && npm run e2e`. All package-local (no root workspace) — add a new gate as its own `working-directory` step before the deploy step.
+- **Topology caveat**: the backend is **not** deployed by this workflow — Hostinger auto-pulls `main`. CI hard-blocks only the frontend FTP deploy; a bad push still reaches the backend. Never present CI as a hard backend block.
+- **Migration-drift gate** (shipped 2026-06-15): `wedding-planner/backend/scripts/check-migration-drift.js`, run via `npm run migration:check`. Compares 14-digit **versions** parsed from `supabase/migrations/*.sql` filenames against the *applied* remote versions read from `supabase migration list --linked` — never a file count (a count can match while versions differ; unit-tested in `test/migration-drift.test.js`). Exits 1 listing the unpushed version(s). In CI the `Setup Supabase CLI` + `Migration drift guard` steps run *after* E2E and *before* FTP deploy. **Required secrets** (configure in repo settings): `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, and `SUPABASE_DB_PASSWORD` (the CLI's `link` + `migration list` reach the remote DB, so the DB password is required beyond the access token — this is the third secret the original plan under-counted).
+- **Post-deploy smoke** (shipped 2026-06-15): the `Post-deploy backend health smoke` step curls `https://deeppink-mole-431102.hostingersite.com/api/health` and fails unless HTTP 2xx **and** the JSON carries `"status":"ok"` + `"supabase":"reachable"`. Always hit the **backend Hostinger host**, never the frontend domain (`wedding-planner-kubitk.pl` serves only the SPA). Because the backend deploys via Hostinger auto-pull, this smoke is a release signal, not a hard backend gate.
 
 ### 6.6 Per-rollout-phase notes
 (Filled in by `/10x-implement` as phases land.)
 
 - **§3 Phase 1 (e2e golden flow + isolation gate, shipped 2026-06-09)** — landed as `integration + e2e`, not pure e2e (research: Risk #1 and the 401 auth boundary are cheapest at the backend integration layer; only Risk #2's browser re-fetch needs e2e). Backend: `isolation-gate.test.js` (non-member 403 parity on read+write + cache headers), `jwks-auth.test.js` (401 paths), `test-auth-seam.test.js` + `db-seam.test.js` (hermetic seams, fail-closed boot guards verified under `NODE_ENV=production`). Frontend: Playwright bootstrap + `smoke.spec.ts` + `golden-flow.spec.ts`. The two prod-safety boot guards (`AUTH_TEST_MODE`, `DB_TEST_MODE`) are the security-critical invariant — never weaken them.
+
+- **§3 Phase 2 (CI quality gate — all gate code landed 2026-06-15; status `implementing` pending operational secret config)** — `deploy.yml` runs, before the FTP deploy: backend lint+tests, frontend lint+unit+build, hermetic Playwright E2E, then the **migration-drift guard** (`Setup Supabase CLI` + `Migration drift guard` → `npm run migration:check`), and after deploy the **`/api/health` smoke**. ESLint flat configs + `lint` scripts shipped for both packages (Phases 1–2; lint baseline at commit f4a5407). Migration-drift script + fixture tests and the smoke step shipped in Phases 3–4. **Remaining = user-side only**: configure the three Supabase secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`) and land one green `workflow_dispatch`; then flip Phase 2 → `complete`. Drift compares versions not counts; smoke targets the backend Hostinger host, not the frontend domain (§6.5). Topology caveat: backend deploys via Hostinger auto-pull, so CI hard-blocks only the frontend FTP deploy.
 
 ## 7. What We Deliberately Don't Test
 
