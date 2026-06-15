@@ -504,10 +504,10 @@ and fails with an actionable message.
 
 #### Automated
 
-- [x] 3.1 Migration drift comparison has fixture coverage
-- [x] 3.2 Backend exposes migration check script
-- [x] 3.3 Workflow passes Supabase secrets to drift gate
-- [x] 3.4 Workflow runs drift gate before FTP deploy
+- [x] 3.1 Migration drift comparison has fixture coverage — a45e8b2
+- [x] 3.2 Backend exposes migration check script — a45e8b2
+- [x] 3.3 Workflow passes Supabase secrets to drift gate — a45e8b2
+- [x] 3.4 Workflow runs drift gate before FTP deploy — a45e8b2
 
 #### Manual
 
@@ -518,9 +518,9 @@ and fails with an actionable message.
 
 #### Automated
 
-- [x] 4.1 Workflow contains backend Hostinger health smoke
-- [x] 4.2 Smoke validates HTTP 200 and healthy JSON
-- [x] 4.3 Test-plan cookbook section 6.5 is filled
+- [x] 4.1 Workflow contains backend Hostinger health smoke — a45e8b2
+- [x] 4.2 Smoke validates HTTP 200 and healthy JSON — a45e8b2
+- [x] 4.3 Test-plan cookbook section 6.5 is filled — a45e8b2
 - [ ] 4.4 Test-plan Phase 2 is marked complete
 
 #### Manual
