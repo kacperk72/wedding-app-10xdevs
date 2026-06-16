@@ -41,7 +41,7 @@ Para planująca polski ślub (Weronika & Kacper, ślub `2026-07-25`) dzieli dzi�
 | ID    | Change ID                          | Outcome (para może…)                                                                              | Prerequisites    | PRD refs               | Status   |
 | ----- | ---------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------- | ---------------------- | -------- |
 | F-01  | `e2e-golden-flow-test`             | (foundation) Test E2E US-01 (Playwright) odpalany w CI dowodzi cross-account symmetry i 403-gate. | —                | US-01, FR-003          | done     |
-| F-02  | `ci-test-gate-and-smoke`           | (foundation) CI workflow uruchamia lint + backend testy + smoke health-check po deploy.           | —                | Guardrail §Izolacja    | ready    |
+| F-02  | `ci-test-gate-and-smoke`           | (foundation) CI workflow uruchamia lint + backend testy + smoke health-check po deploy.           | —                | Guardrail §Izolacja    | done     |
 | S-01  | `tasks-auto-timeline-and-regen`    | ~~auto-taski wstecz od daty + regeneracja~~ — **PARKED** (auto-taski usunięte 2026-05-26)         | —                | ~~FR-024/027/034~~     | parked   |
 | S-02  | `attention-rank-refinement`        | zobaczyć "Wymaga uwagi" rankowane po pilności (typ × dni do deadlinu), nie po typie sygnału       | —                | FR-007                 | proposed |
 | S-03  | `vendor-missing-alert-dismissal`   | wyciszyć alert "brakujący w kategorii X" z trwałym stanem per wesele                              | —                | FR-016                 | ready    |

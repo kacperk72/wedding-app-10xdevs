@@ -4,9 +4,12 @@
 > Ten plik mówi tylko **co JEST zrobione** — weryfikowane kodem, nie opowiadane.
 > Reguła: moduł = „done" tylko gdy istnieje **route + serwis frontu + test**.
 >
-> Testy: backend **110/110** (node:test). Front: **Vitest** skonfigurowany
+> Testy: backend **133/133** (node:test). Front: **Vitest** skonfigurowany
 > (`@angular/build:unit-test`, `ng test`) z seed-suite **15/15** (formattery + `GuestsService`);
 > szersze pokrycie w toku. Dodatkowo `npm run build` + ręczny/Playwright przegląd.
+> CI: `deploy.yml` egzekwuje realne bramki (BE lint+testy, FE lint+unit+build,
+> hermetyczny Playwright E2E) + migration-drift guard + post-deploy `/api/health`
+> smoke — wszystko zielone na `main` 2026-06-16 (F-02 done).
 
 ## Stan modułów
 
@@ -27,6 +30,7 @@
 
 ## Bieżące
 
+- 2026-06-16: **F-02 done** — `ci-test-gate-and-smoke` scalony do `main` i zielony run na GitHub Actions. `deploy.yml` realnie bramkuje deploy frontu (BE+FE lint/test/build + E2E + migration-drift + smoke). Falstart: błędny sekret `SUPABASE_DB_PASSWORD` → SASL `28P01`, naprawione resetem hasła DB. Oba foundations (F-01+F-02) done → S-05 (production cutover, north star) odblokowany.
 - 2026-06-09: przebudowa zakładki kontrahentów — 7-stopniowa oś statusów (migracja `vendor_status_rework`), usunięte wpisy o brakujących kontrahentach (dashboard + strona kontrahentów + `GET /vendors/missing`), naprawiony checkbox harmonogramu płatności, kafelki bez myślników.
 
 ## Otwarte

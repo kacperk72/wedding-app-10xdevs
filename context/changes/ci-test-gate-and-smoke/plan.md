@@ -497,8 +497,8 @@ and fails with an actionable message.
 
 #### Manual
 
-- [ ] 2.5 Workflow ordering prevents FTP deploy before deterministic gates
-- [ ] 2.6 Backend auto-pull limitation remains explicit
+- [x] 2.5 Workflow ordering prevents FTP deploy before deterministic gates - fb7469a
+- [x] 2.6 Backend auto-pull limitation remains explicit - fb7469a
 
 ### Phase 3: Supabase migration drift gate
 
@@ -511,8 +511,8 @@ and fails with an actionable message.
 
 #### Manual
 
-- [ ] 3.5 GitHub Supabase secrets are configured
-- [ ] 3.6 Workflow dispatch confirms no remote migration drift
+- [x] 3.5 GitHub Supabase secrets are configured - 2026-06-16 (green main run)
+- [x] 3.6 Workflow dispatch confirms no remote migration drift - 2026-06-16 (green main run)
 
 ### Phase 4: Production smoke and test-plan backport
 
@@ -521,10 +521,10 @@ and fails with an actionable message.
 - [x] 4.1 Workflow contains backend Hostinger health smoke — a45e8b2
 - [x] 4.2 Smoke validates HTTP 200 and healthy JSON — a45e8b2
 - [x] 4.3 Test-plan cookbook section 6.5 is filled — a45e8b2
-- [ ] 4.4 Test-plan Phase 2 is marked complete
+- [x] 4.4 Test-plan Phase 2 is marked complete - 2026-06-16
 
 #### Manual
 
-- [ ] 4.5 Workflow dispatch passes all gates and smoke
-- [ ] 4.6 Smoke target is confirmed as backend Hostinger URL
-- [ ] 4.7 Latest GitHub Actions run is green before S-05 cutover
+- [x] 4.5 Workflow dispatch passes all gates and smoke - 2026-06-16 (green main run)
+- [x] 4.6 Smoke target is confirmed as backend Hostinger URL - 2026-06-16
+- [x] 4.7 Latest GitHub Actions run is green before S-05 cutover - 2026-06-16
