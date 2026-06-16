@@ -46,7 +46,7 @@ Para planująca polski ślub (Weronika & Kacper, ślub `2026-07-25`) dzieli dzi�
 | S-02  | `attention-rank-refinement`        | zobaczyć "Wymaga uwagi" rankowane po pilności (typ × dni do deadlinu), nie po typie sygnału       | —                | FR-007                 | proposed |
 | S-03  | `vendor-missing-alert-dismissal`   | wyciszyć alert "brakujący w kategorii X" z trwałym stanem per wesele                              | —                | FR-016                 | ready    |
 | S-04  | `tasks-calendar-view`              | przełączyć widok zadań z listy na kalendarz miesięczny                                            | —                | FR-026                 | proposed |
-| S-05  | `production-cutover` ⭐             | (**north star**) zalogować się na `wedding-planner-kubitk.pl` z prawdziwego telefonu i widzieć swój real plan | F-01, F-02       | FR-001, US-01          | proposed |
+| S-05  | `production-cutover` ⭐             | (**north star**) zalogować się na `wedding-planner-kubitk.pl` z prawdziwego telefonu i widzieć swój real plan | F-01, F-02 ✅     | FR-001, US-01          | done     |
 
 ## Streams
 
@@ -169,7 +169,7 @@ Co już jest w kodzie `wedding-planner/` na 2026-05-28 (auto-zbadane + potwierdz
   - Real data seed: import gości z arkusza pary jest pokryty przez CLI `scripts/import-seating.js` (commit `1d8f706`); kontrahenci / umowy / wydatki / zadania nie mają importu — czy seedujemy ręcznie post-deploy w pierwszej sesji, czy dodajemy minimal seed-script? Owner: implementer + PO. Block: nie (ręcznie post-deploy jest akceptowalne; pierwsza sesja pary i tak jest exploratory).
   - SSL auto-renew weryfikacja przed datą ślubu — `infrastructure.md` Risk Register sugeruje manualny check `2026-07-18` (7 dni przed). Czy ten check trafia do kalendarza pary, czy zostaje on a TODO implementera? Owner: PO. Block: nie (post-cutover, ale do zapisania).
 - **Risk:** Single deploy day, single point of failure: jeśli SSO admin nie zarejestrował domeny exactly-as-expected, redirect po loginie zwraca generic error i para nie wchodzi do aplikacji. Mitygacja: smoke check zaraz po deploy (zanim para próbuje zalogować się z telefonu) + weryfikacja Domain string character-for-character w SSO admin panel.
-- **Status:** proposed
+- **Status:** **done (2026-06-16)** — cutover osiągnięty: apka żyje na `wedding-planner-kubitk.pl`, oboje partnerów loguje się przez SSO, działa na realnych danych pary; F-01+F-02 done; SSL pokrywa dzień ślubu (cert do 2026-08-08). Runbook + dowody: `context/deployment/s05-cutover-runbook.md`. Pozostaje wyłącznie **realna adopcja** (`main_goal: market-feedback`) — okno obserwacji, nie zadanie. Opcjonalny polish post-cutover: S-02/S-03/S-04.
 
 ## Backlog Handoff
 
@@ -181,7 +181,7 @@ Co już jest w kodzie `wedding-planner/` na 2026-05-28 (auto-zbadane + potwierdz
 | S-02       | `attention-rank-refinement`        | Dashboard "Wymaga uwagi": ranking po pilności (typ × dni)              | yes                   | Standalone po parkowaniu S-01 — rankuje istniejące dane (zadania manualne + 3 strumienie). |
 | S-03       | `vendor-missing-alert-dismissal`   | Kontrahenci: dismiss alertu "brakujący w kategorii" + trwały stan      | yes                   | Standalone — niezależne od pozostałych slice'ów.               |
 | S-04       | `tasks-calendar-view`              | Zadania: widok kalendarza jako alternatywa do listy                    | yes                   | Standalone po parkowaniu S-01 — renderuje zadania manualne.    |
-| S-05       | `production-cutover` ⭐             | Production cutover: DNS + SSL + real-data seed + first prod session    | no                    | **North star.** Czeka na F-01 + F-02 (podwójna brama — S-01 zdjęty). |
+| S-05       | `production-cutover` ⭐             | Production cutover: DNS + SSL + real-data seed + first prod session    | done                  | **North star OSIĄGNIĘTY (2026-06-16)** — apka live na realnych danych, oboje partnerów się loguje. Runbook: `context/deployment/s05-cutover-runbook.md`. Zostaje tylko adopcja. |
 
 ## Open Roadmap Questions
 

@@ -25,11 +25,12 @@
 | M7 | Zadania + spotkania | ✅ done | `routes/{tasks,meetings}.js`, `pages/tasks`, `tasks-crud.test.js`, `meetings-crud.test.js` |
 | M8 | Seating + konflikty + wizualne przypisanie miejsc | ✅ done | `routes/{seating,seating-conflicts}.js`, `pages/seating/{round-table,conflicts-panel}`, `seating-crud.test.js` |
 | M9 | Eksport JSON / hard-delete wesela | ✅ done | `wedding-export.test.js`, `wedding-delete.test.js` |
-| M10 | Polish + wdrożenie | 🟡 w toku | wdrożenie+SSO ✅ LIVE; bugi i18n/format/demo naprawione; zostaje WCAG + runner testów frontu |
+| M10 | Polish + wdrożenie | 🟢 ~done | wdrożenie+SSO ✅ LIVE (S-05 cutover osiągnięty 2026-06-16, realne dane); runner testów frontu ✅ (Vitest 15/15 + Playwright E2E w CI); bugi i18n/format/demo naprawione; zostaje tylko WCAG (low-pri) |
 | Harmonogram | Ankieta DJ-a (przebieg dnia + muzyka + listy utworów) | 🟡 w toku | `migrations/20260601120000_wedding_timeline`, `routes/timeline.js`, `timeline-crud.test.js`, `core/services/timeline.service.ts`, `pages/harmonogram`; eksport „Wersja dla DJ-a" (Faza 4) jeszcze nie zrobiony |
 
 ## Bieżące
 
+- 2026-06-16: **S-05 done — north star OSIĄGNIĘTY.** Cutover potwierdzony przez PO: apka żyje na `wedding-planner-kubitk.pl`, oboje partnerów loguje się przez SSO, działa na **realnych danych** pary. Infrastruktura zweryfikowana live (FE/BE/JWKS/SDK zdrowe; poprawiony błędny URL JWKS w `deploy-plan.md` — prawdziwe JWKS/SDK na `olive-camel-...`, nie `kubitksso.pl`). SSL pokrywa dzień ślubu (cert do 2026-08-08). Runbook + dowody: `context/deployment/s05-cutover-runbook.md`. Zostaje wyłącznie realna adopcja (`main_goal: market-feedback`). Opcjonalny polish: S-02/S-03/S-04.
 - 2026-06-16: **F-02 done** — `ci-test-gate-and-smoke` scalony do `main` i zielony run na GitHub Actions. `deploy.yml` realnie bramkuje deploy frontu (BE+FE lint/test/build + E2E + migration-drift + smoke). Falstart: błędny sekret `SUPABASE_DB_PASSWORD` → SASL `28P01`, naprawione resetem hasła DB. Oba foundations (F-01+F-02) done → S-05 (production cutover, north star) odblokowany.
 - 2026-06-09: przebudowa zakładki kontrahentów — 7-stopniowa oś statusów (migracja `vendor_status_rework`), usunięte wpisy o brakujących kontrahentach (dashboard + strona kontrahentów + `GET /vendors/missing`), naprawiony checkbox harmonogramu płatności, kafelki bez myślników.
 

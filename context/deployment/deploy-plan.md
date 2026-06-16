@@ -107,8 +107,8 @@ W panelu Node.js app → **Environment variables**:
 - [ ] `FRONTEND_ORIGIN=https://wedding-planner-kubitk.pl` ← **krytyczne dla CORS, ustaw zanim frontend wyląduje na prod**
 - [ ] `SUPABASE_URL=<Project URL z §2.2>`
 - [ ] `SUPABASE_SERVICE_ROLE_KEY=<service_role key z §2.2>` ← **sekret**, bypassuje RLS; nigdy do bundla frontu
-- [ ] `JWKS_URL=https://kubitksso.pl/.well-known/jwks.json`
-- [ ] `JWT_ISSUER=<patrz §5.3 — zostaw puste jeśli SSO nie ustawia>`
+- [ ] `JWKS_URL=https://olive-camel-278313.hostingersite.com/.well-known/jwks.json` ← **korekta 2026-06-16**: JWKS serwuje **backend SSO** (`olive-camel-...`), NIE `kubitksso.pl` (ten zwraca SPA admina = soft-404 HTML, więc weryfikacja JWT by padła). Lokalny `.env` ma już poprawny URL. Zweryfikuj że Hostinger Node env też.
+- [ ] `JWT_ISSUER=<patrz §5.3 — zostaw puste jeśli SSO nie ustawia>` *(lokalny `.env` ma puste — SSO nie ustawia `iss`)*
 
 Po dodaniu/zmianie env vars zrestartuj aplikację (panel Node.js → Restart).
 
@@ -165,7 +165,8 @@ Sekretów SSH (`HOSTINGER_SSH_HOST`, `_USER`, `_KEY`) nie konfigurujesz — back
 ### 5.3 Otwarte pytania (zweryfikuj zanim frontend wyląduje na prod)
 
 - [ ] **`JWT_ISSUER`**: zaloguj się przez SSO, zdekoduj access_token (np. na `jwt.io`), sprawdź claim `iss`. Jeśli jest ustawiony — wpisz tę samą wartość w `JWT_ISSUER` w Hostinger env (punkt 2.4). Jeśli puste / brak claima — zostaw `JWT_ISSUER` w Hostingerze niewypełnione.
-- [ ] **SDK URL liveness**: `curl -I https://kubitksso.pl/sdk/sso-sdk.js` musi zwrócić `HTTP/2 200`. Jeśli 404 → DNS jeszcze nie przepiął, SDK serwuje się pod `https://olive-camel-278313.hostingersite.com/sdk/sso-sdk.js` — zmień URL w `wedding-planner/frontend/src/index.html` zanim pushujesz, albo dopnij DNS pierwszy.
+- [ ] **SDK URL liveness** (korekta 2026-06-16): SDK serwuje **backend SSO** `olive-camel-...`, nie `kubitksso.pl`. `index.html` już ładuje go z `https://olive-camel-278313.hostingersite.com/sdk/sso-sdk.js` (`data-login-url=https://kubitksso.pl`, `data-api-url=https://olive-camel-...`). Sanity: `curl -sI https://olive-camel-278313.hostingersite.com/sdk/sso-sdk.js` → `200` + `content-type: application/x-javascript`.
+- [ ] **JWKS liveness**: `curl -s https://olive-camel-278313.hostingersite.com/.well-known/jwks.json` → JSON `{"keys":[...]}` (NIE HTML). Zweryfikowane zielone 2026-06-16.
 
 ### 5.4 CORS — sanity check (cross-origin setup)
 
