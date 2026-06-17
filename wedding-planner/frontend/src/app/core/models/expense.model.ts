@@ -23,6 +23,8 @@ export interface BudgetSummary {
   spent: number;
   remaining: number | null;
   expensesCount: number;
+  isOverBudget: boolean;
+  overBudgetBy: number;
 }
 
 export interface CreateExpenseDto {

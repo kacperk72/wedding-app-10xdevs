@@ -9,7 +9,14 @@
         <p class="panel__eyebrow">Podsumowanie</p>
         <h2>Budżet wesela</h2>
       </div>
-      <span class="badge badge--info">{{ budget.summary()?.expensesCount || 0 }} wydatków</span>
+      <div class="toolbar">
+        @if (budget.summary()?.isOverBudget) {
+          <span class="badge badge--warning" role="status">
+            Przekroczono budżet o {{ money(budget.summary()?.overBudgetBy) }}
+          </span>
+        }
+        <span class="badge badge--info">{{ budget.summary()?.expensesCount || 0 }} wydatków</span>
+      </div>
     </div>
 
     <div class="section-grid">

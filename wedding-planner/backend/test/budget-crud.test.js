@@ -152,7 +152,53 @@ describe("budget and expenses", () => {
       spent: 4000,
       remaining: 46000,
       expensesCount: 3,
+      isOverBudget: false,
+      overBudgetBy: 0,
     });
+  });
+
+  // Risk #4 — the overflow flag. Threshold is `spent >= budgetTotal` (fires at the
+  // limit, not only past it). `reserved` is out of scope (no such figure exists).
+  async function summaryFor(budgetTotal, spentAmounts) {
+    db.weddings[0].budget_total = budgetTotal;
+    spentAmounts.forEach((amount, index) =>
+      db.expenses.push({
+        id: `over-${index}`,
+        wedding_id: "wedding-1",
+        category_id: "cat-1",
+        vendor_id: null,
+        amount,
+        spent_on: "2026-05-24",
+        description: "x",
+      }),
+    );
+    const response = await request(server, "GET", "/api/weddings/wedding-1/budget/summary");
+    assert.equal(response.status, 200);
+    return response.body;
+  }
+
+  it("does NOT flag overflow when spent is below the budget", async () => {
+    const body = await summaryFor(5000, [4999]);
+    assert.equal(body.isOverBudget, false);
+    assert.equal(body.overBudgetBy, 0);
+  });
+
+  it("flags overflow at exactly the budget (>= threshold), with overBudgetBy 0", async () => {
+    const body = await summaryFor(5000, [3000, 2000]);
+    assert.equal(body.isOverBudget, true);
+    assert.equal(body.overBudgetBy, 0);
+  });
+
+  it("flags overflow above the budget and reports the overage", async () => {
+    const body = await summaryFor(5000, [4000, 1500]);
+    assert.equal(body.isOverBudget, true);
+    assert.equal(body.overBudgetBy, 500);
+  });
+
+  it("never flags overflow when budgetTotal is null", async () => {
+    const body = await summaryFor(null, [9999]);
+    assert.equal(body.isOverBudget, false);
+    assert.equal(body.overBudgetBy, 0);
   });
 
   it("returns null remaining when budgetTotal is null", async () => {

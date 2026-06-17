@@ -20,7 +20,7 @@ Tests follow three non-negotiable principles for this project:
    risk wins. Do not promote to e2e because e2e "feels safer." Do not put a
    vision model on top of a deterministic visual diff that already catches
    the regression. This project already has a meaningful backend integration
-   suite (143 tests); new coverage goes where the *signal gap* is, not where
+   suite (147 tests); new coverage goes where the *signal gap* is, not where
    it is cheapest to pile on more of what already exists.
 2. **User concerns are first-class evidence.** Risks anchored in "the couple
    is worried about X, and the failure would surface somewhere in <area>"
@@ -148,10 +148,15 @@ each boundary break-verified then reverted:
   (invitation `token` stripped, no `secret-token` leak; `password_hash` lives in
   the SSO app, not this DB), so not duplicated.
 
-**Gap noted (feature absent, not a test gap):** there is **no server-side budget
-overflow flag** — `GET /budget/summary` returns a possibly-negative `remaining`
-with no `(spent + reserved) ≥ planned` signal. The PRD-described overflow flag
-isn't built; building it (+ its test) is a follow-up, not covered here.
+- **Budget overflow flag (#4)** — built this session: `GET /budget/summary` now
+  returns `isOverBudget` + `overBudgetBy`, fired at `spent >= budgetTotal`
+  (threshold `≥`, so at-limit counts; null budget never flags), surfaced as a
+  `role="status"` warning badge on the budget page. Boundary tests in
+  `budget-crud.test.js` (below/at/above/null); break-verified `>=`→`>` drops the
+  at-limit case. **Scope note:** the PRD's `(spent + reserved)` form is reduced to
+  `spent` here — there is no `reserved` figure (expenses and contracts are
+  separate subsystems); folding contract commitments into the budget is a
+  deliberate follow-up, not done.
 
 **Phase 4 started (2026-06-17; seating accessible fallback).** Landed
 `pages/seating/seating.page.spec.ts` (3 component-class tests, Risk #7): the
@@ -184,7 +189,7 @@ The classic test base for this project. AI-native tools (if any) carry a
 
 | Layer | Tool | Version | Notes |
 |-------|------|---------|-------|
-| backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 27 files / 143 tests (verified 2026-06-17; +Phase 3: upcoming-payments window, contract-status FSM, dashboard attention); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
+| backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 27 files / 147 tests (verified 2026-06-17; +Phase 3: upcoming-payments window, contract-status FSM, dashboard attention, budget overflow flag); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
 | frontend unit + component | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 12 specs / 64 tests: formatters + per-resource service scoping/derivation/cache (guests/tasks/wedding/vendors/contracts/tables/meal-options/budget/meetings, §3 Phase 5) + first **component test** `seating.page.spec.ts` (Risk #7 keyboard fallback, §3 Phase 4). Baseline verified green 2026-06-17 |
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
 | e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
@@ -207,7 +212,7 @@ phase lands; before that, the gate is `planned`.
 | Gate | Where | Required? | Catches |
 |------|-------|-----------|---------|
 | lint + typecheck | local + CI | **live in CI** (`deploy.yml`) | syntactic / type drift (eslint configs shipped both packages; typecheck via `build-prod`) |
-| backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (143-test suite now gates the deploy) |
+| backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (147-test suite now gates the deploy) |
 | frontend unit + component | local + CI | **live in CI** (`deploy.yml`) | service/formatter/component regressions (`test:ci`; 64 tests after §3 Phase 5 + Phase 4 seating fallback) |
 | e2e on critical flows | CI on push to `main` | **live in CI** (`deploy.yml`) | broken cross-account flow + isolation gate (hermetic Playwright) |
 | migration-drift check | CI on push | **live in CI** (`deploy.yml`) | code referencing unpushed schema (compares versions, not counts) |

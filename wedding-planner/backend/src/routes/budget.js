@@ -31,11 +31,19 @@ router.get("/summary", async (req, res, next) => {
       0,
     );
 
+    // Overflow flag fires at-or-above the planned total (threshold is `>=`, so a
+    // budget spent exactly to the limit is already flagged). `reserved` (unpaid
+    // contract commitments) is intentionally NOT folded in — expenses and
+    // contracts are separate subsystems here and no `reserved` figure exists.
+    const isOverBudget = budgetTotal != null && spent >= budgetTotal;
+
     res.json({
       budgetTotal,
       spent,
       remaining: budgetTotal == null ? null : budgetTotal - spent,
       expensesCount: expensesResult.data?.length || 0,
+      isOverBudget,
+      overBudgetBy: isOverBudget ? spent - budgetTotal : 0,
     });
   } catch (err) {
     next(err);

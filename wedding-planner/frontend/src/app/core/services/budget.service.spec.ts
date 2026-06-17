@@ -27,7 +27,14 @@ function buildExpense(overrides: Partial<Expense> = {}): Expense {
   };
 }
 
-const SUMMARY: BudgetSummary = { budgetTotal: 80000, spent: 100, remaining: 79900, expensesCount: 1 };
+const SUMMARY: BudgetSummary = {
+  budgetTotal: 80000,
+  spent: 100,
+  remaining: 79900,
+  expensesCount: 1,
+  isOverBudget: false,
+  overBudgetBy: 0,
+};
 
 describe('BudgetService', () => {
   let service: BudgetService;
