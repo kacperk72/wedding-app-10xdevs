@@ -5,10 +5,11 @@
 > Reguła: moduł = „done" tylko gdy istnieje **route + serwis frontu + test**.
 >
 > Testy: backend **133/133** (node:test). Front: **Vitest** skonfigurowany
-> (`@angular/build:unit-test`, `ng test`) — **61/61** (formattery + scoping/
-> derywacje/cache wszystkich kluczowych serwisów per-resource: guests/tasks/
-> wedding/vendors/contracts/tables/meal-options/budget/meetings; test-plan §3
-> Phase 5, oracle-safe, frozen clock). Dodatkowo `npm run build` + ręczny/Playwright przegląd.
+> (`@angular/build:unit-test`, `ng test`) — **64/64** (formattery + scoping/
+> derywacje/cache serwisów per-resource: guests/tasks/wedding/vendors/contracts/
+> tables/meal-options/budget/meetings [§3 Phase 5] + pierwszy test komponentu
+> `seating.page.spec` — fallback klawiaturowy/seat_number/konflikt [§3 Phase 4]).
+> E2E: 3 flows (smoke, golden-flow, catering-freeze). Dodatkowo `npm run build`.
 > CI: `deploy.yml` egzekwuje realne bramki (BE lint+testy, FE lint+unit+build,
 > hermetyczny Playwright E2E) + migration-drift guard + post-deploy `/api/health`
 > smoke — wszystko zielone na `main` 2026-06-16 (F-02 done).
@@ -27,7 +28,7 @@
 | M7 | Zadania + spotkania | ✅ done | `routes/{tasks,meetings}.js`, `pages/tasks`, `tasks-crud.test.js`, `meetings-crud.test.js` |
 | M8 | Seating + konflikty + wizualne przypisanie miejsc | ✅ done | `routes/{seating,seating-conflicts}.js`, `pages/seating/{round-table,conflicts-panel}`, `seating-crud.test.js` |
 | M9 | Eksport JSON / hard-delete wesela | ✅ done | `wedding-export.test.js`, `wedding-delete.test.js` |
-| M10 | Polish + wdrożenie | 🟢 ~done | wdrożenie+SSO ✅ LIVE (S-05 cutover osiągnięty 2026-06-16, realne dane); runner testów frontu ✅ (Vitest 61/61 + Playwright E2E w CI); bugi i18n/format/demo naprawione; zostaje tylko WCAG (low-pri) |
+| M10 | Polish + wdrożenie | 🟢 ~done | wdrożenie+SSO ✅ LIVE (S-05 cutover osiągnięty 2026-06-16, realne dane); runner testów frontu ✅ (Vitest 64/64 + Playwright E2E w CI); bugi i18n/format/demo naprawione; zostaje tylko WCAG (low-pri) |
 | Harmonogram | Ankieta DJ-a (przebieg dnia + muzyka + listy utworów) | 🟡 w toku | `migrations/20260601120000_wedding_timeline`, `routes/timeline.js`, `timeline-crud.test.js`, `core/services/timeline.service.ts`, `pages/harmonogram`; eksport „Wersja dla DJ-a" (Faza 4) jeszcze nie zrobiony |
 
 ## Bieżące
