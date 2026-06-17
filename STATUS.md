@@ -4,7 +4,7 @@
 > Ten plik mówi tylko **co JEST zrobione** — weryfikowane kodem, nie opowiadane.
 > Reguła: moduł = „done" tylko gdy istnieje **route + serwis frontu + test**.
 >
-> Testy: backend **136/136** (node:test; +okno płatności 30 dni, Risk #4). Front: **Vitest** skonfigurowany
+> Testy: backend **143/143** (node:test; Phase 3: okno płatności 30 dni, FSM statusu kontraktu, sygnał dashboardu). Front: **Vitest** skonfigurowany
 > (`@angular/build:unit-test`, `ng test`) — **64/64** (formattery + scoping/
 > derywacje/cache serwisów per-resource: guests/tasks/wedding/vendors/contracts/
 > tables/meal-options/budget/meetings [§3 Phase 5] + pierwszy test komponentu
