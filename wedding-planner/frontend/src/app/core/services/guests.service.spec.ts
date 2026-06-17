@@ -9,7 +9,7 @@ import {
 
 import { GuestsService } from './guests.service';
 import { apiUrl } from '../http/api-url';
-import { Diet, Guest, Relation, RsvpStatus } from '../models/guest.model';
+import { Diet, Guest, GuestAggregates, Relation, RsvpStatus } from '../models/guest.model';
 
 const WEDDING_ID = 'wed-1';
 
@@ -119,5 +119,89 @@ describe('GuestsService', () => {
       'Damian',
       'Ewa',
     ]);
+  });
+
+  it('create POST-uje pod wedding-scoped URL i dokłada gościa do signala', () => {
+    loadFixture();
+    const created = buildGuest({ firstName: 'Filip', lastName: 'Adamczyk' });
+
+    service
+      .create(WEDDING_ID, {
+        firstName: 'Filip',
+        lastName: 'Adamczyk',
+        relation: 'wspolni_znajomi' as Relation,
+        diet: 'pending' as Diet,
+      })
+      .subscribe();
+    const req = httpMock.expectOne(apiUrl(`/weddings/${WEDDING_ID}/guests`));
+    expect(req.request.method).toBe('POST');
+    req.flush(created);
+
+    expect(service.guests().length).toBe(6);
+    expect(service.guests().at(-1)?.id).toBe(created.id);
+  });
+
+  it('update PATCH-uje pod wedding-scoped URL i podmienia gościa po id', () => {
+    loadFixture();
+    const target = service.guests()[0];
+    const updated = { ...target, lastName: 'Zmieniona' };
+
+    service.update(WEDDING_ID, target.id, { lastName: 'Zmieniona' }).subscribe();
+    const req = httpMock.expectOne(apiUrl(`/weddings/${WEDDING_ID}/guests/${target.id}`));
+    expect(req.request.method).toBe('PATCH');
+    req.flush(updated);
+
+    expect(service.guests().find((g) => g.id === target.id)?.lastName).toBe('Zmieniona');
+    expect(service.guests().length).toBe(5);
+  });
+
+  it('remove DELETE-uje pod wedding-scoped URL i usuwa gościa z signala', () => {
+    loadFixture();
+    const target = service.guests()[0];
+
+    service.remove(WEDDING_ID, target.id).subscribe();
+    const req = httpMock.expectOne(apiUrl(`/weddings/${WEDDING_ID}/guests/${target.id}`));
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+
+    expect(service.guests().some((g) => g.id === target.id)).toBe(false);
+    expect(service.guests().length).toBe(4);
+  });
+
+  it('aggregates używa wartości serwera, dopóki mutacja nie zresetuje fallbacku na klienta', () => {
+    loadFixture();
+
+    // Server aggregates deliberately diverge from the client-derived numbers
+    // so we can observe which source `aggregates()` is reading.
+    const serverAggregates: GuestAggregates = {
+      invited: 99,
+      confirmed: 80,
+      pending: 10,
+      declined: 9,
+      vegeOrVegan: 40,
+      children: 5,
+      noMealPick: 3,
+    };
+    service.loadAggregates(WEDDING_ID).subscribe();
+    const aggReq = httpMock.expectOne(apiUrl(`/weddings/${WEDDING_ID}/guests/aggregates`));
+    expect(aggReq.request.method).toBe('GET');
+    aggReq.flush(serverAggregates);
+
+    expect(service.aggregates().invited).toBe(99);
+
+    // Any mutation clears the server snapshot → aggregates fall back to the
+    // client-side recomputation over the (now 6-guest) list.
+    const created = buildGuest({ firstName: 'Filip', lastName: 'Adamczyk' });
+    service
+      .create(WEDDING_ID, {
+        firstName: 'Filip',
+        lastName: 'Adamczyk',
+        relation: 'wspolni_znajomi' as Relation,
+        diet: 'pending' as Diet,
+      })
+      .subscribe();
+    httpMock.expectOne(apiUrl(`/weddings/${WEDDING_ID}/guests`)).flush(created);
+
+    expect(service.aggregates().invited).toBe(6);
   });
 });

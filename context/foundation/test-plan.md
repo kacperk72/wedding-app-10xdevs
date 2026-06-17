@@ -6,11 +6,11 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-06-16 (§3 Phase 2 — **COMPLETE**: all gates wired in
-> `deploy.yml` and a green `main` run on 2026-06-16 proved deterministic gates +
-> migration-drift guard + post-deploy `/api/health` smoke all pass against the
-> live project. The three Supabase secrets are configured. §4/§5/§6.5/§6.6 synced.
-> Phase 1 remains complete.)
+> Last updated: 2026-06-17 (§3 Phase 5 — **COMPLETE**: Tier-1 frontend unit
+> batch for Risk #8; frontend unit 15 → 33 tests; §2 risk map + guidance, §4/§5
+> counts synced. Earlier: 2026-06-16 §3 Phase 2 — all CI gates wired in
+> `deploy.yml`, green `main` run proved deterministic gates + migration-drift +
+> post-deploy smoke. Phases 1–2 remain complete; 3–4 not started.)
 
 ## 1. Strategy
 
@@ -20,7 +20,7 @@ Tests follow three non-negotiable principles for this project:
    risk wins. Do not promote to e2e because e2e "feels safer." Do not put a
    vision model on top of a deterministic visual diff that already catches
    the regression. This project already has a meaningful backend integration
-   suite (110 tests); new coverage goes where the *signal gap* is, not where
+   suite (133 tests); new coverage goes where the *signal gap* is, not where
    it is cheapest to pile on more of what already exists.
 2. **User concerns are first-class evidence.** Risks anchored in "the couple
    is worried about X, and the failure would surface somewhere in <area>"
@@ -55,6 +55,7 @@ research's job, see §1 principle #3).
 | 5 | The Dashboard "Wymaga uwagi" / KPI signal under-reports — says nothing is due when a payment or task actually is — so the couple loses trust and reverts to Excel. | High | Medium | PRD §Business Logic, FR-006/FR-007; interview Q1; hot-spot dir `wedding-planner/frontend/src/app/` (dashboard among most-churned pages) |
 | 6 | A JSON export leaks secrets — `password_hash` or invitation `token` — into the dump. | High | Low | PRD FR-033 + Resolved decision "JSON export is a full dump minus secrets"; abuse lens (secret/PII leakage) |
 | 7 | A guest lands on the wrong table/seat, `seat_number` does not persist, or the keyboard-only fallback (FR-029, hard requirement) silently breaks — seating becomes unusable or inaccessible. | Medium | High | Interview Q3; hot-spot dir `wedding-planner/frontend/src/app/` (seating = most-churned page, 6 commits/30d); FR-028–030 |
+| 8 | A per-resource frontend service mis-scopes `weddingId` (wrong URL), mis-derives a client-side aggregate/filter/sort, or leaves a stale signal cache after a mutation — the UI shows wrong or stale data and no test catches it (frontend is sparse). | High | Medium | Hot-spot `wedding-planner/frontend/src/app/core/services` + `core/models` churn; PRD US-01 wedding-scoping; baseline was 3 specs / 15 tests (derivations only) |
 
 **Impact × Likelihood rubric.** High = user loses access/data/money or failure
 is publicly visible / area changes weekly or already burned us. Medium =
@@ -78,6 +79,7 @@ of scope for a two-user MVP and is noted in §7.
 | #5 | Given seeded due/overdue/RSVP-gap items, the signal lists them; given none, it is empty | "Top-5 returned ⇒ the right 5" | What each of the four streams contributes; how items are selected into the signal | Backend integration (aggregate) | Mirroring `dashboard.test.js` instead of supplying an independent oracle |
 | #6 | An export of a wedding that has a password_hash and an invite token contains **neither** | "Spec says minus-secrets ⇒ code redacts" | Which fields the export traverses; where secrets live in the dumped graph | Backend integration | Asserting only that the export is non-empty / well-formed |
 | #7 | Drag assigns to the correct table and persists `seat_number`; Tab + Enter/Space achieves the same assignment; ARIA announces the result | "Mouse works ⇒ keyboard works" | The seat-assignment persistence path; the keyboard focus/activation model; the ARIA contract | Frontend component/integration | Snapshot-without-meaning; testing drag while never exercising the fallback |
+| #8 | `list/create/update/remove` hit the wedding-scoped URL and correctly mutate the signal cache; aggregate/filter/sort matches an independent oracle | "Compiles ⇒ scoping ok"; "signal emits ⇒ value ok" | Which derivations are client-side vs server-computed; where `weddingId` enters the URL; what resets a cached aggregate | Frontend unit (Vitest + `HttpTestingController`) | Oracle problem — copying the service's own derivation into the assertion; live-clock date math (time-bomb) instead of a frozen clock |
 
 **Phase 1 research correction (2026-06-09).** Risk #1 proved cheapest at the
 **backend integration** layer, not e2e: the membership guard runs above every
@@ -100,9 +102,23 @@ orchestrator updates Status as artifacts appear on disk.
 | 2 | CI gate + migration-drift guard + smoke | Add lint config; run BE+FE+E2E before deploy; fail CI on disk-vs-applied migration drift; post-deploy `/api/health` smoke | #3 | quality-gate | complete | context/changes/ci-test-gate-and-smoke/ |
 | 3 | Money + signal + egress (backend integration, oracle-safe) | Independent-fixture tests for the 30-day payment window, contract-status sync, budget overflow flag, dashboard signal, and export secret-redaction | #4, #5, #6 | integration | not started | — |
 | 4 | Seating correctness + accessible fallback | Verify seat assignment + `seat_number` persistence; keyboard-only path equivalence + ARIA announcements | #7 | component/integration | not started | — |
+| 5 | Frontend unit coverage (high-churn services) | Oracle-safe scoping/derivation/cache-mutation tests for the high-churn per-resource services | #8 | frontend unit | complete | context/changes/frontend-unit-coverage/ |
 
 **Status vocabulary** (fixed — parser literals): `not started` → `change opened`
 → `researched` → `planned` → `implementing` → `complete`.
+
+**Phase 5 scope (2026-06-17; Tier-1 deep batch).** Landed three oracle-safe
+specs: `tasks.service.spec.ts` (overdue/this-week/future/completed date buckets
+on a **frozen clock** + scoping/cache mutation), `wedding.service.spec.ts`
+(`daysUntilWedding` + couple labels + `loadCurrent` weddingId scoping), and an
+extension to `guests.service.spec.ts` (create/update/remove cache mutation + the
+server→client aggregates fallback reset). Frontend unit: 15 → 33 tests.
+**Still pending (deferred):** the broad CRUD scoping sweep across the simpler
+services (vendors/contracts/tables/meal-options/budget/meetings) and the brief's
+proposed Phase 6 — e2e primary user flows (guest→group, payments 30d window,
+catering price→freeze, seating Flow 4 coordinated with Phase 4).
+Note: the refresh brief flagged `guests.service.spec.ts` as red ("httpMock
+undefined"); verified green this session — the baseline never regressed.
 
 **Phase 2 split (2026-06-15; completed 2026-06-16).** Phase 2 is `complete`.
 Wired in `.github/workflows/deploy.yml`: the *deterministic* gates (backend
@@ -119,8 +135,8 @@ The classic test base for this project. AI-native tools (if any) carry a
 
 | Layer | Tool | Version | Notes |
 |-------|------|---------|-------|
-| backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 19 files / 110 tests; mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
-| frontend unit | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Sparse** — 3 specs / 15 tests (formatters + `GuestsService`); seed suite only |
+| backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 24 files / 133 tests (verified 2026-06-17); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
+| frontend unit | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 5 specs / 33 tests (formatters + `GuestsService`/`TasksService`/`WeddingService`; §3 Phase 5). Baseline verified green 2026-06-17 (refresh brief's "5 red" claim was stale) |
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
 | e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
 | accessibility | none yet — see §3 Phase 4 | — | Seating keyboard fallback (FR-029) is the only hard a11y requirement; axe-core optional |
@@ -142,8 +158,8 @@ phase lands; before that, the gate is `planned`.
 | Gate | Where | Required? | Catches |
 |------|-------|-----------|---------|
 | lint + typecheck | local + CI | **live in CI** (`deploy.yml`) | syntactic / type drift (eslint configs shipped both packages; typecheck via `build-prod`) |
-| backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (110-test suite now gates the deploy) |
-| frontend unit | local + CI | **live in CI** (`deploy.yml`) | service/formatter regressions (`test:ci`) |
+| backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (133-test suite now gates the deploy) |
+| frontend unit | local + CI | **live in CI** (`deploy.yml`) | service/formatter regressions (`test:ci`; 33 tests after §3 Phase 5) |
 | e2e on critical flows | CI on push to `main` | **live in CI** (`deploy.yml`) | broken cross-account flow + isolation gate (hermetic Playwright) |
 | migration-drift check | CI on push | **live in CI** (`deploy.yml`) | code referencing unpushed schema (compares versions, not counts) |
 | pre-prod smoke (`/api/health`) | after FTP deploy | **live in CI** (`deploy.yml`) | environment-specific boot failures; backend ↔ Supabase reachability |
@@ -166,7 +182,9 @@ the relevant rollout phase ships; before that, it reads "TBD — see §3 Phase <
 ### 6.2 Adding a frontend unit test
 - **Location**: next to the unit, `*.spec.ts` under `wedding-planner/frontend/src/app/`.
 - **Mocking**: `HttpTestingController` for service HTTP; signal assertions for state.
-- **Reference test**: `wedding-planner/frontend/src/app/core/services/guests.service.spec.ts`.
+- **Reference test**: `wedding-planner/frontend/src/app/core/services/guests.service.spec.ts` (derivations + cache mutation); `tasks.service.spec.ts` (frozen-clock date buckets); `wedding.service.spec.ts` (AuthService stub for `loadCurrent` scoping).
+- **Oracle rule**: expected aggregate/filter/sort values are hand-computed from the fixture or a PRD definition — never produced by calling the unit under test.
+- **Frozen clock**: any date-dependent derivation (`daysUntilWedding`, task buckets) must run under `vi.useFakeTimers()` + `vi.setSystemTime(...)`, restored in `afterEach` — never assert against a live `new Date()` (time-bomb).
 - **Run locally**: `ng test` (Vitest via `@angular/build:unit-test`) in `wedding-planner/frontend`.
 
 ### 6.3 Adding an e2e test
