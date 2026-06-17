@@ -4,6 +4,10 @@
 // token→user map (sso-a→user-a, sso-b→user-b) so ensureUserFromSsoPayload
 // resolves the SSO payload to a seeded member.
 function e2eSeed() {
+  // Computed at server boot — a payment due ~10 days out so it lands inside the
+  // dashboard/contracts "upcoming 30 days" window whenever the e2e run starts.
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const dueSoon = new Date(Date.now() + 10 * DAY_MS).toISOString().slice(0, 10);
   return {
     users: [
       {
@@ -67,6 +71,59 @@ function e2eSeed() {
         status: "zarezerwowany",
         contract_amount: null,
         notes: null,
+      },
+    ],
+    // One unseated guest + one table for the seating keyboard-fallback flow.
+    guests: [
+      {
+        id: "seat-guest",
+        wedding_id: "wedding-1",
+        first_name: "Zofia",
+        last_name: "Seatowa",
+        relation: "wspolni_znajomi",
+        rsvp_status: "confirmed",
+        diet: "standard",
+        has_plus_one: false,
+        is_child: false,
+        meal_option_id: null,
+        table_id: null,
+        seat_number: null,
+        contact_phone: null,
+        contact_email: null,
+      },
+    ],
+    tables: [
+      {
+        id: "seat-table",
+        wedding_id: "wedding-1",
+        name: "Stół Testowy",
+        seats_count: 8,
+        sort_order: 1,
+        position_x: null,
+        position_y: null,
+      },
+    ],
+    // A contract with a payment due ~10 days out, so the "upcoming 30 days"
+    // card has something to render.
+    contracts: [
+      {
+        id: "contract-seed",
+        wedding_id: "wedding-1",
+        vendor_id: "vendor-1",
+        total_amount: 4000,
+        signed_date: null,
+        status: "pending",
+      },
+    ],
+    payments: [
+      {
+        id: "pay-seed",
+        contract_id: "contract-seed",
+        kind: "rata",
+        due_date: dueSoon,
+        amount: 1500,
+        status: "planned",
+        method: "przelew",
       },
     ],
   };

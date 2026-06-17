@@ -118,13 +118,27 @@ guard that throws before any HTTP), meal-options, budget (newest-first prepend +
 `loadSummary` cascade on every mutation), meetings (dual `meetings`/`upcoming`
 signals + sorted insert) — each proving `list/create/update/remove` hit the
 wedding-scoped URL and mutate the signal cache. Frontend unit: 15 → 61 tests.
-**Phase 6 started (e2e primary flows):** catering price→freeze landed as
-`e2e/catering-freeze.spec.ts` (Risk #9 / Flow 5) — builds the Pałac Polanka
-preset offer via the real API, captures the rendered price as the oracle, freezes
-into a contract, and asserts the contract row carries that exact price;
-break-verified (wrong `total_amount` → red). **Still pending:** guest→group and
-payments-30d (mostly covered by units + golden-flow per triage), and seating
-Flow 4 (coordinate with Phase 4, don't duplicate).
+**Phase 6 complete (e2e primary flows).** Four browser journeys on the hermetic
+harness, each break-verified:
+- **Catering price→freeze (Flow 5, #9)** — `catering-freeze.spec.ts`: builds the
+  Pałac Polanka preset via the real API, captures the rendered price as oracle,
+  freezes, asserts the contract row carries that exact price (break: wrong
+  `total_amount` → red).
+- **Seating keyboard assignment (Flow 4, #7)** — `seating-assign.spec.ts`: opens a
+  guest's assign menu (the keyboard path, no drag), confirms, asserts the guest
+  becomes a seat-chip at the table **and** the FR-029 live region announces it.
+- **Payments 30-day card (Flow 3, #4)** — `payments-upcoming.spec.ts`: a payment
+  seeded ~10 days out renders in "Najbliższe płatności" (break: due +40 → card
+  empty → red), binding the backend window to the rendered UI.
+- **Guest→group (Flow 2, #9)** — `guest-group.spec.ts`: a guest added with a
+  relation lands under that relation's group heading.
+
+Seeding rule reused: hand-seed only the irreducible rows in `e2e-seed.js`
+(unseated guest + table; a contract + a payment due ~10 days out via a
+boot-time-relative date); build everything else through the UI/API. Cross-test
+note: the shared in-memory server accumulates rows across specs, so scope
+locators to the seeded entity (e.g. the guest's card) and wait for load before
+acting on buttons that also exist in an empty-state.
 Note: the refresh brief flagged `guests.service.spec.ts` as red ("httpMock
 undefined"); verified green this session — the baseline never regressed.
 
@@ -194,7 +208,7 @@ The classic test base for this project. AI-native tools (if any) carry a
 | backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 27 files / 147 tests (verified 2026-06-17; +Phase 3: upcoming-payments window, contract-status FSM, dashboard attention, budget overflow flag); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
 | frontend unit + component | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 12 specs / 66 tests: formatters + per-resource service scoping/derivation/cache (guests/tasks/wedding/vendors/contracts/tables/meal-options/budget/meetings, §3 Phase 5) + component test `seating.page.spec.ts` (Risk #7 keyboard fallback + FR-029 ARIA announcement, §3 Phase 4). Baseline verified green 2026-06-17 |
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
-| e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
+| e2e | Playwright (`@playwright/test`) | ^1.60 | Hermetic FE+BE boot via `webServer`; **6 flows** (smoke, golden-flow, catering-freeze, seating-assign, payments-upcoming, guest-group); see §6.3 |
 | accessibility | none yet — see §3 Phase 4 | — | Seating keyboard fallback (FR-029) is the only hard a11y requirement; axe-core optional |
 | CI quality gate | GitHub Actions | — | `deploy.yml` runs real gates (BE lint+tests, FE lint+unit+build, hermetic E2E) before FTP deploy, plus migration-drift guard + post-deploy `/api/health` smoke — all green on `main` 2026-06-16; see §3 Phase 2 / §6.5 |
 | lint | ESLint (`eslint.config.js`) | flat config | Shipped both packages: BE `src/**/*.js`+`test/**/*.js`, FE `src/**/*.ts`+`*.html`; `npm run lint` in each (gate, not auto-fix) |
@@ -249,7 +263,7 @@ the relevant rollout phase ships; before that, it reads "TBD — see §3 Phase <
 - **Auth pattern**: never drive the real SSO. Call `authenticateAs(context, 'a' | 'b')` from `e2e/support/sso-stub.ts` — it injects a fake `window.SSOAuth` via `addInitScript`, signs the token locally, and aborts the real SDK `<script>`.
 - **Two-account pattern**: create two `browser.newContext()`s and `authenticateAs` each as a different member; contexts have separate storage by construction. Seeded members live in `wedding-planner/backend/test/helpers/e2e-seed.js` (`user-a`/`user-b`, both members of `wedding-1`, wedding date `2026-09-12`).
 - **Assertion rule**: target rendered DOM only (toasts via `ToastService`, `formatDDMMYYYY` output) — backend error bodies are mixed-locale.
-- **Reference tests**: `e2e/golden-flow.spec.ts` (two-context cross-account read), `e2e/smoke.spec.ts` (auth harness), `e2e/catering-freeze.spec.ts` (catering price→freeze→contract journey; preset built via real API, price-as-oracle).
+- **Reference tests**: `e2e/golden-flow.spec.ts` (two-context cross-account read), `e2e/smoke.spec.ts` (auth harness), `e2e/catering-freeze.spec.ts` (price→freeze→contract; preset via real API, price-as-oracle), `e2e/seating-assign.spec.ts` (keyboard assign + FR-029 announce), `e2e/payments-upcoming.spec.ts` (30-day card render), `e2e/guest-group.spec.ts` (guest → relation group).
 - **Seeding non-trivial flows**: hand-seed only the irreducible bit in `backend/test/helpers/e2e-seed.js` (e.g. one `sala` vendor for the freeze flow); build relational data (catering offer/package/selection) through the real API in the test, since the route guards' join queries need genuine relationships.
 - **Prerequisite**: `npx playwright install chromium` (see `e2e/README.md`).
 - **Run locally**: `npm run e2e` in `wedding-planner/frontend`.

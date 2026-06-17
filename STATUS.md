@@ -10,7 +10,8 @@
 > tables/meal-options/budget/meetings [§3 Phase 5] + test komponentu
 > `seating.page.spec` — fallback klawiaturowy/seat_number/konflikt + aria-live
 > FR-029 [§3 Phase 4 complete]).
-> E2E: 3 flows (smoke, golden-flow, catering-freeze). Dodatkowo `npm run build`.
+> E2E: 6 flows (smoke, golden-flow, catering-freeze, seating-assign,
+> payments-upcoming, guest-group). Dodatkowo `npm run build`.
 > CI: `deploy.yml` egzekwuje realne bramki (BE lint+testy, FE lint+unit+build,
 > hermetyczny Playwright E2E) + migration-drift guard + post-deploy `/api/health`
 > smoke — wszystko zielone na `main` 2026-06-16 (F-02 done).
