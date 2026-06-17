@@ -5,9 +5,10 @@
 > Reguła: moduł = „done" tylko gdy istnieje **route + serwis frontu + test**.
 >
 > Testy: backend **133/133** (node:test). Front: **Vitest** skonfigurowany
-> (`@angular/build:unit-test`, `ng test`) — **33/33** (formattery + `GuestsService`/`TasksService`/`WeddingService`;
-> test-plan §3 Phase 5: scoping/derywacje/cache, oracle-safe, frozen clock);
-> szersze pokrycie w toku. Dodatkowo `npm run build` + ręczny/Playwright przegląd.
+> (`@angular/build:unit-test`, `ng test`) — **61/61** (formattery + scoping/
+> derywacje/cache wszystkich kluczowych serwisów per-resource: guests/tasks/
+> wedding/vendors/contracts/tables/meal-options/budget/meetings; test-plan §3
+> Phase 5, oracle-safe, frozen clock). Dodatkowo `npm run build` + ręczny/Playwright przegląd.
 > CI: `deploy.yml` egzekwuje realne bramki (BE lint+testy, FE lint+unit+build,
 > hermetyczny Playwright E2E) + migration-drift guard + post-deploy `/api/health`
 > smoke — wszystko zielone na `main` 2026-06-16 (F-02 done).
@@ -26,7 +27,7 @@
 | M7 | Zadania + spotkania | ✅ done | `routes/{tasks,meetings}.js`, `pages/tasks`, `tasks-crud.test.js`, `meetings-crud.test.js` |
 | M8 | Seating + konflikty + wizualne przypisanie miejsc | ✅ done | `routes/{seating,seating-conflicts}.js`, `pages/seating/{round-table,conflicts-panel}`, `seating-crud.test.js` |
 | M9 | Eksport JSON / hard-delete wesela | ✅ done | `wedding-export.test.js`, `wedding-delete.test.js` |
-| M10 | Polish + wdrożenie | 🟢 ~done | wdrożenie+SSO ✅ LIVE (S-05 cutover osiągnięty 2026-06-16, realne dane); runner testów frontu ✅ (Vitest 33/33 + Playwright E2E w CI); bugi i18n/format/demo naprawione; zostaje tylko WCAG (low-pri) |
+| M10 | Polish + wdrożenie | 🟢 ~done | wdrożenie+SSO ✅ LIVE (S-05 cutover osiągnięty 2026-06-16, realne dane); runner testów frontu ✅ (Vitest 61/61 + Playwright E2E w CI); bugi i18n/format/demo naprawione; zostaje tylko WCAG (low-pri) |
 | Harmonogram | Ankieta DJ-a (przebieg dnia + muzyka + listy utworów) | 🟡 w toku | `migrations/20260601120000_wedding_timeline`, `routes/timeline.js`, `timeline-crud.test.js`, `core/services/timeline.service.ts`, `pages/harmonogram`; eksport „Wersja dla DJ-a" (Faza 4) jeszcze nie zrobiony |
 
 ## Bieżące
@@ -38,7 +39,7 @@
 ## Otwarte
 
 - [ ] **Kontrast WCAG / focus-ring** — wymaga axe-core lub oceny wzrokowej, niski priorytet.
-- [x] ~~**Front: brak testów jednostkowych**~~ — Vitest skonfigurowany (`@angular/build:unit-test`, `ng test`), **33/33** (`currency.format`, `date.format`, `guests.service`, `tasks.service`, `wedding.service`; test-plan §3 Phase 5, Risk #8). Pozostaje: sweep scoping/cache dla prostych serwisów (vendors/contracts/tables/…) + komponenty (F-01 cd.).
+- [x] ~~**Front: brak testów jednostkowych**~~ — Vitest skonfigurowany (`@angular/build:unit-test`, `ng test`), **61/61** (formattery + scoping/derywacje/cache serwisów: guests/tasks/wedding/vendors/contracts/tables/meal-options/budget/meetings; test-plan §3 Phase 5, Risk #8). Pozostaje: testy komponentów + e2e primary flows (Phase 6, F-01 cd.).
 - [x] ~~Założyć `context/foundation/roadmap.md`~~ — istnieje; zreconciliowany 2026-06-08 (auto-taski sparkowane, north star → S-05 production cutover).
 - [x] ~~`docs/demo-app/04-database.md` — część o auto-taskach nieaktualna~~ — posprzątane 2026-06-08 (sekcje auto-task oznaczone „USUNIĘTE 2026-05-26"; DDL/trigger/bootstrap/ER zaktualizowane).
 - [x] ~~Dryf stacku (Sequelize+MySQL → Supabase Postgres)~~ — posprzątane 2026-06-08: `tech-stack.md` + `infrastructure.md` poprawione (baner + treść); `context/deployment/deploy-plan.md` operacyjnie poprawiony (Supabase provisioning, `SUPABASE_*` env vary); `wedding-planner-koncepcja.md` + `shape-notes.md` dostały baner-korektę (historyczne, treść zachowana). `wedding-planner-deployment.md`/`CLAUDE.md`/`README.md` były już poprawne (MySQL = SSO).

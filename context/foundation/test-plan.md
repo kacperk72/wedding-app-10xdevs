@@ -6,9 +6,9 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-06-17 (§3 Phase 5 — **COMPLETE**: Tier-1 frontend unit
-> batch for Risk #8; frontend unit 15 → 33 tests; §2 risk map + guidance, §4/§5
-> counts synced. Earlier: 2026-06-16 §3 Phase 2 — all CI gates wired in
+> Last updated: 2026-06-17 (§3 Phase 5 — **COMPLETE**: frontend unit batch for
+> Risk #8 — Tier-1 derivations + CRUD scoping sweep; frontend unit 15 → 61 tests;
+> §2 risk map + guidance, §4/§5 counts synced. Earlier: 2026-06-16 §3 Phase 2 — all CI gates wired in
 > `deploy.yml`, green `main` run proved deterministic gates + migration-drift +
 > post-deploy smoke. Phases 1–2 remain complete; 3–4 not started.)
 
@@ -112,11 +112,15 @@ specs: `tasks.service.spec.ts` (overdue/this-week/future/completed date buckets
 on a **frozen clock** + scoping/cache mutation), `wedding.service.spec.ts`
 (`daysUntilWedding` + couple labels + `loadCurrent` weddingId scoping), and an
 extension to `guests.service.spec.ts` (create/update/remove cache mutation + the
-server→client aggregates fallback reset). Frontend unit: 15 → 33 tests.
-**Still pending (deferred):** the broad CRUD scoping sweep across the simpler
-services (vendors/contracts/tables/meal-options/budget/meetings) and the brief's
-proposed Phase 6 — e2e primary user flows (guest→group, payments 30d window,
-catering price→freeze, seating Flow 4 coordinated with Phase 4).
+server→client aggregates fallback reset). Then the **CRUD scoping sweep** across
+the simpler services — vendors, contracts, tables (incl. the `seatsCount` 1–24
+guard that throws before any HTTP), meal-options, budget (newest-first prepend +
+`loadSummary` cascade on every mutation), meetings (dual `meetings`/`upcoming`
+signals + sorted insert) — each proving `list/create/update/remove` hit the
+wedding-scoped URL and mutate the signal cache. Frontend unit: 15 → 61 tests.
+**Still pending (deferred):** the brief's proposed Phase 6 — e2e primary user
+flows (guest→group, payments 30d window, catering price→freeze, seating Flow 4
+coordinated with Phase 4).
 Note: the refresh brief flagged `guests.service.spec.ts` as red ("httpMock
 undefined"); verified green this session — the baseline never regressed.
 
@@ -136,7 +140,7 @@ The classic test base for this project. AI-native tools (if any) carry a
 | Layer | Tool | Version | Notes |
 |-------|------|---------|-------|
 | backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 24 files / 133 tests (verified 2026-06-17); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
-| frontend unit | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 5 specs / 33 tests (formatters + `GuestsService`/`TasksService`/`WeddingService`; §3 Phase 5). Baseline verified green 2026-06-17 (refresh brief's "5 red" claim was stale) |
+| frontend unit | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 11 specs / 61 tests (formatters + per-resource service scoping/derivation/cache across guests/tasks/wedding/vendors/contracts/tables/meal-options/budget/meetings; §3 Phase 5). Baseline verified green 2026-06-17 (refresh brief's "5 red" claim was stale) |
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
 | e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
 | accessibility | none yet — see §3 Phase 4 | — | Seating keyboard fallback (FR-029) is the only hard a11y requirement; axe-core optional |
@@ -159,7 +163,7 @@ phase lands; before that, the gate is `planned`.
 |------|-------|-----------|---------|
 | lint + typecheck | local + CI | **live in CI** (`deploy.yml`) | syntactic / type drift (eslint configs shipped both packages; typecheck via `build-prod`) |
 | backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (133-test suite now gates the deploy) |
-| frontend unit | local + CI | **live in CI** (`deploy.yml`) | service/formatter regressions (`test:ci`; 33 tests after §3 Phase 5) |
+| frontend unit | local + CI | **live in CI** (`deploy.yml`) | service/formatter regressions (`test:ci`; 61 tests after §3 Phase 5) |
 | e2e on critical flows | CI on push to `main` | **live in CI** (`deploy.yml`) | broken cross-account flow + isolation gate (hermetic Playwright) |
 | migration-drift check | CI on push | **live in CI** (`deploy.yml`) | code referencing unpushed schema (compares versions, not counts) |
 | pre-prod smoke (`/api/health`) | after FTP deploy | **live in CI** (`deploy.yml`) | environment-specific boot failures; backend ↔ Supabase reachability |
