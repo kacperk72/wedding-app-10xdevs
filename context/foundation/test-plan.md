@@ -20,7 +20,7 @@ Tests follow three non-negotiable principles for this project:
    risk wins. Do not promote to e2e because e2e "feels safer." Do not put a
    vision model on top of a deterministic visual diff that already catches
    the regression. This project already has a meaningful backend integration
-   suite (133 tests); new coverage goes where the *signal gap* is, not where
+   suite (136 tests); new coverage goes where the *signal gap* is, not where
    it is cheapest to pile on more of what already exists.
 2. **User concerns are first-class evidence.** Risks anchored in "the couple
    is worried about X, and the failure would surface somewhere in <area>"
@@ -100,7 +100,7 @@ orchestrator updates Status as artifacts appear on disk.
 |---|------------|-----------------|----------------|-----------|--------|---------------|
 | 1 | E2E golden flow + isolation gate | Bootstrap the e2e layer (none today); prove US-01 cross-account write→read AND foreign-identity 403; assert Polish validation + `DD.MM.YYYY` inline | #1, #2 | integration + e2e | complete | context/changes/e2e-golden-flow-test/ |
 | 2 | CI gate + migration-drift guard + smoke | Add lint config; run BE+FE+E2E before deploy; fail CI on disk-vs-applied migration drift; post-deploy `/api/health` smoke | #3 | quality-gate | complete | context/changes/ci-test-gate-and-smoke/ |
-| 3 | Money + signal + egress (backend integration, oracle-safe) | Independent-fixture tests for the 30-day payment window, contract-status sync, budget overflow flag, dashboard signal, and export secret-redaction | #4, #5, #6 | integration | not started | — |
+| 3 | Money + signal + egress (backend integration, oracle-safe) | Independent-fixture tests for the 30-day payment window, contract-status sync, budget overflow flag, dashboard signal, and export secret-redaction | #4, #5, #6 | integration | implementing | (ad-hoc) |
 | 4 | Seating correctness + accessible fallback | Verify seat assignment + `seat_number` persistence; keyboard-only path equivalence + ARIA announcements | #7 | component/integration | implementing | (ad-hoc) |
 | 5 | Frontend unit coverage (high-churn services) | Oracle-safe scoping/derivation/cache-mutation tests for the high-churn per-resource services | #8 | frontend unit | complete | context/changes/frontend-unit-coverage/ |
 
@@ -127,6 +127,18 @@ payments-30d (mostly covered by units + golden-flow per triage), and seating
 Flow 4 (coordinate with Phase 4, don't duplicate).
 Note: the refresh brief flagged `guests.service.spec.ts` as red ("httpMock
 undefined"); verified green this session — the baseline never regressed.
+
+**Phase 3 started (2026-06-17; the 30-day payment window, Risk #4).** Landed
+`contracts-upcoming-payments.test.js` (3 oracle-safe integration tests): the
+`/contracts/upcoming-payments` window is `[today, today+30]` **inclusive on both
+ends** (day-0 and day-30 appear, day-31 does not), only `planned` payments count
+(a `paid` one inside the window is excluded), and an already-overdue planned
+payment is **not** returned (it falls below `due >= today` — documented so the
+"overdue silently vanishes from upcoming" behavior is a known, asserted fact, not
+a surprise). Dates are pinned via `dateDaysFromNow` (no time-bombs). Break-verified:
+shrinking the window to `+29` drops the day-30 boundary → test red; reverted.
+**Still pending in Phase 3:** contract-status sync, budget overflow flag (#4),
+dashboard "Wymaga uwagi" signal (#5), export secret-redaction (#6).
 
 **Phase 4 started (2026-06-17; seating accessible fallback).** Landed
 `pages/seating/seating.page.spec.ts` (3 component-class tests, Risk #7): the
@@ -159,7 +171,7 @@ The classic test base for this project. AI-native tools (if any) carry a
 
 | Layer | Tool | Version | Notes |
 |-------|------|---------|-------|
-| backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 24 files / 133 tests (verified 2026-06-17); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
+| backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 25 files / 136 tests (verified 2026-06-17; +`contracts-upcoming-payments` Risk #4); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
 | frontend unit + component | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 12 specs / 64 tests: formatters + per-resource service scoping/derivation/cache (guests/tasks/wedding/vendors/contracts/tables/meal-options/budget/meetings, §3 Phase 5) + first **component test** `seating.page.spec.ts` (Risk #7 keyboard fallback, §3 Phase 4). Baseline verified green 2026-06-17 |
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
 | e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
@@ -182,7 +194,7 @@ phase lands; before that, the gate is `planned`.
 | Gate | Where | Required? | Catches |
 |------|-------|-----------|---------|
 | lint + typecheck | local + CI | **live in CI** (`deploy.yml`) | syntactic / type drift (eslint configs shipped both packages; typecheck via `build-prod`) |
-| backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (133-test suite now gates the deploy) |
+| backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (136-test suite now gates the deploy) |
 | frontend unit + component | local + CI | **live in CI** (`deploy.yml`) | service/formatter/component regressions (`test:ci`; 64 tests after §3 Phase 5 + Phase 4 seating fallback) |
 | e2e on critical flows | CI on push to `main` | **live in CI** (`deploy.yml`) | broken cross-account flow + isolation gate (hermetic Playwright) |
 | migration-drift check | CI on push | **live in CI** (`deploy.yml`) | code referencing unpushed schema (compares versions, not counts) |
