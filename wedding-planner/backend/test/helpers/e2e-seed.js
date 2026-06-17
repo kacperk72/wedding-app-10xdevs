@@ -50,6 +50,25 @@ function e2eSeed() {
         linked_at: "2026-05-24T09:30:00.000Z",
       },
     ],
+    // One "sala" vendor so the catering freeze-into-contract flow (Phase 6 e2e)
+    // has a contractable party to bind the frozen contract to. The catering
+    // offer/package/selection are built through the real preset API by the test
+    // itself (the guards' join queries need genuine relationships), so only the
+    // vendor needs hand-seeding here.
+    vendors: [
+      {
+        id: "vendor-1",
+        wedding_id: "wedding-1",
+        category: "sala",
+        company_name: "Pałac Polanka",
+        contact_person: null,
+        phone: null,
+        email: null,
+        status: "zarezerwowany",
+        contract_amount: null,
+        notes: null,
+      },
+    ],
   };
 }
 

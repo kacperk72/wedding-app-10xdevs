@@ -118,9 +118,13 @@ guard that throws before any HTTP), meal-options, budget (newest-first prepend +
 `loadSummary` cascade on every mutation), meetings (dual `meetings`/`upcoming`
 signals + sorted insert) — each proving `list/create/update/remove` hit the
 wedding-scoped URL and mutate the signal cache. Frontend unit: 15 → 61 tests.
-**Still pending (deferred):** the brief's proposed Phase 6 — e2e primary user
-flows (guest→group, payments 30d window, catering price→freeze, seating Flow 4
-coordinated with Phase 4).
+**Phase 6 started (e2e primary flows):** catering price→freeze landed as
+`e2e/catering-freeze.spec.ts` (Risk #9 / Flow 5) — builds the Pałac Polanka
+preset offer via the real API, captures the rendered price as the oracle, freezes
+into a contract, and asserts the contract row carries that exact price;
+break-verified (wrong `total_amount` → red). **Still pending:** guest→group and
+payments-30d (mostly covered by units + golden-flow per triage), and seating
+Flow 4 (coordinate with Phase 4, don't duplicate).
 Note: the refresh brief flagged `guests.service.spec.ts` as red ("httpMock
 undefined"); verified green this session — the baseline never regressed.
 
@@ -197,7 +201,8 @@ the relevant rollout phase ships; before that, it reads "TBD — see §3 Phase <
 - **Auth pattern**: never drive the real SSO. Call `authenticateAs(context, 'a' | 'b')` from `e2e/support/sso-stub.ts` — it injects a fake `window.SSOAuth` via `addInitScript`, signs the token locally, and aborts the real SDK `<script>`.
 - **Two-account pattern**: create two `browser.newContext()`s and `authenticateAs` each as a different member; contexts have separate storage by construction. Seeded members live in `wedding-planner/backend/test/helpers/e2e-seed.js` (`user-a`/`user-b`, both members of `wedding-1`, wedding date `2026-09-12`).
 - **Assertion rule**: target rendered DOM only (toasts via `ToastService`, `formatDDMMYYYY` output) — backend error bodies are mixed-locale.
-- **Reference tests**: `e2e/golden-flow.spec.ts` (two-context cross-account read), `e2e/smoke.spec.ts` (auth harness).
+- **Reference tests**: `e2e/golden-flow.spec.ts` (two-context cross-account read), `e2e/smoke.spec.ts` (auth harness), `e2e/catering-freeze.spec.ts` (catering price→freeze→contract journey; preset built via real API, price-as-oracle).
+- **Seeding non-trivial flows**: hand-seed only the irreducible bit in `backend/test/helpers/e2e-seed.js` (e.g. one `sala` vendor for the freeze flow); build relational data (catering offer/package/selection) through the real API in the test, since the route guards' join queries need genuine relationships.
 - **Prerequisite**: `npx playwright install chromium` (see `e2e/README.md`).
 - **Run locally**: `npm run e2e` in `wedding-planner/frontend`.
 
