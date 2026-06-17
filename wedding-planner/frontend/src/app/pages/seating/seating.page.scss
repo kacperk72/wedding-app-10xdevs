@@ -1,3 +1,17 @@
+// Visually hidden but exposed to assistive tech — carries the polite
+// announcement of a successful seating action (FR-029).
+.seating-announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .seating-layout {
   display: grid;
   grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);

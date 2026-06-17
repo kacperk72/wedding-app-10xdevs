@@ -56,6 +56,10 @@ export class SeatingPage implements OnInit {
 
   private readonly fullTableToastAt = new Map<string, number>();
 
+  // Polite live-region text announced to screen readers on a successful seating
+  // action — the accessible equivalent of "the guest visibly moved" (FR-029).
+  protected readonly announcement = signal('');
+
   protected readonly guestsByTable = computed(() => {
     const grouped = new Map<string, Guest[]>();
     for (const guest of this.guests()) {
@@ -225,6 +229,7 @@ export class SeatingPage implements OnInit {
     const weddingId = this.weddingService.wedding()?.id;
     if (!weddingId) return;
     this.guestsService.update(weddingId, guest.id, { seatNumber }).subscribe({
+      next: () => this.announce(`Posadzono ${this.guestName(guest)} na krześle ${seatNumber}.`),
       error: () => this.toast.error('Nie udało się przypisać krzesła.'),
     });
   }
@@ -233,6 +238,7 @@ export class SeatingPage implements OnInit {
     const weddingId = this.weddingService.wedding()?.id;
     if (!weddingId) return;
     this.guestsService.update(weddingId, guest.id, { seatNumber: null }).subscribe({
+      next: () => this.announce(`Zwolniono krzesło gościa ${this.guestName(guest)}.`),
       error: () => this.toast.error('Nie udało się zwolnić krzesła.'),
     });
   }
@@ -357,6 +363,8 @@ export class SeatingPage implements OnInit {
 
     this.seating.assignTable(weddingId, guest.id, tableId).subscribe({
       next: (response) => {
+        const tableName = this.tables().find((table) => table.id === tableId)?.name;
+        this.announce(`Przypisano ${this.guestName(guest)} do stołu ${tableName ?? ''}.`);
         if (response.warnings.length > 0) {
           this.toast.show({
             kind: 'warning',
@@ -373,8 +381,13 @@ export class SeatingPage implements OnInit {
     const weddingId = this.requireWeddingId();
     if (!weddingId) return;
     this.seating.unassignTable(weddingId, guest.id).subscribe({
+      next: () => this.announce(`Usunięto ${this.guestName(guest)} ze stołu.`),
       error: () => this.toast.error('Nie udało się usunąć miejsca.'),
     });
+  }
+
+  private announce(message: string): void {
+    this.announcement.set(message);
   }
 
   private warningMessage(warnings: { otherGuestName: string | null; reason: string }[]): string {

@@ -23,6 +23,7 @@ interface SeatingInternals {
   assignFromMenu(): void;
   dropGuest(event: CdkDragDrop<Table>): void;
   assignSeatById(tableId: string, seatNumber: number, guestId: string): void;
+  announcement(): string;
 }
 
 function buildGuest(overrides: Partial<Guest> = {}): Guest {
@@ -150,6 +151,31 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
     page.assignSeatById('t-1', 5, 'g-9');
 
     expect(guestsMock.update).toHaveBeenCalledExactlyOnceWith(WEDDING_ID, 'g-9', { seatNumber: 5 });
+  });
+
+  it('ogłasza udane przypisanie do stołu w live-region (FR-029)', () => {
+    const guest = buildGuest({ id: 'g-1', tableId: null, firstName: 'Anna', lastName: 'Kowalska' });
+    const table = buildTable({ id: 't-1', name: 'Stół 1' });
+    guestsSignal.set([guest]);
+    tablesSignal.set([table]);
+
+    expect(page.announcement()).toBe('');
+    page.openGuestMenu(guest);
+    page.assignFromMenu();
+
+    expect(page.announcement()).toContain('Anna Kowalska');
+    expect(page.announcement()).toContain('Stół 1');
+  });
+
+  it('ogłasza posadzenie na konkretnym krześle (FR-029)', () => {
+    const guest = buildGuest({ id: 'g-9', tableId: 't-1', firstName: 'Ewa', lastName: 'Nowak' });
+    guestsSignal.set([guest]);
+    tablesSignal.set([buildTable({ id: 't-1' })]);
+
+    page.assignSeatById('t-1', 5, 'g-9');
+
+    expect(page.announcement()).toContain('Ewa Nowak');
+    expect(page.announcement()).toContain('5');
   });
 
   it('konflikt zwrócony przy przypisaniu jest komunikowany użytkownikowi (toast z powodem)', () => {

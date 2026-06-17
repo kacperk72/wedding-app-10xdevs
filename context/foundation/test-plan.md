@@ -101,7 +101,7 @@ orchestrator updates Status as artifacts appear on disk.
 | 1 | E2E golden flow + isolation gate | Bootstrap the e2e layer (none today); prove US-01 cross-account write→read AND foreign-identity 403; assert Polish validation + `DD.MM.YYYY` inline | #1, #2 | integration + e2e | complete | context/changes/e2e-golden-flow-test/ |
 | 2 | CI gate + migration-drift guard + smoke | Add lint config; run BE+FE+E2E before deploy; fail CI on disk-vs-applied migration drift; post-deploy `/api/health` smoke | #3 | quality-gate | complete | context/changes/ci-test-gate-and-smoke/ |
 | 3 | Money + signal + egress (backend integration, oracle-safe) | Independent-fixture tests for the 30-day payment window, contract-status sync, budget overflow flag, dashboard signal, and export secret-redaction | #4, #5, #6 | complete | (ad-hoc) |
-| 4 | Seating correctness + accessible fallback | Verify seat assignment + `seat_number` persistence; keyboard-only path equivalence + ARIA announcements | #7 | component/integration | implementing | (ad-hoc) |
+| 4 | Seating correctness + accessible fallback | Verify seat assignment + `seat_number` persistence; keyboard-only path equivalence + ARIA announcements | #7 | component/integration | complete | (ad-hoc) |
 | 5 | Frontend unit coverage (high-churn services) | Oracle-safe scoping/derivation/cache-mutation tests for the high-churn per-resource services | #8 | frontend unit | complete | context/changes/frontend-unit-coverage/ |
 
 **Status vocabulary** (fixed — parser literals): `not started` → `change opened`
@@ -158,7 +158,7 @@ each boundary break-verified then reverted:
   separate subsystems); folding contract commitments into the budget is a
   deliberate follow-up, not done.
 
-**Phase 4 started (2026-06-17; seating accessible fallback).** Landed
+**Phase 4 complete (2026-06-17; seating accessible fallback).** Landed
 `pages/seating/seating.page.spec.ts` (3 component-class tests, Risk #7): the
 keyboard fallback (`openGuestMenu`→`assignFromMenu`) reaches the **same**
 `seating.assignTable(weddingId, guestId, tableId)` call as drag (`dropGuest`) —
@@ -167,12 +167,14 @@ equivalence proven, not drag-only; the per-seat select fallback
 conflict surfaces to the user as a warning toast carrying the reason. First
 component-level test in the repo (TestBed + mocked services, no render).
 Backend already covers `seat_number` persistence + conflicts in
-`seating-crud.test.js`. **Gap found (not yet built → not tested):** there is no
-`aria-live` announcement on a *successful* assignment — only conflict/error
-toasts (which render `role="status"`). "ARIA announces the result" (FR-029) is
-therefore only partially satisfied; building a polite success announcement is a
-follow-up, and the browser-level keyboard-nav reach (Tab/Enter focus order) is
-e2e-tier, both still pending.
+`seating-crud.test.js`. **ARIA success announcement built (FR-029):** a polite
+`role="status"` `aria-live` region (`.seating-announcer`) now announces every
+successful action — "Przypisano <gość> do stołu <nazwa>", seat assignment, and
+unassign — closing the earlier gap where only conflict/error toasts were
+announced. Two added component tests assert the announcement text after the
+keyboard-fallback assign and the per-seat assign. **Optional remainder:** a
+browser-level keyboard-nav e2e (Tab/Enter focus order through the real DOM) is
+e2e-tier and not required for the component/integration scope.
 
 **Phase 2 split (2026-06-15; completed 2026-06-16).** Phase 2 is `complete`.
 Wired in `.github/workflows/deploy.yml`: the *deterministic* gates (backend
@@ -190,7 +192,7 @@ The classic test base for this project. AI-native tools (if any) carry a
 | Layer | Tool | Version | Notes |
 |-------|------|---------|-------|
 | backend unit + integration | node:test (built-in) | Node 20+ | **Meaningful** — 27 files / 147 tests (verified 2026-06-17; +Phase 3: upcoming-payments window, contract-status FSM, dashboard attention, budget overflow flag); mock-Supabase + HTTP harness in `wedding-planner/backend/test/helpers/` |
-| frontend unit + component | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 12 specs / 64 tests: formatters + per-resource service scoping/derivation/cache (guests/tasks/wedding/vendors/contracts/tables/meal-options/budget/meetings, §3 Phase 5) + first **component test** `seating.page.spec.ts` (Risk #7 keyboard fallback, §3 Phase 4). Baseline verified green 2026-06-17 |
+| frontend unit + component | Vitest (`@angular/build:unit-test`, `ng test`) | Angular 20+ | **Growing** — 12 specs / 66 tests: formatters + per-resource service scoping/derivation/cache (guests/tasks/wedding/vendors/contracts/tables/meal-options/budget/meetings, §3 Phase 5) + component test `seating.page.spec.ts` (Risk #7 keyboard fallback + FR-029 ARIA announcement, §3 Phase 4). Baseline verified green 2026-06-17 |
 | frontend mocking | Angular `HttpTestingController` | Angular 20+ | Per-service test pattern (see `guests.service.spec.ts`) |
 | e2e | Playwright (`@playwright/test`) | ^1.60 | Shipped in §3 Phase 1 — hermetic FE+BE boot via `webServer`; see §6.3 |
 | accessibility | none yet — see §3 Phase 4 | — | Seating keyboard fallback (FR-029) is the only hard a11y requirement; axe-core optional |
@@ -213,7 +215,7 @@ phase lands; before that, the gate is `planned`.
 |------|-------|-----------|---------|
 | lint + typecheck | local + CI | **live in CI** (`deploy.yml`) | syntactic / type drift (eslint configs shipped both packages; typecheck via `build-prod`) |
 | backend unit + integration | local + CI | **live in CI** (`deploy.yml`) | logic regressions (147-test suite now gates the deploy) |
-| frontend unit + component | local + CI | **live in CI** (`deploy.yml`) | service/formatter/component regressions (`test:ci`; 64 tests after §3 Phase 5 + Phase 4 seating fallback) |
+| frontend unit + component | local + CI | **live in CI** (`deploy.yml`) | service/formatter/component regressions (`test:ci`; 66 tests after §3 Phase 5 + Phase 4 seating fallback + FR-029 announcement) |
 | e2e on critical flows | CI on push to `main` | **live in CI** (`deploy.yml`) | broken cross-account flow + isolation gate (hermetic Playwright) |
 | migration-drift check | CI on push | **live in CI** (`deploy.yml`) | code referencing unpushed schema (compares versions, not counts) |
 | pre-prod smoke (`/api/health`) | after FTP deploy | **live in CI** (`deploy.yml`) | environment-specific boot failures; backend ↔ Supabase reachability |

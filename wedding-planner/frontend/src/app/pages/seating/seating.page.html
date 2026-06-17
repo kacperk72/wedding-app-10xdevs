@@ -6,6 +6,8 @@
   </button>
 </app-page-header>
 
+<p class="seating-announcer" role="status" aria-live="polite">{{ announcement() }}</p>
+
 <section class="seating-layout" cdkDropListGroup>
   <aside class="surface panel seating-sidebar">
     <div class="panel__header">
