@@ -1,0 +1,70 @@
+diff --git a/wedding-planner/backend/src/routes/contracts.js b/wedding-planner/backend/src/routes/contracts.js
+index 1a2b3c4..9f0e1d2 100644
+--- a/wedding-planner/backend/src/routes/contracts.js
++++ b/wedding-planner/backend/src/routes/contracts.js
+@@ -40,6 +40,24 @@ router.get("/", async (req, res, next) => {
+   }
+ });
+
++// Lista kontraktów wraz z danymi kontrahentów (scope: bieżące wesele).
++router.get("/with-vendors", async (req, res, next) => {
++  try {
++    const { data: contracts } = await supabase
++      .from("contracts")
++      .select("*")
++      .eq("wedding_id", req.weddingId);
++
++    const vendorIds = [...new Set(contracts.map((c) => c.vendor_id).filter(Boolean))];
++    const { data: vendors } = await supabase
++      .from("vendors")
++      .select("*")
++      .eq("wedding_id", req.weddingId)
++      .in("id", vendorIds);
++
++    const byId = new Map(vendors.map((v) => [v.id, v]));
++    res.json(
++      contracts.map((c) => ({ ...mapContract(c), vendor: byId.get(c.vendor_id) ?? null })),
++    );
++  } catch (err) {
++    next(err);
++  }
++});
++
+ router.post("/", async (req, res, next) => {
+   const { vendor_id, amount, status } = req.body;
+   if (!vendor_id) {
+diff --git a/wedding-planner/backend/test/contracts-with-vendors.test.js b/wedding-planner/backend/test/contracts-with-vendors.test.js
+new file mode 100644
+index 0000000..abc1234
+--- /dev/null
++++ b/wedding-planner/backend/test/contracts-with-vendors.test.js
+@@ -0,0 +1,28 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++import { makeApp } from "./helpers/http-app.js";
++import { seedWedding } from "./helpers/e2e-seed.js";
++
++test("GET /with-vendors zwraca kontrakty z kontrahentami tylko z tego wesela", async () => {
++  const { app, weddingId, token } = await makeApp();
++  await seedWedding(weddingId, { vendors: 1, contracts: 1 });
++
++  const res = await app
++    .get(`/api/weddings/${weddingId}/contracts/with-vendors`)
++    .set("Authorization", `Bearer ${token}`);
++
++  assert.equal(res.status, 200);
++  assert.equal(res.body.length, 1);
++  assert.ok(res.body[0].vendor, "kontrakt ma dołączonego kontrahenta");
++});
++
++test("GET /with-vendors nie przecieka kontrahentów z innego wesela", async () => {
++  const { app, weddingId, token } = await makeApp();
++  const otherWedding = await seedWedding("other", { vendors: 1 });
++
++  const res = await app
++    .get(`/api/weddings/${weddingId}/contracts/with-vendors`)
++    .set("Authorization", `Bearer ${token}`);
++
++  assert.equal(res.status, 200);
++  assert.deepEqual(res.body, []);
++});
