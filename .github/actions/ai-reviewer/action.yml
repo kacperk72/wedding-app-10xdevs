@@ -53,8 +53,18 @@ runs:
       shell: bash
       run: |
         git fetch --no-tags origin "${{ inputs.base-ref }}" || true
-        git diff "origin/${{ inputs.base-ref }}...HEAD" > "$RUNNER_TEMP/pr.diff"
-        echo "Diff: $(wc -l < "$RUNNER_TEMP/pr.diff") linii."
+        # Wykluczamy pliki generowane/lock — review ma oceniać kod, nie lockfile,
+        # a ich rozmiar wysadza okno kontekstowe modelu.
+        git diff "origin/${{ inputs.base-ref }}...HEAD" -- . \
+          ':(exclude)**/package-lock.json' \
+          ':(exclude)**/*.lock' \
+          ':(exclude)**/pnpm-lock.yaml' \
+          ':(exclude)**/yarn.lock' \
+          ':(exclude)**/dist/**' \
+          ':(exclude)**/*.min.js' \
+          ':(exclude)**/*.snap' \
+          > "$RUNNER_TEMP/pr.diff"
+        echo "Diff: $(wc -l < "$RUNNER_TEMP/pr.diff") linii (bez plików generowanych)."
 
     - name: Uruchom agenta review
       id: agent
