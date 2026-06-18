@@ -26,6 +26,10 @@ Twarde reguły tego repo, na które masz zwracać szczególną uwagę:
 - Angular: standalone, signals, inject(), native control flow (@if/@for), OnPush. Express: router per-resource z requireWeddingMember(), mapper w mappers.js.
 - Zmiana schematu musi round-tripować: 04-database.md -> migracja -> kod; aktualizuj STATUS.md przy zmianie stanu modułu.
 
+Czego NIE zgłaszać (kontekst spoza diffa):
+- requireSsoAuth montowany jest na poziomie server.js, a requireWeddingMember() przez router.use() na górze każdego pliku routes/*.js — nowy endpoint w istniejącym routerze dziedziczy je automatycznie. Brak tych middleware w samym diffie NIE jest luką; nie wymyślaj problemów, których diff nie pokazuje.
+- Oceniaj to, co realnie widać w diffie. Dopasowanie architektoniczne/biznesowe wymagające szerszego kontekstu zostaw poza werdyktem.
+
 Następnie wydaj wiążący werdykt (pass/fail) dla całej zmiany i dołącz krótkie podsumowanie (2-4 zdania) po polsku w Markdown, na podstawie którego autor PR-a będzie mógł działać. Wskazuj konkretne pliki i linie. Werdykt "fail", gdy którekolwiek kryterium ujawnia poważny problem — w szczególności bezpieczeństwo lub poprawność z oceną <= 3.`;
 
 export interface ReviewInput {
