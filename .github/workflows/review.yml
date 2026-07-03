@@ -1,0 +1,42 @@
+name: AI Code Review
+
+# Osobny workflow od deploy.yml — uruchamiany WYŁĄCZNIE ręcznie:
+# dodaj etykietę `ai-cr:review` na PR do main, żeby odpalić review.
+# Świadomie bez `synchronize`/`opened` — nie chcemy kosztów agenta na każdy push.
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    # Odpalaj tylko dla etykiety ai-cr:review (nadanie innych etykiet nie uruchamia review).
+    if: github.event.label.name == 'ai-cr:review'
+    steps:
+      - name: Checkout (pełna historia do policzenia diffa)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: AI review
+        id: review
+        uses: ./.github/actions/ai-reviewer
+        with:
+          api-key: ${{ secrets.OPENROUTER_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-number: ${{ github.event.pull_request.number }}
+          base-ref: ${{ github.base_ref }}
+          pr-title: ${{ github.event.pull_request.title }}
+          pr-body: ${{ github.event.pull_request.body }}
+          # model: anthropic/claude-haiku-4.5   # nadpisanie modelu (opcjonalne)
+
+      - name: Bramka — zatrzymaj merge przy werdykcie fail
+        if: steps.review.outputs.verdict == 'fail'
+        run: |
+          echo "Werdykt AI review: fail — blokuję merge."
+          exit 1

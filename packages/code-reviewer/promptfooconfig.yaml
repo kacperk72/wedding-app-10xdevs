@@ -1,0 +1,61 @@
+# Evale code-reviewera: ten sam agent (prompt + structured-output schema) puszczony
+# na kilku modelach OpenRouter obok siebie. Custom provider (src/promptfoo-provider.ts)
+# woła realnego agenta z packages/code-reviewer, więc porównujemy modele na tym samym
+# kontrakcie review, a nie na osobnej kopii promptu.
+#
+# Uruchomienie:  OPENROUTER_API_KEY=... npm run eval
+# Wymaga klucza OpenRouter (te same wywołania co produkcyjny reviewer).
+
+description: Code review agent — porównanie modeli na diffach wedding-planner
+
+# Provider dostaje wyrenderowany prompt = treść diffa (z var `diff`).
+prompts:
+  - '{{diff}}'
+
+providers:
+  - id: file://src/promptfoo-provider.ts
+    label: haiku-4.5
+    config:
+      model: anthropic/claude-haiku-4.5
+  - id: file://src/promptfoo-provider.ts
+    label: sonnet-4.6
+    config:
+      model: anthropic/claude-sonnet-4.6
+  # Model spoza Anthropic, ten sam klucz. Zweryfikuj aktualne ID na openrouter.ai/models.
+  - id: file://src/promptfoo-provider.ts
+    label: glm-5.1
+    config:
+      model: z-ai/glm-5.1
+
+# Grader dla llm-rubric — model jako sędzia. Używamy OpenRoutera, żeby nie wymagać
+# osobnego klucza OpenAI.
+defaultTest:
+  options:
+    provider: openrouter:anthropic/claude-sonnet-4.6
+
+tests:
+  - description: 'Diff z luką: select * na vendors bez filtra + usunięty assertWeddingRecordExists'
+    vars:
+      diff: file://fixtures/insecure-route.diff
+    assert:
+      # 1. wynik jest poprawnym JSON-em (na nim stoi bramka w CI)
+      - type: is-json
+      # 2. twardy warunek: zmiana musi zostać odrzucona
+      - type: javascript
+        value: JSON.parse(output).verdict === 'fail'
+      # 3. ocena bezpieczeństwa musi wyłapać problem
+      - type: javascript
+        value: JSON.parse(output).securitySafety <= 3
+      # 4. drugi model ocenia treść uzasadnienia
+      - type: llm-rubric
+        value: >-
+          Podsumowanie odrzuca zmianę i wskazuje konkretnie brak kontroli cross-wedding
+          (select * na vendors bez filtra po ID i/lub usunięty assertWeddingRecordExists).
+
+  - description: 'Diff czysty: filtr po ID + zachowany assertWeddingRecordExists + test'
+    vars:
+      diff: file://fixtures/clean-route.diff
+    assert:
+      - type: is-json
+      - type: javascript
+        value: JSON.parse(output).verdict === 'pass'
