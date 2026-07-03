@@ -83,7 +83,11 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned, not `latest`: the CLI's `migration list` output format has
+          # changed across versions (pipe-table -> JSON), which silently broke
+          # the drift parser. The parser now handles both, but pinning keeps the
+          # format deterministic. Bump deliberately, not implicitly.
+          version: 2.109.0
 
       - name: Migration drift guard
         working-directory: wedding-planner/backend
