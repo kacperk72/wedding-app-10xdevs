@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, forkJoin, of, tap } from 'rxjs';
 import { CreateTableDto, Table, UpdateTableDto } from '../models/table.model';
 import { apiUrl } from '../http/api-url';
 
@@ -35,6 +35,26 @@ export class TablesService {
           ),
         ),
       );
+  }
+
+  /**
+   * Utrwala nową kolejność stołów. `orderedTables` to lista w docelowej
+   * kolejności; `sortOrder` jest przeliczany na indeks. Sygnał jest
+   * aktualizowany od razu (optymistycznie), a na backend lecą PATCH-e tylko
+   * dla stołów, których `sortOrder` faktycznie się zmienił.
+   */
+  reorder(weddingId: string, orderedTables: Table[]): Observable<Table[]> {
+    const reordered = orderedTables.map((table, index) => ({ ...table, sortOrder: index }));
+    this._tables.set(reordered);
+
+    const changed = orderedTables
+      .map((table, index) => ({ table, index }))
+      .filter(({ table, index }) => table.sortOrder !== index);
+    if (changed.length === 0) return of([]);
+
+    return forkJoin(
+      changed.map(({ table, index }) => this.update(weddingId, table.id, { sortOrder: index })),
+    );
   }
 
   remove(weddingId: string, id: string): Observable<void> {

@@ -22,6 +22,10 @@ interface SeatingInternals {
   openGuestMenu(guest: Guest): void;
   assignFromMenu(): void;
   dropGuest(event: CdkDragDrop<Table>): void;
+  dropTable(event: CdkDragDrop<Table[]>): void;
+  moveTable(table: Table, direction: -1 | 1): void;
+  canReorderTable(drag: { data: Guest | Table }): boolean;
+  canEnterPool(drag: { data: Guest | Table }): boolean;
   assignSeatById(tableId: string, seatNumber: number, guestId: string): void;
   announcement(): string;
 }
@@ -79,6 +83,7 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
     releaseTable: ReturnType<typeof vi.fn>;
   };
   let toastMock: { show: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn>; warning: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
+  let tablesMock: { tables: typeof tablesSignal; list: ReturnType<typeof vi.fn>; reorder: ReturnType<typeof vi.fn> };
   let page: SeatingInternals;
 
   beforeEach(() => {
@@ -100,12 +105,17 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
       releaseTable: vi.fn(() => of({ released: 0 })),
     };
     toastMock = { show: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() };
+    tablesMock = {
+      tables: tablesSignal.asReadonly() as typeof tablesSignal,
+      list: vi.fn(() => of(tablesSignal())),
+      reorder: vi.fn(() => of([])),
+    };
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         { provide: GuestsService, useValue: guestsMock },
-        { provide: TablesService, useValue: { tables: tablesSignal.asReadonly(), list: vi.fn(() => of(tablesSignal())) } },
+        { provide: TablesService, useValue: tablesMock },
         { provide: SeatingService, useValue: seatingMock },
         { provide: WeddingService, useValue: { wedding: signal({ id: WEDDING_ID }), loadCurrent: vi.fn(() => of({ id: WEDDING_ID })) } },
         { provide: ToastService, useValue: toastMock },
@@ -198,5 +208,63 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
     expect(arg.kind).toBe('warning');
     expect(arg.message).toContain('Jan Kowalski');
     expect(arg.message).toContain('byli małżeństwem');
+  });
+
+  it('przeciągnięcie karty stołu (drop) utrwala nową kolejność przez reorder', () => {
+    const t1 = buildTable({ id: 't-1', name: 'Stół 1', sortOrder: 0 });
+    const t2 = buildTable({ id: 't-2', name: 'Stół 2', sortOrder: 1 });
+    const t3 = buildTable({ id: 't-3', name: 'Stół 3', sortOrder: 2 });
+    tablesSignal.set([t1, t2, t3]);
+
+    // Przeciągnij pierwszy stół na pozycję trzecią.
+    page.dropTable({ previousIndex: 0, currentIndex: 2 } as CdkDragDrop<Table[]>);
+
+    expect(tablesMock.reorder).toHaveBeenCalledOnce();
+    const [weddingId, ordered] = tablesMock.reorder.mock.calls[0];
+    expect(weddingId).toBe(WEDDING_ID);
+    expect((ordered as Table[]).map((t) => t.id)).toEqual(['t-2', 't-3', 't-1']);
+  });
+
+  it('drop na tę samą pozycję nie wywołuje zapisu', () => {
+    tablesSignal.set([buildTable({ id: 't-1' }), buildTable({ id: 't-2' })]);
+
+    page.dropTable({ previousIndex: 1, currentIndex: 1 } as CdkDragDrop<Table[]>);
+
+    expect(tablesMock.reorder).not.toHaveBeenCalled();
+  });
+
+  it('klawiaturowy fallback (strzałka) przesuwa stół i ogłasza nową pozycję', () => {
+    const t1 = buildTable({ id: 't-1', name: 'Stół 1', sortOrder: 0 });
+    const t2 = buildTable({ id: 't-2', name: 'Stół 2', sortOrder: 1 });
+    tablesSignal.set([t1, t2]);
+
+    // Strzałka w prawo na pierwszym stole → zamiana z drugim.
+    page.moveTable(t1, 1);
+
+    expect(tablesMock.reorder).toHaveBeenCalledOnce();
+    const [, ordered] = tablesMock.reorder.mock.calls[0];
+    expect((ordered as Table[]).map((t) => t.id)).toEqual(['t-2', 't-1']);
+    expect(page.announcement()).toContain('Stół 1');
+    expect(page.announcement()).toContain('pozycję 2');
+  });
+
+  it('strzałka poza zakres (pierwszy stół w lewo) nie robi nic', () => {
+    const t1 = buildTable({ id: 't-1', sortOrder: 0 });
+    tablesSignal.set([t1, buildTable({ id: 't-2', sortOrder: 1 })]);
+
+    page.moveTable(t1, -1);
+
+    expect(tablesMock.reorder).not.toHaveBeenCalled();
+  });
+
+  it('predykaty izolują przeciąganie stołu od list gości', () => {
+    const table = buildTable({ id: 't-1' });
+    const guest = buildGuest({ id: 'g-1' });
+
+    // Siatka stołów przyjmuje tylko kartę stołu; pula gości tylko gościa.
+    expect(page.canReorderTable({ data: table })).toBe(true);
+    expect(page.canReorderTable({ data: guest })).toBe(false);
+    expect(page.canEnterPool({ data: table })).toBe(false);
+    expect(page.canEnterPool({ data: guest })).toBe(true);
   });
 });

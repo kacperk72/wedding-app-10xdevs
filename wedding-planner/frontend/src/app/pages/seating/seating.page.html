@@ -57,6 +57,7 @@
       cdkDropList
       [cdkDropListData]="unseatedGuests()"
       [cdkDropListSortingDisabled]="true"
+      [cdkDropListEnterPredicate]="canEnterPool"
     >
       @for (guest of unseatedGuests(); track guest.id) {
         <article
@@ -105,9 +106,18 @@
       </div>
     </div>
 
-    <div class="table-grid">
+    <div
+      class="table-grid"
+      cdkDropList
+      cdkDropListOrientation="mixed"
+      [cdkDropListData]="tables()"
+      [cdkDropListEnterPredicate]="canReorderTable"
+      (cdkDropListDropped)="dropTable($event)"
+    >
       @for (table of tables(); track table.id) {
         <app-round-table
+          cdkDrag
+          [cdkDragData]="table"
           [table]="table"
           [guests]="sortedGuestsForTable(table.id)"
           [isFull]="isTableFull(table)"
@@ -115,6 +125,7 @@
           (dropped)="dropGuest($event)"
           (guestMenu)="openGuestMenu($event)"
           (editTable)="openTableEditor($event)"
+          (moveTable)="moveTable(table, $event)"
         />
       } @empty {
         <p class="empty-copy">Użyj przycisku „Dodaj stół”, aby rozpocząć rozsadzanie.</p>

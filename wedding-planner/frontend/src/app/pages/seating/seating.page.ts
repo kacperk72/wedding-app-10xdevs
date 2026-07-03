@@ -3,6 +3,7 @@ import {
   CdkDragDrop,
   CdkDropList,
   CdkDropListGroup,
+  moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -111,7 +112,10 @@ export class SeatingPage implements OnInit {
     return this.tables().filter((table) => table.id === guest?.tableId || !this.isTableFull(table));
   });
 
-  protected readonly canEnterTable = (_drag: CdkDrag<Guest>, drop: CdkDropList<Table>): boolean => {
+  // Predykat wejścia dla obszaru gości przy stole: przyjmuje tylko przeciąganie
+  // gościa (nie kartę stołu z reorderu) i tylko gdy stół nie jest pełny.
+  protected readonly canEnterTable = (drag: CdkDrag<Guest | Table>, drop: CdkDropList<Table>): boolean => {
+    if (this.isTableDrag(drag)) return false;
     const table = drop.data;
     if (!table) return false;
     if (this.isTableFull(table)) {
@@ -120,6 +124,18 @@ export class SeatingPage implements OnInit {
     }
     return true;
   };
+
+  // Pula nieposadzonych gości nie może przyjąć przeciąganej karty stołu.
+  protected readonly canEnterPool = (drag: CdkDrag<Guest | Table>): boolean => !this.isTableDrag(drag);
+
+  // Siatka stołów (reorder) przyjmuje wyłącznie przeciąganie karty stołu — nigdy gościa.
+  protected readonly canReorderTable = (drag: CdkDrag<Guest | Table>): boolean => this.isTableDrag(drag);
+
+  // Rozróżnia przeciąganą kartę stołu od karty gościa po kształcie danych drag.
+  private isTableDrag(drag: CdkDrag<Guest | Table>): boolean {
+    const data = drag.data;
+    return !!data && 'seatsCount' in data;
+  }
 
   ngOnInit(): void {
     const weddingId = this.weddingService.wedding()?.id;
@@ -168,6 +184,36 @@ export class SeatingPage implements OnInit {
     const table = event.container.data as Table | undefined;
     if (!guest || !table || guest.tableId === table.id) return;
     this.assignGuestToTable(guest, table.id);
+  }
+
+  // Reorder przez przeciągnięcie karty stołu w siatce.
+  protected dropTable(event: CdkDragDrop<Table[]>): void {
+    if (event.previousIndex === event.currentIndex) return;
+    const ordered = [...this.tables()];
+    moveItemInArray(ordered, event.previousIndex, event.currentIndex);
+    this.persistTableOrder(ordered);
+  }
+
+  // Klawiaturowy fallback reorderu: strzałki na uchwycie karty (-1 w lewo, 1 w prawo).
+  protected moveTable(table: Table, direction: -1 | 1): void {
+    const ordered = [...this.tables()];
+    const index = ordered.findIndex((candidate) => candidate.id === table.id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= ordered.length) return;
+    moveItemInArray(ordered, index, target);
+    this.persistTableOrder(ordered);
+    this.announce(`Przeniesiono stół ${table.name} na pozycję ${target + 1} z ${ordered.length}.`);
+  }
+
+  private persistTableOrder(ordered: Table[]): void {
+    const weddingId = this.requireWeddingId();
+    if (!weddingId) return;
+    this.tablesService.reorder(weddingId, ordered).subscribe({
+      error: () => {
+        this.toast.error('Nie udało się zapisać kolejności stołów.');
+        this.tablesService.list(weddingId).subscribe();
+      },
+    });
   }
 
   protected openGuestMenu(guest: Guest): void {

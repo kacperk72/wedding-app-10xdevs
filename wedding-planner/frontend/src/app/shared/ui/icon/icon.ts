@@ -8,6 +8,7 @@ export type IconName =
   | 'clipboard-list'
   | 'edit'
   | 'file-text'
+  | 'grip-vertical'
   | 'handshake'
   | 'heart'
   | 'home'

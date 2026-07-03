@@ -57,6 +57,11 @@
   gap: var(--space-4);
 }
 
+// Płynne przesuwanie sąsiednich stołów podczas zmiany kolejności (reorder).
+.table-grid.cdk-drop-list-dragging app-round-table:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
 .guest-pool {
   min-height: 180px;
 }

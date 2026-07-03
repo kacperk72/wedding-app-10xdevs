@@ -1,4 +1,5 @@
 .round-table-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -11,7 +12,7 @@
   text-align: center;
   transition:
     border-color 160ms ease,
-    opacity 160ms ease,
+    box-shadow 160ms ease,
     transform 160ms ease;
 }
 
@@ -19,9 +20,60 @@
   border-color: var(--color-accent);
 }
 
+// Pełny stół zachowuje pełny kontrast (bez przygaszania) — sygnalizujemy to
+// samym badge „pełny" i mocniejszym obramowaniem, nie opacity.
 .round-table-card--full {
-  opacity: 0.56;
-  background: color-mix(in srgb, var(--color-bg) 82%, white);
+  border-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-border));
+}
+
+// Uchwyt do zmiany kolejności stołów (lewy górny róg karty).
+.round-table-card__handle {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: grab;
+}
+
+.round-table-card__handle:hover {
+  background: color-mix(in srgb, var(--color-accent-light) 40%, transparent);
+  color: var(--color-accent);
+}
+
+.round-table-card__handle:focus-visible {
+  outline: 3px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+.round-table-card__handle:active {
+  cursor: grabbing;
+}
+
+.round-table-card__badge {
+  align-self: center;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+// Wizualny feedback przy przeciąganiu całej karty stołu (reorder).
+.round-table-card.cdk-drag-preview {
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 0, 0, 0.18));
+}
+
+.round-table-card.cdk-drag-placeholder {
+  opacity: 0.4;
 }
 
 .round-table-card__header {

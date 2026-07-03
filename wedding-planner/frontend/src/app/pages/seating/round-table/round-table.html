@@ -6,6 +6,17 @@
   [cdkDropListEnterPredicate]="enterPredicate()"
   (cdkDropListDropped)="dropped.emit($event)"
 >
+  <button
+    type="button"
+    class="round-table-card__handle"
+    cdkDragHandle
+    aria-label="Zmień kolejność stołu — przeciągnij albo użyj strzałek w lewo/prawo"
+    (keydown.arrowleft)="$event.preventDefault(); moveTable.emit(-1)"
+    (keydown.arrowright)="$event.preventDefault(); moveTable.emit(1)"
+  >
+    <app-icon name="grip-vertical" [size]="16" />
+  </button>
+
   <div class="round-table-card__header">
     <button
       type="button"
@@ -17,6 +28,9 @@
       <app-icon name="edit" [size]="14" />
     </button>
     <span>{{ guests().length }} / {{ table().seatsCount }} miejsc</span>
+    @if (isFull()) {
+      <span class="round-table-card__badge">pełny</span>
+    }
   </div>
 
   <div class="round-table-card__seats" aria-label="Goście przy stole">
