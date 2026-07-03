@@ -1,11 +1,12 @@
 name: AI Code Review
 
-# Osobny workflow od deploy.yml — odpala się na pull requestach do main.
-# Re-run na żądanie: dodaj etykietę `ai-cr:review` na PR.
+# Osobny workflow od deploy.yml — uruchamiany WYŁĄCZNIE ręcznie:
+# dodaj etykietę `ai-cr:review` na PR do main, żeby odpalić review.
+# Świadomie bez `synchronize`/`opened` — nie chcemy kosztów agenta na każdy push.
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, labeled]
+    types: [labeled]
 
 permissions:
   contents: read
@@ -14,11 +15,8 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Na zdarzeniu `labeled` uruchamiaj tylko dla etykiety ai-cr:review,
-    # żeby nadanie ai-cr:passed/failed przez samą akcję nie wywoływało pętli.
-    if: >-
-      github.event.action != 'labeled' ||
-      github.event.label.name == 'ai-cr:review'
+    # Odpalaj tylko dla etykiety ai-cr:review (nadanie innych etykiet nie uruchamia review).
+    if: github.event.label.name == 'ai-cr:review'
     steps:
       - name: Checkout (pełna historia do policzenia diffa)
         uses: actions/checkout@v4
