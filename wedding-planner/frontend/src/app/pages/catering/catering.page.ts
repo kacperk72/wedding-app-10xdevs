@@ -206,10 +206,19 @@ export class CateringPage implements OnInit {
     });
   }
 
-  protected addCustomDish(event: { course: CateringCourse; dto: CreateDishDto }): void {
+  protected onDishSaved(event: { course: CateringCourse; dish: LinkedDish | null; dto: CreateDishDto }): void {
     const weddingId = this.requireWeddingId();
     const offer = this.activeOffer();
     if (!weddingId || !offer) return;
+
+    if (event.dish) {
+      this.catering.updateDish(weddingId, offer.id, event.dish.dishId, event.dto).subscribe({
+        next: () => this.toast.success('Danie zostało zaktualizowane.'),
+        error: () => this.toast.error('Nie udało się zaktualizować dania.'),
+      });
+      return;
+    }
+
     this.catering.createDish(weddingId, offer.id, event.dto).subscribe({
       next: (dish) => {
         this.catering.linkDishToCourse(weddingId, offer.id, event.course.id, dish.dishId).subscribe({
@@ -218,6 +227,16 @@ export class CateringPage implements OnInit {
         });
       },
       error: () => this.toast.error('Nie udało się dodać własnego dania.'),
+    });
+  }
+
+  protected unlinkDish(event: { course: CateringCourse; dish: LinkedDish }): void {
+    const weddingId = this.requireWeddingId();
+    const offer = this.activeOffer();
+    if (!weddingId || !offer) return;
+    this.catering.unlinkDishFromCourse(weddingId, offer.id, event.course.id, event.dish.dishId).subscribe({
+      next: () => this.toast.success('Danie usunięto z sekcji.'),
+      error: () => this.toast.error('Nie udało się usunąć dania z sekcji.'),
     });
   }
 

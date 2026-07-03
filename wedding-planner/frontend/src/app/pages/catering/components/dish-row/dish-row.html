@@ -1,0 +1,55 @@
+<label class="dish-row__pick">
+  @if (controlType() !== 'none') {
+    <input
+      [type]="controlType()"
+      [name]="radioName()"
+      [checked]="selected()"
+      [disabled]="disabled()"
+      (change)="toggled.emit($any($event.target).checked)"
+    />
+  }
+  <span class="dish-row__body">
+    <span class="dish-row__name">{{ dish().name }}</span>
+    @if (dish().description) {
+      <span class="dish-row__desc">{{ dish().description }}</span>
+    }
+  </span>
+</label>
+
+<span class="dish-row__flags">
+  @if (dish().isVegetarian) {
+    <span class="badge badge--success" title="Wegetariańskie">vege</span>
+  }
+  @if (dish().isVegan) {
+    <span class="badge badge--success" title="Wegańskie">vegan</span>
+  }
+  @if (dish().isGlutenFree) {
+    <span class="badge badge--info" title="Bez glutenu">GF</span>
+  }
+  @if (dish().allergens.length > 0) {
+    <span class="badge badge--warning" [title]="dish().allergens.join(', ')">alergeny</span>
+  }
+</span>
+
+@if (editable()) {
+  <span class="dish-row__actions">
+    <button
+      type="button"
+      class="icon-button"
+      aria-label="Edytuj danie"
+      title="Edytuj danie"
+      (click)="editRequested.emit()"
+    >
+      <app-icon name="edit" [size]="16" />
+    </button>
+    <button
+      type="button"
+      class="icon-button"
+      aria-label="Usuń danie z sekcji"
+      title="Usuń danie z sekcji"
+      (click)="unlinkRequested.emit()"
+    >
+      <app-icon name="x" [size]="16" />
+    </button>
+  </span>
+}

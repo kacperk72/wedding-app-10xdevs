@@ -12,115 +12,42 @@
     }
   </div>
 
-  @if (controlType(course()) === 'radio') {
-    <ul class="dish-list" role="radiogroup" [attr.aria-label]="course().title">
-      @for (dish of course().dishes; track dish.dishId) {
-        <li>
-          <label class="dish-row" [class.dish-row--selected]="pickedDishIds().has(dish.dishId)">
-            <input
-              type="radio"
-              [name]="'course-' + course().id"
-              [checked]="pickedDishIds().has(dish.dishId)"
-              [disabled]="isDisabled(course())"
-              (change)="pickChanged.emit({ course: course(), dish, selected: true })"
-            />
-            <span class="dish-row__body">
-              <span class="dish-row__name">{{ dish.name }}</span>
-              @if (dish.description) {
-                <span class="dish-row__desc">{{ dish.description }}</span>
-              }
-            </span>
-            <span class="dish-row__flags">
-              @if (dish.isVegetarian) {
-                <span class="badge badge--success" title="Wegetariańskie">vege</span>
-              }
-              @if (dish.isVegan) {
-                <span class="badge badge--success" title="Wegańskie">vegan</span>
-              }
-              @if (dish.isGlutenFree) {
-                <span class="badge badge--info" title="Bez glutenu">GF</span>
-              }
-              @if (dish.allergens.length > 0) {
-                <span class="badge badge--warning" [title]="dish.allergens.join(', ')">alergeny</span>
-              }
-            </span>
-          </label>
-        </li>
-      }
-    </ul>
-  } @else {
-    <div class="dish-grid">
-      @for (dish of course().dishes; track dish.dishId) {
-        <app-dish-card
+  <ul
+    class="dish-list"
+    [attr.role]="controlType(course()) === 'radio' ? 'radiogroup' : null"
+    [attr.aria-label]="controlType(course()) === 'radio' ? course().title : null"
+  >
+    @for (dish of course().dishes; track dish.dishId) {
+      <li>
+        <app-dish-row
           [dish]="dish"
           [selected]="course().selectionMode === 'all_served' || pickedDishIds().has(dish.dishId)"
           [disabled]="isDisabled(course())"
           [controlType]="controlType(course())"
+          [radioName]="'course-' + course().id"
+          [editable]="packageModifiable()"
           (toggled)="pickChanged.emit({ course: course(), dish, selected: $event })"
+          (editRequested)="openEdit(dish)"
+          (unlinkRequested)="dishUnlinked.emit({ course: course(), dish })"
         />
-      }
-    </div>
-  }
+      </li>
+    }
+  </ul>
 
   @if (packageModifiable()) {
     <div class="custom-dish">
-      @if (!formOpen()) {
-        <button type="button" class="button-like button-like--secondary" (click)="formOpen.set(true)">
-          Dodaj własne danie
-        </button>
-      } @else {
-        <form class="form-grid" (ngSubmit)="submitCustomDish()">
-          <div class="field">
-            <label for="customName-{{ course().id }}">Nazwa dania</label>
-            <input
-              id="customName-{{ course().id }}"
-              name="customName"
-              required
-              [ngModel]="customName()"
-              (ngModelChange)="customName.set($event)"
-            />
-          </div>
-          <div class="field">
-            <label for="customDescription-{{ course().id }}">Opis</label>
-            <input
-              id="customDescription-{{ course().id }}"
-              name="customDescription"
-              [ngModel]="customDescription()"
-              (ngModelChange)="customDescription.set($event)"
-            />
-          </div>
-          <label class="toggle-row">
-            <input
-              type="checkbox"
-              [checked]="customVegetarian()"
-              (change)="customVegetarian.set($any($event.target).checked)"
-            />
-            vege
-          </label>
-          <label class="toggle-row">
-            <input
-              type="checkbox"
-              [checked]="customVegan()"
-              (change)="customVegan.set($any($event.target).checked)"
-            />
-            vegan
-          </label>
-          <label class="toggle-row">
-            <input
-              type="checkbox"
-              [checked]="customGlutenFree()"
-              (change)="customGlutenFree.set($any($event.target).checked)"
-            />
-            GF
-          </label>
-          <div class="toolbar form-actions">
-            <button type="button" class="button-like button-like--ghost" (click)="formOpen.set(false)">
-              Anuluj
-            </button>
-            <button type="submit" class="button-like">Dodaj</button>
-          </div>
-        </form>
-      }
+      <button type="button" class="button-like button-like--secondary" (click)="openAdd()">
+        Dodaj własne danie
+      </button>
     </div>
   }
 </article>
+
+@if (editorOpen()) {
+  <app-dish-editor-dialog
+    [dish]="editingDish()"
+    [courseTitle]="course().title"
+    (saved)="onSaved($event)"
+    (closed)="editorOpen.set(false)"
+  />
+}

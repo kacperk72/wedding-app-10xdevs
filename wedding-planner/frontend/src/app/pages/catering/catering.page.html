@@ -86,7 +86,8 @@
               [packageModifiable]="pkg.isModifiable"
               [pickedDishIds]="pickedDishIds()"
               (pickChanged)="onPickChanged($event)"
-              (customDish)="addCustomDish($event)"
+              (dishSaved)="onDishSaved($event)"
+              (dishUnlinked)="unlinkDish($event)"
             />
           }
         </div>

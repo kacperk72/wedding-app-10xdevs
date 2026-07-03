@@ -1,0 +1,64 @@
+<div class="modal-backdrop" role="presentation" (click)="closed.emit()">
+  <section
+    class="modal surface panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="dishEditorTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">{{ courseTitle() }}</p>
+        <h2 id="dishEditorTitle">{{ isEdit() ? 'Edytuj danie' : 'Dodaj danie' }}</h2>
+      </div>
+      <button type="button" class="button-like button-like--ghost" (click)="closed.emit()">Zamknij</button>
+    </div>
+
+    <form class="form-grid" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="dishName">Nazwa dania</label>
+        <input id="dishName" name="dishName" required [ngModel]="name()" (ngModelChange)="name.set($event)" />
+      </div>
+      <div class="field">
+        <label for="dishDescription">Opis</label>
+        <input
+          id="dishDescription"
+          name="dishDescription"
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+        />
+      </div>
+      <div class="field">
+        <label for="dishAllergens">Alergeny (po przecinku)</label>
+        <input
+          id="dishAllergens"
+          name="dishAllergens"
+          [ngModel]="allergensText()"
+          (ngModelChange)="allergensText.set($event)"
+        />
+      </div>
+
+      <div class="toggle-group">
+        <label class="toggle-row">
+          <input type="checkbox" [checked]="isVegetarian()" (change)="isVegetarian.set($any($event.target).checked)" />
+          vege
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" [checked]="isVegan()" (change)="isVegan.set($any($event.target).checked)" />
+          vegan
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" [checked]="isGlutenFree()" (change)="isGlutenFree.set($any($event.target).checked)" />
+          GF
+        </label>
+      </div>
+
+      <div class="toolbar form-actions">
+        <button type="button" class="button-like button-like--ghost" (click)="closed.emit()">Anuluj</button>
+        <button type="submit" class="button-like" [disabled]="!name().trim()">
+          {{ isEdit() ? 'Zapisz zmiany' : 'Dodaj danie' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
