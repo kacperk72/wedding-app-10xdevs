@@ -13,9 +13,14 @@
  * versions differ, so a length comparison would miss real drift.
  *
  * Remote state comes from the Supabase CLI:
- *     supabase migration list --linked
+ *     supabase migration list --linked --output-format json
  * The CI workflow runs `supabase link` first so `--linked` resolves. Override
  * the command with MIGRATION_LIST_CMD when testing locally.
+ *
+ * Output format: CLI >= 2.x emits JSON ({"migrations":[{local,remote,time}]}).
+ * We pin `--output-format json` for determinism and parse that, but keep a
+ * fallback parser for the legacy `Local | Remote | Time` pipe-table so an older
+ * CLI (or a plain-text override via MIGRATION_LIST_CMD) still works.
  *
  * Run from wedding-planner/backend/:
  *     npm run migration:check
@@ -47,12 +52,45 @@ function readLocalMigrations(dir = MIGRATIONS_DIR) {
 }
 
 /**
- * Parse `supabase migration list` table output. Columns are
- * `Local | Remote | Time (UTC)`; a migration counts as applied remotely when
- * its 14-digit version appears in the Remote (second) column. Returns a Set of
- * remote versions.
+ * Parse `supabase migration list` output into a Set of remote versions. A
+ * migration counts as applied remotely only when its `remote` value is a
+ * 14-digit version (a local-only migration has an empty remote).
+ *
+ * Handles two shapes:
+ *  - JSON (CLI >= 2.x): {"migrations":[{"local":"…","remote":"…","time":"…"}]}
+ *  - legacy pipe-table: `Local | Remote | Time (UTC)` — remote is column 2.
  */
 function parseRemoteVersions(cliOutput) {
+  const json = parseRemoteVersionsJson(cliOutput);
+  if (json) return json;
+  return parseRemoteVersionsTable(cliOutput);
+}
+
+/**
+ * JSON parser. Returns a Set on success, or null if the output is not the
+ * expected JSON shape (so the caller can fall back to the table parser).
+ */
+function parseRemoteVersionsJson(cliOutput) {
+  const start = cliOutput.indexOf("{");
+  if (start === -1) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(cliOutput.slice(start));
+  } catch {
+    return null;
+  }
+  if (!parsed || !Array.isArray(parsed.migrations)) return null;
+  const remote = new Set();
+  for (const mig of parsed.migrations) {
+    const value = String((mig && mig.remote) || "");
+    const match = value.match(/^(\d{14})$/);
+    if (match) remote.add(match[1]);
+  }
+  return remote;
+}
+
+/** Legacy pipe-table parser: remote version is the second column. */
+function parseRemoteVersionsTable(cliOutput) {
   const remote = new Set();
   for (const line of cliOutput.split("\n")) {
     if (!line.includes("|")) continue;
@@ -79,7 +117,9 @@ function formatMissing(missing) {
 }
 
 function getRemoteOutput() {
-  const cmd = process.env.MIGRATION_LIST_CMD || "supabase migration list --linked";
+  const cmd =
+    process.env.MIGRATION_LIST_CMD ||
+    "supabase migration list --linked --output-format json";
   return execSync(cmd, { encoding: "utf8" });
 }
 
@@ -122,6 +162,8 @@ module.exports = {
   parseLocalVersions,
   readLocalMigrations,
   parseRemoteVersions,
+  parseRemoteVersionsJson,
+  parseRemoteVersionsTable,
   diffMigrations,
   formatMissing,
 };

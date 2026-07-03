@@ -25,7 +25,7 @@ test("parseLocalVersions extracts versions from .sql files and ignores others", 
   ]);
 });
 
-test("parseRemoteVersions reads applied versions from the Remote column", () => {
+test("parseRemoteVersions reads applied versions from the legacy pipe-table", () => {
   const cliOutput = [
     "   Local          | Remote         | Time (UTC)          ",
     "  ----------------|----------------|---------------------",
@@ -36,6 +36,33 @@ test("parseRemoteVersions reads applied versions from the Remote column", () => 
   assert.ok(remote.has("20260523233000"));
   // local-only row (empty Remote column) must NOT count as applied
   assert.ok(!remote.has("20260601120000"));
+});
+
+test("parseRemoteVersions reads applied versions from CLI >= 2.x JSON output", () => {
+  // Supabase CLI 2.x emits JSON instead of the pipe-table; the empty-remote
+  // entry is a local-only migration and must NOT count as applied.
+  const cliOutput = JSON.stringify({
+    migrations: [
+      { local: "20260523233000", remote: "20260523233000", time: "..." },
+      { local: "20260601120000", remote: "", time: "..." },
+    ],
+    message: "Migrations listed",
+  });
+  const remote = parseRemoteVersions(cliOutput);
+  assert.ok(remote.has("20260523233000"));
+  assert.ok(!remote.has("20260601120000"));
+});
+
+test("parseRemoteVersions tolerates log noise before the JSON payload", () => {
+  const cliOutput = [
+    "Initialising login role...",
+    "Connecting to remote database...",
+    JSON.stringify({
+      migrations: [{ local: "20260523233000", remote: "20260523233000" }],
+    }),
+  ].join("\n");
+  const remote = parseRemoteVersions(cliOutput);
+  assert.ok(remote.has("20260523233000"));
 });
 
 test("diffMigrations returns local versions missing from remote", () => {
