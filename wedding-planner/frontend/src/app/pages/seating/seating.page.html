@@ -99,6 +99,26 @@
       </div>
       <div class="toolbar">
         <span class="badge badge--info">{{ stats().unseatedCount }} bez miejsca</span>
+        <div class="view-toggle" role="group" aria-label="Tryb widoku stołów">
+          <button
+            type="button"
+            class="view-toggle__btn"
+            [class.view-toggle__btn--active]="viewMode() === 'compact'"
+            [attr.aria-pressed]="viewMode() === 'compact'"
+            (click)="setViewMode('compact')"
+          >
+            Kompaktowy
+          </button>
+          <button
+            type="button"
+            class="view-toggle__btn"
+            [class.view-toggle__btn--active]="viewMode() === 'detailed'"
+            [attr.aria-pressed]="viewMode() === 'detailed'"
+            (click)="setViewMode('detailed')"
+          >
+            Szczegółowy
+          </button>
+        </div>
         <button type="button" class="button-like button-like--secondary" (click)="openAddTable()">
           <app-icon name="plus" [size]="16" />
           Dodaj stół
@@ -106,31 +126,46 @@
       </div>
     </div>
 
-    <div
-      class="table-grid"
-      cdkDropList
-      cdkDropListOrientation="mixed"
-      [cdkDropListData]="tables()"
-      [cdkDropListEnterPredicate]="canReorderTable"
-      (cdkDropListDropped)="dropTable($event)"
-    >
-      @for (table of tables(); track table.id) {
-        <app-round-table
-          cdkDrag
-          [cdkDragData]="table"
-          [table]="table"
-          [guests]="sortedGuestsForTable(table.id)"
-          [isFull]="isTableFull(table)"
-          [enterPredicate]="canEnterTable"
-          (dropped)="dropGuest($event)"
-          (guestMenu)="openGuestMenu($event)"
-          (editTable)="openTableEditor($event)"
-          (moveTable)="moveTable(table, $event)"
-        />
-      } @empty {
-        <p class="empty-copy">Użyj przycisku „Dodaj stół”, aby rozpocząć rozsadzanie.</p>
-      }
-    </div>
+    @if (viewMode() === 'compact') {
+      <div
+        class="table-grid"
+        cdkDropList
+        cdkDropListOrientation="mixed"
+        [cdkDropListData]="tables()"
+        [cdkDropListEnterPredicate]="canReorderTable"
+        (cdkDropListDropped)="dropTable($event)"
+      >
+        @for (table of tables(); track table.id) {
+          <app-round-table
+            cdkDrag
+            [cdkDragData]="table"
+            [table]="table"
+            [guests]="sortedGuestsForTable(table.id)"
+            [isFull]="isTableFull(table)"
+            [enterPredicate]="canEnterTable"
+            (dropped)="dropGuest($event)"
+            (guestMenu)="openGuestMenu($event)"
+            (editTable)="openTableEditor($event)"
+            (moveTable)="moveTable(table, $event)"
+          />
+        } @empty {
+          <p class="empty-copy">Użyj przycisku „Dodaj stół”, aby rozpocząć rozsadzanie.</p>
+        }
+      </div>
+    } @else {
+      <div class="detailed-stack">
+        @for (table of tables(); track table.id) {
+          <app-detailed-table
+            [table]="table"
+            [guests]="guestsForTable(table.id)"
+            (editTable)="openTableEditor($event)"
+            (guestMenu)="openGuestMenu($event)"
+          />
+        } @empty {
+          <p class="empty-copy">Użyj przycisku „Dodaj stół”, aby rozpocząć rozsadzanie.</p>
+        }
+      </div>
+    }
   </main>
 
 </section>

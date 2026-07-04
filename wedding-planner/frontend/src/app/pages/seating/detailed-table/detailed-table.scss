@@ -1,0 +1,191 @@
+.detailed-table {
+  // Rozmiar okręgu i wcięcie na pigułki wystające poza jego krawędź.
+  --circle-size: clamp(300px, 44vw, 540px);
+  --pill-inset: clamp(84px, 12vw, 132px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--pill-inset);
+}
+
+.detailed-table__circle {
+  position: relative;
+  width: var(--circle-size);
+  height: var(--circle-size);
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--color-accent) 34%, var(--color-border));
+  background:
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--color-accent-light) 22%, var(--color-surface)) 0%,
+      color-mix(in srgb, var(--color-accent-light) 34%, var(--color-surface)) 100%
+    );
+  box-shadow: var(--shadow-md);
+}
+
+.detailed-table__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  text-align: center;
+  max-width: 60%;
+}
+
+.detailed-table__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.detailed-table__name strong {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+  line-height: 1.05;
+}
+
+.detailed-table__name:hover {
+  background: color-mix(in srgb, var(--color-accent-light) 40%, transparent);
+  color: var(--color-accent);
+}
+
+.detailed-table__name:focus-visible {
+  outline: 3px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+.detailed-table__count {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+// Każde krzesło pozycjonowane na krawędzi okręgu pod kątem --angle (0° = góra).
+// Podwójny obrót utrzymuje pigułkę pionowo, mimo obrotu wektora położenia.
+.detailed-seat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: rotate(var(--angle)) translateY(calc(var(--circle-size) / -2)) rotate(calc(-1 * var(--angle)));
+}
+
+.detailed-seat__pill {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  max-width: 168px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.detailed-seat__pill--taken {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.detailed-seat__pill--taken:hover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent-light) 30%, var(--color-surface));
+}
+
+.detailed-seat__pill--taken:focus-visible {
+  outline: 3px solid var(--color-accent-light);
+  outline-offset: 2px;
+}
+
+.detailed-seat__pill--free {
+  border: 1px dashed color-mix(in srgb, var(--color-text-muted) 40%, var(--color-border));
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-style: italic;
+}
+
+.detailed-seat__num {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.detailed-seat__pill--free .detailed-seat__num {
+  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
+  color: var(--color-text-muted);
+}
+
+.detailed-seat__name {
+  min-width: 0;
+}
+
+.detailed-table__overflow {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  width: min(100%, var(--circle-size));
+}
+
+.detailed-table__overflow-title {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.detailed-table__overflow-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.detailed-table__overflow-list .detailed-seat__pill {
+  position: static;
+  transform: none;
+}
+
+@media (max-width: 767px) {
+  .detailed-table {
+    --circle-size: clamp(240px, 74vw, 360px);
+    --pill-inset: clamp(64px, 20vw, 96px);
+  }
+
+  .detailed-seat__pill {
+    max-width: 128px;
+    font-size: 0.82rem;
+    padding: 4px 9px;
+  }
+}

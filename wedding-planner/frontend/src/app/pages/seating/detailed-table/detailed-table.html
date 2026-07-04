@@ -1,0 +1,55 @@
+<article class="detailed-table">
+  <div class="detailed-table__circle">
+    <div class="detailed-table__center">
+      <button
+        type="button"
+        class="detailed-table__name"
+        aria-label="Edytuj stół {{ table().name }}"
+        (click)="editTable.emit(table())"
+      >
+        <strong>{{ table().name }}</strong>
+        <app-icon name="edit" [size]="16" />
+      </button>
+      <span class="detailed-table__count">{{ occupiedCount() }} / {{ table().seatsCount }} miejsc</span>
+    </div>
+
+    @for (seat of seats(); track seat.seatNumber) {
+      <div class="detailed-seat" [style.--angle]="seat.angleDeg + 'deg'">
+        @if (seat.guest; as guest) {
+          <button
+            type="button"
+            class="detailed-seat__pill detailed-seat__pill--taken"
+            [attr.aria-label]="'Krzesło ' + seat.seatNumber + ': ' + guestName(guest) + ' — kliknij, aby zmienić'"
+            (click)="guestMenu.emit(guest)"
+          >
+            <span class="detailed-seat__num" aria-hidden="true">{{ seat.seatNumber }}</span>
+            <span class="detailed-seat__name">{{ guestName(guest) }}</span>
+          </button>
+        } @else {
+          <span class="detailed-seat__pill detailed-seat__pill--free">
+            <span class="detailed-seat__num" aria-hidden="true">{{ seat.seatNumber }}</span>
+            <span class="detailed-seat__name">wolne</span>
+          </span>
+        }
+      </div>
+    }
+  </div>
+
+  @if (overflowGuests().length > 0) {
+    <div class="detailed-table__overflow" role="group" aria-label="Goście bez krzesła">
+      <p class="detailed-table__overflow-title">Bez przypisanego krzesła</p>
+      <div class="detailed-table__overflow-list">
+        @for (guest of overflowGuests(); track guest.id) {
+          <button
+            type="button"
+            class="detailed-seat__pill detailed-seat__pill--taken"
+            [attr.aria-label]="guestName(guest) + ' — kliknij, aby przypisać krzesło'"
+            (click)="guestMenu.emit(guest)"
+          >
+            <span class="detailed-seat__name">{{ guestName(guest) }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+</article>

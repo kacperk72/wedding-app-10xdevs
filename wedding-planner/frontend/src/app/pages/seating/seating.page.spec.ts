@@ -28,6 +28,8 @@ interface SeatingInternals {
   canEnterPool(drag: { data: Guest | Table }): boolean;
   assignSeatById(tableId: string, seatNumber: number, guestId: string): void;
   announcement(): string;
+  viewMode(): 'compact' | 'detailed';
+  setViewMode(mode: 'compact' | 'detailed'): void;
 }
 
 function buildGuest(overrides: Partial<Guest> = {}): Guest {
@@ -87,6 +89,7 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
   let page: SeatingInternals;
 
   beforeEach(() => {
+    localStorage.clear();
     guestsSignal.set([]);
     tablesSignal.set([]);
     conflictsSignal.set([]);
@@ -255,6 +258,17 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
     page.moveTable(t1, -1);
 
     expect(tablesMock.reorder).not.toHaveBeenCalled();
+  });
+
+  it('domyślny tryb widoku to kompaktowy', () => {
+    expect(page.viewMode()).toBe('compact');
+  });
+
+  it('setViewMode przełącza na szczegółowy i utrwala wybór w localStorage', () => {
+    page.setViewMode('detailed');
+
+    expect(page.viewMode()).toBe('detailed');
+    expect(localStorage.getItem('seating-view-mode')).toBe('detailed');
   });
 
   it('predykaty izolują przeciąganie stołu od list gości', () => {

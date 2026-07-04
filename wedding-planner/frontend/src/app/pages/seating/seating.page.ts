@@ -17,7 +17,12 @@ import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
 import { Icon } from '../../shared/ui/icon/icon';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
+import { DetailedTable } from './detailed-table/detailed-table';
 import { RoundTable } from './round-table/round-table';
+
+type SeatingViewMode = 'compact' | 'detailed';
+
+const VIEW_MODE_STORAGE_KEY = 'seating-view-mode';
 
 @Component({
   selector: 'app-seating-page',
@@ -28,6 +33,7 @@ import { RoundTable } from './round-table/round-table';
     FormsModule,
     Icon,
     PageHeader,
+    DetailedTable,
     RoundTable,
   ],
   templateUrl: './seating.page.html',
@@ -43,6 +49,7 @@ export class SeatingPage implements OnInit {
 
   protected readonly guests = this.guestsService.guests;
   protected readonly tables = this.tablesService.tables;
+  protected readonly viewMode = signal<SeatingViewMode>(this.readStoredViewMode());
   protected readonly showConfirmedOnly = signal(false);
   protected readonly sideFilter = signal<GuestSide | 'all'>('all');
   protected readonly searchTerm = signal('');
@@ -237,6 +244,23 @@ export class SeatingPage implements OnInit {
 
   protected printLayout(): void {
     window.print();
+  }
+
+  protected setViewMode(mode: SeatingViewMode): void {
+    this.viewMode.set(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+    } catch {
+      // Brak localStorage (SSR/prywatny tryb/quota) — wybór po prostu nietrwały.
+    }
+  }
+
+  private readStoredViewMode(): SeatingViewMode {
+    try {
+      return localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'detailed' ? 'detailed' : 'compact';
+    } catch {
+      return 'compact';
+    }
   }
 
   // Kolejność krzesełek przy stole i na wydruku: wg numeru krzesła (puste na końcu),
