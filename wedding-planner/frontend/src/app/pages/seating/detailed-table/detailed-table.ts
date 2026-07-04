@@ -1,7 +1,19 @@
+import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { Guest } from '../../../core/models/guest.model';
 import { Table } from '../../../core/models/table.model';
 import { Icon } from '../../../shared/ui/icon/icon';
+
+export interface ReseatRequest {
+  guest: Guest;
+  tableId: string;
+  seatNumber: number;
+}
+
+export interface AssignNoSeatRequest {
+  guest: Guest;
+  tableId: string;
+}
 
 export interface SeatSlot {
   // 1-based numer krzesła przy stole (zgodny z Guest.seatNumber).
@@ -20,7 +32,7 @@ export interface SeatSlot {
  */
 @Component({
   selector: 'app-detailed-table',
-  imports: [Icon],
+  imports: [CdkDrag, CdkDropList, Icon],
   templateUrl: './detailed-table.html',
   styleUrl: './detailed-table.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +43,34 @@ export class DetailedTable {
 
   readonly editTable = output<Table>();
   readonly guestMenu = output<Guest>();
+  // Upuszczenie gościa na krzesło (puste → przesadzenie, zajęte → zamiana).
+  readonly reseatGuest = output<ReseatRequest>();
+  // Upuszczenie gościa w strefie „bez krzesła" — przypięcie do stołu bez miejsca.
+  readonly assignNoSeat = output<AssignNoSeatRequest>();
+
+  // Krzesła i strefa overflow przyjmują wyłącznie przeciąganego gościa
+  // (karta stołu z reorderu ma w danych `seatsCount` — ją odrzucamy).
+  protected readonly acceptGuest = (drag: CdkDrag<Guest | Table>): boolean => {
+    const data = drag.data;
+    return !!data && !('seatsCount' in data);
+  };
+
+  protected onSeatDrop(
+    event: CdkDragDrop<{ tableId: string; seatNumber: number }>,
+    seatNumber: number,
+  ): void {
+    if (event.previousContainer === event.container) return;
+    const guest = event.item.data as Guest | undefined;
+    if (!guest) return;
+    this.reseatGuest.emit({ guest, tableId: this.table().id, seatNumber });
+  }
+
+  protected onOverflowDrop(event: CdkDragDrop<{ tableId: string }>): void {
+    if (event.previousContainer === event.container) return;
+    const guest = event.item.data as Guest | undefined;
+    if (!guest) return;
+    this.assignNoSeat.emit({ guest, tableId: this.table().id });
+  }
 
   // Wspólne obliczenie rozsadzenia — jawne numery krzeseł trafiają na swoje
   // pozycje, pozostali goście stołu (drag ustawia tylko tableId, nie seatNumber)

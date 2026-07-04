@@ -147,6 +147,82 @@ describe("seating", () => {
     ]);
   });
 
+  it("reseat: sadza gościa na wolne krzesło (ustawia table_id i seat_number)", async () => {
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/guests/guest-2/reseat",
+      { tableId: "table-1", seatNumber: 1 },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.guest.tableId, "table-1");
+    assert.equal(response.body.guest.seatNumber, 1);
+    const row = db.guests.find((item) => item.id === "guest-2");
+    assert.equal(row.table_id, "table-1");
+    assert.equal(row.seat_number, 1);
+  });
+
+  it("reseat: zamiana miejscami dwóch gości przy tym samym stole", async () => {
+    // guest-2 i guest-4 przy table-1 (2 miejsca), na krzesłach 1 i 2.
+    db.guests.push(guest("guest-4", "table-1"));
+    db.guests.find((item) => item.id === "guest-2").seat_number = 1;
+    db.guests.find((item) => item.id === "guest-4").seat_number = 2;
+
+    // Przeciągamy guest-2 (krzesło 1) na krzesło 2 (zajęte przez guest-4).
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/guests/guest-2/reseat",
+      { tableId: "table-1", seatNumber: 2 },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.guest.seatNumber, 2);
+    assert.equal(db.guests.find((item) => item.id === "guest-2").seat_number, 2);
+    // Dotychczasowy lokator wskakuje na stare krzesło przeciąganego gościa.
+    assert.equal(db.guests.find((item) => item.id === "guest-4").seat_number, 1);
+    assert.equal(db.guests.find((item) => item.id === "guest-4").table_id, "table-1");
+  });
+
+  it("reseat: odrzuca gościa z listy nieposadzonych na zajęte krzesło", async () => {
+    db.guests.find((item) => item.id === "guest-2").seat_number = 1; // zajmuje krzesło 1
+
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/guests/guest-1/reseat", // guest-1 nie ma stołu
+      { tableId: "table-1", seatNumber: 1 },
+    );
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error, "To krzesło jest już zajęte");
+  });
+
+  it("reseat: odrzuca wejście na wolne krzesło pełnego stołu", async () => {
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/guests/guest-1/reseat",
+      { tableId: "full-table", seatNumber: 1 }, // full-table zajęty przez guest-3
+    );
+
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error, "table is full");
+  });
+
+  it("reseat: odrzuca numer krzesła spoza zakresu stołu", async () => {
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/guests/guest-2/reseat",
+      { tableId: "table-1", seatNumber: 5 }, // table-1 ma tylko 2 miejsca
+    );
+
+    assert.equal(response.status, 400);
+    assert.match(response.body.error, /Numer krzesła przekracza/);
+  });
+
   it("unassigns a guest from a table", async () => {
     const response = await request(
       server,

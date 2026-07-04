@@ -149,6 +149,24 @@ async function loadGuestsAtTable(tableId, weddingId, excludeGuestId = null) {
   return data;
 }
 
+// Pojedyncze przesadzenie gościa z odczytem znormalizowanej reprezentacji.
+// 23505 = naruszenie unikalnego indeksu uq_guests_table_seat (krzesło zajęte).
+async function updateGuestSeat(guestId, weddingId, patch) {
+  const { data, error } = await supabase
+    .from("guests")
+    .update(patch)
+    .eq("id", guestId)
+    .eq("wedding_id", weddingId)
+    .select("*, meal_options(label), tables(name)")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") throw new BadRequestError("To krzesło jest już zajęte");
+    throw error;
+  }
+  return data;
+}
+
 async function loadConflictWarnings(currentGuestId, seatedGuests, weddingId) {
   const otherGuestIds = seatedGuests.map((guest) => guest.id);
   if (otherGuestIds.length === 0) return [];
@@ -274,6 +292,82 @@ router.post("/:guestId/assign-table", async (req, res, next) => {
 
     if (error) throw error;
     res.json({ guest: mapGuest(data), warnings });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Przeciąganie gościa na konkretne krzesło w widoku szczegółowym rozsadzenia.
+// Puste krzesło → zwykłe przesadzenie. Zajęte → zamiana miejscami (swap):
+// dotychczasowy lokator trafia na stare miejsce przeciąganego gościa. Sekwencja
+// omija unikalny indeks uq_guests_table_seat (najpierw zwalniamy krzesło).
+router.post("/:guestId/reseat", async (req, res, next) => {
+  try {
+    const weddingId = req.params.weddingId;
+    const guestId = req.params.guestId;
+    const tableId = requireString(req.body, "tableId");
+    const seatNumber = req.body ? req.body.seatNumber : undefined;
+    if (!Number.isInteger(seatNumber) || seatNumber < 1) {
+      throw new BadRequestError("seatNumber must be a positive integer");
+    }
+
+    const guest = await loadGuestForWedding(guestId, weddingId);
+    await assertWeddingRecordExists("tables", tableId, weddingId, "tableId");
+    const table = await loadTableForWedding(tableId, weddingId);
+    if (seatNumber > Number(table.seats_count)) {
+      throw new BadRequestError(
+        `Numer krzesła przekracza liczbę miejsc przy stole (${table.seats_count})`,
+      );
+    }
+
+    const { data: occupant, error: occupantError } = await supabase
+      .from("guests")
+      .select("id,table_id,seat_number")
+      .eq("wedding_id", weddingId)
+      .eq("table_id", tableId)
+      .eq("seat_number", seatNumber)
+      .neq("id", guestId)
+      .maybeSingle();
+    if (occupantError) throw occupantError;
+
+    // Gość z listy nieposadzonych nie ma czym się „zamienić" — nie wyrzucamy
+    // przez przypadek zajmującego krzesło; wskaż wolne miejsce zamiast tego.
+    if (occupant && !guest.table_id) {
+      throw new BadRequestError("To krzesło jest już zajęte");
+    }
+
+    // Pojemność sprawdzamy tylko przy wejściu na puste krzesło NOWEGO stołu —
+    // zamiana miejscami nie zmienia liczby osób przy żadnym ze stołów.
+    if (!occupant && guest.table_id !== tableId) {
+      const seated = await loadGuestsAtTable(tableId, weddingId, guestId);
+      if (seated.length >= Number(table.seats_count)) {
+        throw new BadRequestError("table is full");
+      }
+    }
+
+    const prevTableId = guest.table_id;
+    const prevSeatNumber = guest.seat_number;
+
+    if (occupant) {
+      await updateGuestSeat(occupant.id, weddingId, { seat_number: null });
+    }
+
+    const moved = await updateGuestSeat(guestId, weddingId, {
+      table_id: tableId,
+      seat_number: seatNumber,
+    });
+
+    if (occupant) {
+      await updateGuestSeat(occupant.id, weddingId, {
+        table_id: prevTableId,
+        seat_number: prevTableId ? prevSeatNumber : null,
+      });
+    }
+
+    const seatedGuests = await loadGuestsAtTable(tableId, weddingId, guestId);
+    const warnings = await loadConflictWarnings(guestId, seatedGuests, weddingId);
+
+    res.json({ guest: mapGuest(moved), warnings });
   } catch (err) {
     next(err);
   }

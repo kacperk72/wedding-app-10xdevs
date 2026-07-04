@@ -102,3 +102,70 @@ describe('DetailedTable — mapowanie gości na krzesła', () => {
     expect(component.overflowGuests()[0].id).toBe('g3');
   });
 });
+
+interface DetailedTableInternals {
+  onSeatDrop(event: unknown, seatNumber: number): void;
+  onOverflowDrop(event: unknown): void;
+  acceptGuest(drag: { data: unknown }): boolean;
+}
+
+function dropEvent(guest: Guest, sameContainer: boolean): unknown {
+  const container = {};
+  return {
+    previousContainer: sameContainer ? container : {},
+    container,
+    item: { data: guest },
+  };
+}
+
+describe('DetailedTable — przeciąganie na krzesła', () => {
+  function build(): { component: DetailedTable; internals: DetailedTableInternals } {
+    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] });
+    const fixture = TestBed.createComponent(DetailedTable);
+    fixture.componentRef.setInput('table', buildTable({ id: 't-1', seatsCount: 8 }));
+    fixture.componentRef.setInput('guests', []);
+    fixture.detectChanges();
+    return {
+      component: fixture.componentInstance,
+      internals: fixture.componentInstance as unknown as DetailedTableInternals,
+    };
+  }
+
+  it('upuszczenie na inne krzesło emituje reseatGuest z numerem krzesła', () => {
+    const { component, internals } = build();
+    const guest = buildGuest({ id: 'g-1' });
+    let emitted: { guest: Guest; tableId: string; seatNumber: number } | null = null;
+    component.reseatGuest.subscribe((event) => (emitted = event));
+
+    internals.onSeatDrop(dropEvent(guest, false), 5);
+
+    expect(emitted).toEqual({ guest, tableId: 't-1', seatNumber: 5 });
+  });
+
+  it('upuszczenie w tym samym kontenerze (to samo krzesło) nie emituje', () => {
+    const { component, internals } = build();
+    let called = false;
+    component.reseatGuest.subscribe(() => (called = true));
+
+    internals.onSeatDrop(dropEvent(buildGuest(), true), 3);
+
+    expect(called).toBe(false);
+  });
+
+  it('upuszczenie w strefie „bez krzesła" emituje assignNoSeat', () => {
+    const { component, internals } = build();
+    const guest = buildGuest({ id: 'g-9' });
+    let emitted: { guest: Guest; tableId: string } | null = null;
+    component.assignNoSeat.subscribe((event) => (emitted = event));
+
+    internals.onOverflowDrop(dropEvent(guest, false));
+
+    expect(emitted).toEqual({ guest, tableId: 't-1' });
+  });
+
+  it('predykat przyjmuje gościa, odrzuca kartę stołu (reorder)', () => {
+    const { internals } = build();
+    expect(internals.acceptGuest({ data: buildGuest() })).toBe(true);
+    expect(internals.acceptGuest({ data: buildTable() })).toBe(false);
+  });
+});

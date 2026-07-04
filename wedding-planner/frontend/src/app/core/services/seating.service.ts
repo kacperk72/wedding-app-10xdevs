@@ -83,6 +83,22 @@ export class SeatingService {
       .pipe(tap(() => this.refreshSeating(weddingId)));
   }
 
+  // Przeciąganie na konkretne krzesło (widok szczegółowy). Puste krzesło =
+  // przesadzenie, zajęte = zamiana miejscami (obsługa po stronie backendu).
+  reseat(
+    weddingId: string,
+    guestId: string,
+    tableId: string,
+    seatNumber: number,
+  ): Observable<AssignTableResponse> {
+    return this.http
+      .post<AssignTableResponse>(apiUrl(`/weddings/${weddingId}/guests/${guestId}/reseat`), {
+        tableId,
+        seatNumber,
+      })
+      .pipe(tap(() => this.refreshSeating(weddingId)));
+  }
+
   unassignTable(weddingId: string, guestId: string): Observable<Guest> {
     return this.http
       .post<Guest>(apiUrl(`/weddings/${weddingId}/guests/${guestId}/unassign-table`), {})

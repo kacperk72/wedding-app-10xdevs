@@ -17,7 +17,11 @@ import { ToastService } from '../../core/services/toast.service';
 import { WeddingService } from '../../core/services/wedding.service';
 import { Icon } from '../../shared/ui/icon/icon';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
-import { DetailedTable } from './detailed-table/detailed-table';
+import {
+  AssignNoSeatRequest,
+  DetailedTable,
+  ReseatRequest,
+} from './detailed-table/detailed-table';
 import { RoundTable } from './round-table/round-table';
 
 type SeatingViewMode = 'compact' | 'detailed';
@@ -293,6 +297,37 @@ export class SeatingPage implements OnInit {
     if (!guestId) return;
     const guest = this.guestsForTable(tableId).find((candidate) => candidate.id === guestId);
     if (guest) this.assignSeat(guest, seatNumber);
+  }
+
+  // Przeciągnięcie gościa na krzesło w widoku szczegółowym (puste → przesadzenie,
+  // zajęte → zamiana miejscami). Klawiaturowy odpowiednik: edytor stołu (selecty
+  // per krzesło) i menu przypisania — patrz openTableEditor / openGuestMenu.
+  protected onReseat(request: ReseatRequest): void {
+    const weddingId = this.requireWeddingId();
+    if (!weddingId) return;
+    this.seating.reseat(weddingId, request.guest.id, request.tableId, request.seatNumber).subscribe({
+      next: (response) => {
+        const tableName = this.tables().find((table) => table.id === request.tableId)?.name ?? '';
+        this.announce(
+          `Przeniesiono ${this.guestName(request.guest)} na krzesło ${request.seatNumber} przy stole ${tableName}.`,
+        );
+        if (response.warnings.length > 0) {
+          this.toast.show({
+            kind: 'warning',
+            message: this.warningMessage(response.warnings),
+            durationMs: 7000,
+          });
+        }
+      },
+      error: () => this.toast.error('Nie udało się zmienić miejsca.'),
+    });
+  }
+
+  // Upuszczenie w strefie „bez krzesła" — przypięcie do stołu bez konkretnego
+  // miejsca (współdzieli logikę i ostrzeżenia z przypisaniem do stołu).
+  protected onAssignNoSeat(request: AssignNoSeatRequest): void {
+    if (request.guest.tableId === request.tableId && request.guest.seatNumber == null) return;
+    this.assignGuestToTable(request.guest, request.tableId);
   }
 
   protected assignSeat(guest: Guest, seatNumber: number): void {

@@ -160,6 +160,8 @@
             [guests]="guestsForTable(table.id)"
             (editTable)="openTableEditor($event)"
             (guestMenu)="openGuestMenu($event)"
+            (reseatGuest)="onReseat($event)"
+            (assignNoSeat)="onAssignNoSeat($event)"
           />
         } @empty {
           <p class="empty-copy">Użyj przycisku „Dodaj stół”, aby rozpocząć rozsadzanie.</p>
