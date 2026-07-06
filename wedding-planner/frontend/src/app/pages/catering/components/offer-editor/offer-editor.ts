@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { FormsModule } from '@angular/forms';
 import { CateringAddon, CateringDish, CateringOffer, CateringPackage } from '../../../../core/models/catering.model';
 import { formatPLN } from '../../../../core/format/currency.format';
+import { pricingUnitLabel } from '../../../../core/format/catering.labels';
 
 @Component({
   selector: 'app-offer-editor',
@@ -21,5 +22,9 @@ export class OfferEditor {
 
   protected money(value: number): string {
     return formatPLN(value);
+  }
+
+  protected unitLabel(addon: CateringAddon): string {
+    return pricingUnitLabel(addon.pricingUnit);
   }
 }

@@ -146,6 +146,14 @@ export interface CreateOfferDto {
   preset?: 'palac-polanka-2026';
 }
 
+export interface CreateAddonDto {
+  name: string;
+  price: number;
+  pricingUnit: PricingUnit;
+  description?: string | null;
+  sortOrder?: number;
+}
+
 export interface CreateDishDto {
   name: string;
   description?: string | null;

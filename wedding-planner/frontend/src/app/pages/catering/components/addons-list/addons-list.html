@@ -1,7 +1,13 @@
 <section class="surface panel">
-  <div>
-    <p class="panel__eyebrow">Dodatki</p>
-    <h3>Opcje płatne</h3>
+  <div class="panel__header">
+    <div>
+      <p class="panel__eyebrow">Dodatki</p>
+      <h3>Opcje płatne</h3>
+    </div>
+    <button type="button" class="button-like button-like--secondary" (click)="openAdd()">
+      <app-icon name="plus" [size]="16" />
+      Dodaj opcję
+    </button>
   </div>
   <div class="list">
     @for (addon of addons(); track addon.id) {
@@ -12,11 +18,15 @@
             [checked]="isPicked(addon)"
             (change)="$any($event.target).checked ? pickChanged.emit({ addon, quantity: quantity(addon) }) : pickRemoved.emit(addon)"
           />
-          <span>
+          <span class="addon-row__body">
             <strong>{{ addon.name }}</strong>
-            <span class="list-item__meta">{{ money(addon.price) }} · {{ addon.pricingUnit }}</span>
+            @if (addon.description) {
+              <span class="addon-row__desc">{{ addon.description }}</span>
+            }
+            <span class="list-item__meta">{{ money(addon.price) }} · {{ unitLabel(addon) }}</span>
           </span>
         </label>
+
         @if (isPicked(addon) && addon.pricingUnit !== 'per_event' && addon.pricingUnit !== 'per_person') {
           <input
             class="quantity-input"
@@ -26,7 +36,36 @@
             (ngModelChange)="pickChanged.emit({ addon, quantity: +$event || 1 })"
           />
         }
+
+        <span class="addon-row__actions">
+          <button
+            type="button"
+            class="icon-button"
+            aria-label="Edytuj opcję płatną"
+            title="Edytuj opcję płatną"
+            (click)="openEdit(addon)"
+          >
+            <app-icon name="edit" [size]="16" />
+          </button>
+          <button
+            type="button"
+            class="icon-button"
+            aria-label="Usuń opcję płatną"
+            title="Usuń opcję płatną"
+            (click)="addonDeleted.emit(addon)"
+          >
+            <app-icon name="x" [size]="16" />
+          </button>
+        </span>
       </article>
     }
   </div>
 </section>
+
+@if (editorOpen()) {
+  <app-addon-editor-dialog
+    [addon]="editingAddon()"
+    (saved)="onSaved($event)"
+    (closed)="editorOpen.set(false)"
+  />
+}

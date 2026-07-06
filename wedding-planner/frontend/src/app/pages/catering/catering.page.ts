@@ -7,6 +7,7 @@ import {
   CateringCourse,
   CateringDish,
   CateringPackage,
+  CreateAddonDto,
   CreateDishDto,
   FreezeContractDto,
   LinkedDish,
@@ -304,6 +305,29 @@ export class CateringPage implements OnInit {
     this.catering.updateAddon(weddingId, offer.id, event.addon.id, { price: event.price }).subscribe({
       next: () => this.catering.loadPrice(weddingId).subscribe(),
       error: () => this.toast.error('Nie udało się zapisać ceny dodatku.'),
+    });
+  }
+
+  protected onAddonSaved(event: { addon: CateringAddon | null; dto: CreateAddonDto }): void {
+    const weddingId = this.requireWeddingId();
+    const offer = this.activeOffer();
+    if (!weddingId || !offer) return;
+    const request$ = event.addon
+      ? this.catering.updateAddon(weddingId, offer.id, event.addon.id, event.dto)
+      : this.catering.createAddon(weddingId, offer.id, event.dto);
+    request$.subscribe({
+      next: () => this.catering.loadPrice(weddingId).subscribe(),
+      error: () => this.toast.error('Nie udało się zapisać opcji płatnej.'),
+    });
+  }
+
+  protected onAddonDeleted(addon: CateringAddon): void {
+    const weddingId = this.requireWeddingId();
+    const offer = this.activeOffer();
+    if (!weddingId || !offer) return;
+    this.catering.deleteAddon(weddingId, offer.id, addon.id).subscribe({
+      next: () => this.catering.loadPrice(weddingId).subscribe(),
+      error: () => this.toast.error('Nie udało się usunąć opcji płatnej.'),
     });
   }
 

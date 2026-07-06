@@ -98,6 +98,8 @@
             [picks]="selection()?.addonPicks ?? []"
             (pickChanged)="setAddon($event.addon, $event.quantity)"
             (pickRemoved)="removeAddon($event)"
+            (addonSaved)="onAddonSaved($event)"
+            (addonDeleted)="onAddonDeleted($event)"
           />
 
           <app-price-summary

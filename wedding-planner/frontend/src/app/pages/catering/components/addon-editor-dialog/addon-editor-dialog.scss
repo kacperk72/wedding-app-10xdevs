@@ -1,0 +1,13 @@
+.addon-content {
+  grid-column: 1 / -1;
+}
+
+.addon-content textarea {
+  resize: vertical;
+  min-height: 3.5rem;
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}

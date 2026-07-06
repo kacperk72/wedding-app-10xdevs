@@ -15,7 +15,11 @@ export class CourseSection {
   readonly packageModifiable = input.required<boolean>();
   readonly pickedDishIds = input.required<Set<string>>();
   readonly pickChanged = output<{ course: CateringCourse; dish: LinkedDish; selected: boolean }>();
-  readonly dishSaved = output<{ course: CateringCourse; dish: LinkedDish | null; dto: CreateDishDto }>();
+  readonly dishSaved = output<{
+    course: CateringCourse;
+    dish: LinkedDish | null;
+    dto: CreateDishDto;
+  }>();
   readonly dishUnlinked = output<{ course: CateringCourse; dish: LinkedDish }>();
 
   protected readonly editorOpen = signal(false);
@@ -31,14 +35,15 @@ export class CourseSection {
 
   protected hint(course: CateringCourse): string {
     if (course.selectionMode === 'all_served') return 'Bez wyboru, podawane wszystkim';
-    if (course.selectionMode === 'guest_picks') return `Opcje dla RSVP: ${this.pickedCount()} / ${course.choiceLimit}`;
+    if (course.selectionMode === 'guest_picks')
+      return `Opcje dla RSVP: ${this.pickedCount()} / ${course.choiceLimit}`;
     if (course.choiceLimit === 1) return 'Para wybiera 1 pozycję';
     return `Para wybiera ${this.pickedCount()} / ${course.choiceLimit}`;
   }
 
   protected controlType(course: CateringCourse): 'checkbox' | 'radio' | 'none' {
     if (course.selectionMode === 'all_served') return 'none';
-    return course.selectionMode === 'couple_picks' && course.choiceLimit === 1 ? 'radio' : 'checkbox';
+    return 'checkbox';
   }
 
   protected isDisabled(course: CateringCourse): boolean {

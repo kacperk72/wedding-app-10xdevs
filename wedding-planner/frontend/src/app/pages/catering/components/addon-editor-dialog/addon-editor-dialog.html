@@ -1,0 +1,60 @@
+<div class="modal-backdrop" role="presentation" (click)="closed.emit()">
+  <section
+    class="modal surface panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="addonEditorTitle"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="panel__header">
+      <div>
+        <p class="panel__eyebrow">Opcja płatna</p>
+        <h2 id="addonEditorTitle">{{ isEdit() ? 'Edytuj opcję płatną' : 'Dodaj opcję płatną' }}</h2>
+      </div>
+      <button type="button" class="button-like button-like--ghost" (click)="closed.emit()">Zamknij</button>
+    </div>
+
+    <form class="form-grid" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="addonName">Nazwa</label>
+        <input id="addonName" name="addonName" required [ngModel]="name()" (ngModelChange)="name.set($event)" />
+      </div>
+      <div class="field addon-content">
+        <label for="addonDescription">Zawartość</label>
+        <textarea
+          id="addonDescription"
+          name="addonDescription"
+          rows="3"
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+        ></textarea>
+      </div>
+      <div class="field">
+        <label for="addonPrice">Cena (zł)</label>
+        <input
+          id="addonPrice"
+          name="addonPrice"
+          type="number"
+          min="0"
+          [ngModel]="price()"
+          (ngModelChange)="price.set($event)"
+        />
+      </div>
+      <div class="field">
+        <label for="addonUnit">Jednostka</label>
+        <select id="addonUnit" name="addonUnit" [ngModel]="pricingUnit()" (ngModelChange)="pricingUnit.set($event)">
+          @for (unit of units; track unit) {
+            <option [ngValue]="unit">{{ unitLabel(unit) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="toolbar form-actions">
+        <button type="button" class="button-like button-like--ghost" (click)="closed.emit()">Anuluj</button>
+        <button type="submit" class="button-like" [disabled]="!name().trim()">
+          {{ isEdit() ? 'Zapisz zmiany' : 'Dodaj opcję' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

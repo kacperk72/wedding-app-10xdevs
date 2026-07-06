@@ -7,6 +7,7 @@ import {
   CateringDish,
   CateringOffer,
   CateringSelection,
+  CreateAddonDto,
   CreateDishDto,
   CreateOfferDto,
   FreezeContractDto,
@@ -115,9 +116,21 @@ export class CateringService {
       .pipe(tap(() => this.loadOffer(weddingId, offerId).subscribe()));
   }
 
+  createAddon(weddingId: string, offerId: string, dto: CreateAddonDto): Observable<CateringAddon> {
+    return this.http
+      .post<CateringAddon>(apiUrl(`/weddings/${weddingId}/catering/offers/${offerId}/addons`), dto)
+      .pipe(tap(() => this.loadOffer(weddingId, offerId).subscribe()));
+  }
+
   updateAddon(weddingId: string, offerId: string, addonId: string, patch: Partial<CateringAddon>): Observable<CateringAddon> {
     return this.http
       .patch<CateringAddon>(apiUrl(`/weddings/${weddingId}/catering/addons/${addonId}`), patch)
+      .pipe(tap(() => this.loadOffer(weddingId, offerId).subscribe()));
+  }
+
+  deleteAddon(weddingId: string, offerId: string, addonId: string): Observable<void> {
+    return this.http
+      .delete<void>(apiUrl(`/weddings/${weddingId}/catering/addons/${addonId}`))
       .pipe(tap(() => this.loadOffer(weddingId, offerId).subscribe()));
   }
 
