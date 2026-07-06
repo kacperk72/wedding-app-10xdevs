@@ -150,18 +150,10 @@ const courses = [
       { key: `${packageKey}_soup`, courseType: "obiad_zupa", title: "Obiad / zupa", selectionMode: "couple_picks", choiceLimit: 1, sortOrder: 10 },
       { key: `${packageKey}_main`, courseType: "obiad_danie_glowne", title: "Obiad / danie główne", selectionMode: "guest_picks", choiceLimit: 3, sortOrder: 20 },
       { key: `${packageKey}_dessert`, courseType: "obiad_deser", title: "Obiad / deser", selectionMode: "couple_picks", choiceLimit: 1, sortOrder: 30 },
-      ...Array.from({ length: dinnerCount }, (_, index) => {
-        const isLast = index === dinnerCount - 1;
-        return {
-          key: `${packageKey}_dinner_${index + 1}`,
-          courseType: "kolacja_ciepla",
-          title: isLast ? "Ostatnia kolacja" : `Kolacja ciepła ${["I", "II", "III"][index]}`,
-          lastDinner: isLast,
-          selectionMode: "couple_picks",
-          choiceLimit: 1,
-          sortOrder: 40 + index * 10,
-        };
-      }),
+      // Jedna sekcja ciepłych kolacji z wyborem (dinnerCount - 1), plus osobna ostatnia
+      // kolacja serwowana/bufet z wyborem 1 — łącznie dinnerCount pozycji kolacyjnych.
+      { key: `${packageKey}_dinner`, courseType: "kolacja_ciepla", title: "Ciepłe kolacje", selectionMode: "couple_picks", choiceLimit: dinnerCount - 1, sortOrder: 40 },
+      { key: `${packageKey}_last_dinner`, courseType: "kolacja_ciepla", title: "Ostatnia kolacja serwowana lub bufet", lastDinner: true, selectionMode: "couple_picks", choiceLimit: 1, sortOrder: 50 },
       { key: `${packageKey}_cold`, courseType: "bufet_zimny", title: "Bufet zimny", selectionMode: "couple_picks", choiceLimit: coldLimit, sortOrder: 90 },
       { key: `${packageKey}_salads`, courseType: "bufet_salatkowy", title: "Bufet sałatkowy", selectionMode: "couple_picks", choiceLimit: 3, sortOrder: 100 },
       { key: `${packageKey}_drinks`, courseType: "napoje", title: "Napoje", selectionMode: "all_served", choiceLimit: null, sortOrder: 110 },
@@ -195,13 +187,13 @@ const links = courses.flatMap((course) =>
 );
 
 const addons = [
-  { key: "covers", name: "Pokrowce na krzesla", price: 18, pricingUnit: "per_person", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 1 },
-  { key: "corkage", name: "Korkowe", price: 25, pricingUnit: "per_bottle", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 2 },
-  { key: "country_table", name: "Wiejski stół", price: 1500, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 3 },
-  { key: "sweet_table", name: "Słodki stół + tort", price: 2500, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 4 },
-  { key: "soda", name: "Napoje gazowane", price: 12, pricingUnit: "per_person", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 5 },
-  { key: "starter", name: "Przystawka serwowana", price: 24, pricingUnit: "per_person", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 6 },
-  { key: "cake_service", name: "Ciastkowe", price: 600, pricingUnit: "per_event", description: "Cena placeholder - Adjust after vendor confirmation.", sortOrder: 7 },
+  { key: "covers", name: "Pokrowce na krzesla", price: 18, pricingUnit: "per_person", sortOrder: 1 },
+  { key: "corkage", name: "Korkowe", price: 25, pricingUnit: "per_bottle", sortOrder: 2 },
+  { key: "country_table", name: "Wiejski stół", price: 1500, pricingUnit: "per_event", sortOrder: 3 },
+  { key: "sweet_table", name: "Słodki stół + tort", price: 2500, pricingUnit: "per_event", sortOrder: 4 },
+  { key: "soda", name: "Napoje gazowane", price: 12, pricingUnit: "per_person", sortOrder: 5 },
+  { key: "starter", name: "Przystawka serwowana", price: 24, pricingUnit: "per_person", sortOrder: 6 },
+  { key: "cake_service", name: "Ciastkowe", price: 600, pricingUnit: "per_event", sortOrder: 7 },
 ];
 
 module.exports = {

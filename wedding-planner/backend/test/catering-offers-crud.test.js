@@ -86,11 +86,14 @@ describe("catering offers", () => {
     assert.equal(response.body.packages.length, 4);
     const gold = response.body.packages.find((pkg) => pkg.name === "Złoty");
     assert.ok(gold.courses.length > 0);
-    // Złoty = 2 ciepłe kolacje + 1 ostatnia kolacja (zgodnie z PDF Pałac Polanka)
-    const warmDinners = gold.courses.filter((course) => course.title.startsWith("Kolacja ciepła"));
-    const lastDinner = gold.courses.find((course) => course.title === "Ostatnia kolacja");
-    assert.equal(warmDinners.length, 2);
-    assert.ok(lastDinner, "Złoty powinien mieć kurs 'Ostatnia kolacja'");
+    // Złoty = jedna sekcja "Ciepłe kolacje" (wybór 2) + "Ostatnia kolacja serwowana lub bufet" (wybór 1)
+    const warmDinners = gold.courses.find((course) => course.title === "Ciepłe kolacje");
+    const lastDinner = gold.courses.find((course) => course.title === "Ostatnia kolacja serwowana lub bufet");
+    assert.ok(warmDinners, "Złoty powinien mieć sekcję 'Ciepłe kolacje'");
+    assert.equal(warmDinners.choiceLimit, 2);
+    assert.equal(warmDinners.selectionMode, "couple_picks");
+    assert.ok(lastDinner, "Złoty powinien mieć 'Ostatnia kolacja serwowana lub bufet'");
+    assert.equal(lastDinner.choiceLimit, 1);
     assert.equal(lastDinner.dishes.length, 4);
     assert.equal(response.body.addons.length, 7);
   });
