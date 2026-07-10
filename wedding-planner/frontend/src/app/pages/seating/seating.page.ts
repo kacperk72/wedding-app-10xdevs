@@ -84,9 +84,15 @@ export class SeatingPage implements OnInit {
   // action — the accessible equivalent of "the guest visibly moved" (FR-029).
   protected readonly announcement = signal('');
 
+  // Goście widoczni na rozsadzeniu — bez odmów (declined). Odmowa przybycia
+  // znika z puli, stołów i wydruku; rekord w bazie zostaje nietknięty.
+  private readonly visibleGuests = computed(() =>
+    this.guests().filter((guest) => guest.rsvpStatus !== 'declined'),
+  );
+
   protected readonly guestsByTable = computed(() => {
     const grouped = new Map<string, Guest[]>();
-    for (const guest of this.guests()) {
+    for (const guest of this.visibleGuests()) {
       if (!guest.tableId) continue;
       const list = grouped.get(guest.tableId) ?? [];
       list.push(guest);
@@ -98,7 +104,7 @@ export class SeatingPage implements OnInit {
   protected readonly unseatedGuests = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
     const side = this.sideFilter();
-    return this.guests()
+    return this.visibleGuests()
       .filter((guest) => guest.tableId === null)
       .filter((guest) => !this.showConfirmedOnly() || guest.rsvpStatus === 'confirmed')
       .filter((guest) => side === 'all' || relationToSide(guest.relation) === side)
@@ -113,8 +119,8 @@ export class SeatingPage implements OnInit {
   protected readonly localStats = computed(() => {
     const tableCounts = this.guestsByTable();
     return {
-      seatedCount: this.guests().filter((guest) => guest.tableId !== null).length,
-      unseatedCount: this.guests().filter((guest) => guest.tableId === null).length,
+      seatedCount: this.visibleGuests().filter((guest) => guest.tableId !== null).length,
+      unseatedCount: this.visibleGuests().filter((guest) => guest.tableId === null).length,
       tablesUsed: tableCounts.size,
       totalSeats: this.tables().reduce((sum, table) => sum + table.seatsCount, 0),
       conflictsCount: this.seating.conflicts().length,

@@ -111,8 +111,9 @@ When asked to start implementation:
 - `20260529120000_guest_seat_number.sql` — `seat_number` na `guests` dla wizualnego przypisania miejsc przy stołach (M8)
 - (lista powyżej pomija kilka pośrednich migracji z 2026-05/06/07 — pełny stan: `ls` katalogu migracji)
 - `20260710120000_guest_diet_kids.sql` — dodaje `'kids'` (dieta dziecięca) do CHECK-constraint `guests.diet` (decyzja PO 2026-07-10). ⚠️ nie wypchnięta jeszcze przez `db push` na dzień utworzenia.
+- `20260710130000_backfill_seat_numbers.sql` — backfill: goście przy stole bez `seat_number` dostają pierwsze wolne krzesła (alfabetycznie). Idzie w parze ze zmianą `assign-table` (auto-seat pierwsze wolne krzesło przy dropie na stół), żeby wydruk „Dla sali" i widok szczegółowy czytały to samo `seat_number`. ⚠️ nie wypchnięta jeszcze przez `db push`.
 
-**Drift check (do this every session):** `mcp list_migrations` vs `ls wedding-planner/backend/supabase/migrations/`. Writing a migration without `npx supabase db push` is the most common mistake in this repo (currently **18 migrations** on disk). If counts disagree, the missing migration(s) need to be pushed before any code that depends on them is exercised.
+**Drift check (do this every session):** `mcp list_migrations` vs `ls wedding-planner/backend/supabase/migrations/`. Writing a migration without `npx supabase db push` is the most common mistake in this repo (currently **19 migrations** on disk). If counts disagree, the missing migration(s) need to be pushed before any code that depends on them is exercised.
 
 To add a new migration: `npx supabase migration new <name>` from `wedding-planner/backend/`, write SQL, then `npx supabase db push`. The Supabase MCP plugin lets agents iterate via `execute_sql` and verify with `get_advisors` before committing to a migration file. **Do not use `apply_migration` MCP tool for iterative work — it writes history on every call and conflicts with `db pull`.**
 

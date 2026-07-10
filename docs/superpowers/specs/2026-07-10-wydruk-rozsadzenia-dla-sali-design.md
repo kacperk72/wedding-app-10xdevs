@@ -45,6 +45,20 @@ Autoryzowane przez PO — nadpisuje zapis „diet enum ma 5 wartości" w CLAUDE.
 
 - Wartość w kodzie: `kids` · etykieta PL: „Dziecięca" · plakietka wydruku: `DZIECKO`.
 
+### C. Utrwalenie krzeseł + wydruk bez licznika (iteracja PO)
+
+- Nagłówek wydruku dla sali traci podsumowanie „X / Y gości rozsadzonych …" —
+  nieistotne dla obsługi.
+- **Krzesła utrwalone w bazie** (decyzja PO — koniec efemerycznego auto-układu):
+  dotąd gość przypisany do stołu bez `seat_number` był tylko wizualnie dosadzany
+  na wolne krzesło w widoku szczegółowym, a wydruk go tam nie pokazywał. Teraz:
+  - `assign-table` (drop na stół) wybiera **pierwsze wolne krzesło** i zapisuje
+    `seat_number`;
+  - migracja backfill przypisuje krzesła istniejącym gościom przy stołach
+    (alfabetycznie, wolne miejsca, z pominięciem już zajętych numerów).
+  Efekt: wydruk „Dla sali" == widok szczegółowy, bo oba czytają to samo
+  `seat_number`.
+
 ## Realizacja techniczna
 
 | Warstwa | Zmiana |
@@ -53,8 +67,10 @@ Autoryzowane przez PO — nadpisuje zapis „diet enum ma 5 wartości" w CLAUDE.
 | Backend | `routes/guests.js` — `"kids"` do tablicy `DIETS`. |
 | Model FE | `guest.model.ts` — `Diet` union + `DIET_LABELS['kids']='Dziecięca'`. Dropdown/filtr/edytor gości są data-driven, aktualizują się same. |
 | Seating FE | `printTarget: 'couple'\|'venue'` signal; `printVenueLayout()` ustawia `'venue'` i woła `window.print()` po flushu (`setTimeout 0`). Drugi blok `.seating-print--venue`, sterowany klasą wrappera. Helper `roundSeatsForTable(table)` liczy pozycje krzeseł (%) po okręgu; `dietBadge(guest)` → `WEGE`/`WEGAN`/`DZIECKO`. Styl diagramu (`aspect-ratio`, absolutne pozycjonowanie krzeseł) w `@media print` w `seating.page.scss`. |
-| Docs | `04-database.md` (constraint), `CLAUDE.md` (5→6), `STATUS.md`. |
-| Testy | mock-supabase seed jeśli trzeba; `seating.page.spec.ts` (przycisk, markery, tylko zajęte miejsca). |
+| Backend (seat) | `routes/guests.js` — `assign-table` wybiera pierwsze wolne krzesło (`loadGuestsAtTable` czyta `seat_number`) i utrwala je zamiast `seat_number: null`. |
+| Migracja (seat) | `20260710130000_backfill_seat_numbers.sql` — CTE `free_seats`/`to_seat`, przypisuje wolne krzesła gościom przy stołach bez numeru. |
+| Docs | `04-database.md` (constraint), `CLAUDE.md` (5→6 + migracje), `STATUS.md`. |
+| Testy | `seating.page.spec.ts` (przycisk, `dietBadge`, diagram); `seating-crud.test.js` (auto-seat pierwsze wolne krzesło). |
 
 ## Świadomie pominięte (YAGNI)
 

@@ -11,7 +11,13 @@ router.get("/stats", async (req, res, next) => {
     const weddingId = req.params.weddingId;
     const [{ data: guests, error: guestsError }, { data: tables, error: tablesError }, { data: conflicts, error: conflictsError }] =
       await Promise.all([
-        supabase.from("guests").select("id,table_id").eq("wedding_id", weddingId),
+        // Odmowy przybycia (declined) nie liczą się do rozsadzenia — spójnie z
+        // frontem, który ukrywa je w puli, przy stołach i na wydruku.
+        supabase
+          .from("guests")
+          .select("id,table_id")
+          .eq("wedding_id", weddingId)
+          .neq("rsvp_status", "declined"),
         supabase.from("tables").select("id,seats_count").eq("wedding_id", weddingId),
         supabase.from("seating_conflicts").select("id").eq("wedding_id", weddingId),
       ]);

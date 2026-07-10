@@ -106,6 +106,25 @@ describe("seating", () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.guest.tableId, "table-1");
     assert.equal(db.guests.find((item) => item.id === "guest-1").table_id, "table-1");
+    // Przy dropie na stół backend utrwala pierwsze wolne krzesło (auto-seat).
+    assert.equal(response.body.guest.seatNumber, 1);
+    assert.equal(db.guests.find((item) => item.id === "guest-1").seat_number, 1);
+  });
+
+  it("auto-seat: przypisanie do stołu wybiera pierwsze wolne krzesło", async () => {
+    // guest-2 zajmuje krzesło 1 przy table-1 (2 miejsca) → guest-1 ma dostać 2.
+    db.guests.find((item) => item.id === "guest-2").seat_number = 1;
+
+    const response = await request(
+      server,
+      "POST",
+      "/api/weddings/wedding-1/guests/guest-1/assign-table",
+      { tableId: "table-1" },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.guest.seatNumber, 2);
+    assert.equal(db.guests.find((item) => item.id === "guest-1").seat_number, 2);
   });
 
   it("rejects assigning a guest to a full table", async () => {
@@ -316,6 +335,26 @@ describe("seating", () => {
       conflictsCount: 1,
       fullTablesCount: 1,
     });
+  });
+
+  it("stats: goście z odmową (declined) nie liczą się do rozsadzenia", async () => {
+    db.tables = [
+      { id: "table-1", wedding_id: "wedding-1", name: "Stol 1", seats_count: 2, sort_order: 1 },
+    ];
+    // guest-1 przy stole (declined) i guest-2 nieposadzony (declined) — oboje pomijani.
+    const declinedSeated = guest("guest-1", "table-1");
+    declinedSeated.rsvp_status = "declined";
+    const declinedUnseated = guest("guest-2");
+    declinedUnseated.rsvp_status = "declined";
+    db.guests = [declinedSeated, declinedUnseated, guest("guest-3", "table-1")];
+    db.seating_conflicts = [];
+
+    const response = await request(server, "GET", "/api/weddings/wedding-1/seating/stats");
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.seatedCount, 1); // tylko guest-3
+    assert.equal(response.body.unseatedCount, 0); // declined pominięty
+    assert.equal(response.body.fullTablesCount, 0); // stół nie jest pełny (1/2)
   });
 
   it("patches a seating conflict reason", async () => {

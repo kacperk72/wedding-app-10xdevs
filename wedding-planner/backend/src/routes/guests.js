@@ -138,7 +138,7 @@ async function loadTableForWedding(tableId, weddingId) {
 async function loadGuestsAtTable(tableId, weddingId, excludeGuestId = null) {
   let query = supabase
     .from("guests")
-    .select("id,first_name,last_name,table_id")
+    .select("id,first_name,last_name,table_id,seat_number")
     .eq("wedding_id", weddingId)
     .eq("table_id", tableId);
 
@@ -281,10 +281,25 @@ router.post("/:guestId/assign-table", async (req, res, next) => {
       throw new BadRequestError("table is full");
     }
 
+    // Auto-przypisanie krzesła: pierwsze wolne miejsce 1..seats_count. Utrwalamy
+    // seat_number już przy dropie na stół, żeby wydruk i widok szczegółowy czytały
+    // to samo (koniec z efemerycznym auto-układem). Wolne miejsce gwarantowane —
+    // pełny stół odrzuciliśmy powyżej.
+    const takenSeats = new Set(
+      seatedGuests.map((guest) => guest.seat_number).filter((seat) => seat != null),
+    );
+    let seatNumber = null;
+    for (let candidate = 1; candidate <= Number(table.seats_count); candidate += 1) {
+      if (!takenSeats.has(candidate)) {
+        seatNumber = candidate;
+        break;
+      }
+    }
+
     const warnings = await loadConflictWarnings(req.params.guestId, seatedGuests, weddingId);
     const { data, error } = await supabase
       .from("guests")
-      .update({ table_id: tableId, seat_number: null })
+      .update({ table_id: tableId, seat_number: seatNumber })
       .eq("id", req.params.guestId)
       .eq("wedding_id", weddingId)
       .select("*, meal_options(label), tables(name)")

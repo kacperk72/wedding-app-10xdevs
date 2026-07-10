@@ -35,6 +35,8 @@ interface SeatingInternals {
   printVenueLayout(): void;
   roundSeatsForTable(table: Table): { seatNumber: number; guest: Guest; xPct: number; yPct: number }[];
   dietBadge(guest: Guest): string;
+  unseatedGuests(): Guest[];
+  guestsForTable(tableId: string): Guest[];
 }
 
 function buildGuest(overrides: Partial<Guest> = {}): Guest {
@@ -326,6 +328,20 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
     expect(page.dietBadge(buildGuest({ diet: 'kids' as Diet }))).toBe('DZIECKO');
     expect(page.dietBadge(buildGuest({ diet: 'standard' as Diet }))).toBe('');
     expect(page.dietBadge(buildGuest({ diet: 'gluten_free' as Diet }))).toBe('');
+  });
+
+  it('goście z odmową (declined) nie pojawiają się w puli ani przy stołach', () => {
+    const declinedUnseated = buildGuest({ id: 'g-d1', tableId: null, rsvpStatus: 'declined' });
+    const declinedSeated = buildGuest({ id: 'g-d2', tableId: 't-1', seatNumber: 1, rsvpStatus: 'declined' });
+    const confirmedUnseated = buildGuest({ id: 'g-ok1', tableId: null, rsvpStatus: 'confirmed' });
+    const confirmedSeated = buildGuest({ id: 'g-ok2', tableId: 't-1', seatNumber: 2, rsvpStatus: 'confirmed' });
+    guestsSignal.set([declinedUnseated, declinedSeated, confirmedUnseated, confirmedSeated]);
+    tablesSignal.set([buildTable({ id: 't-1', seatsCount: 8 })]);
+
+    // Pula nieposadzonych: bez declined.
+    expect(page.unseatedGuests().map((g) => g.id)).toEqual(['g-ok1']);
+    // Przy stole: bez declined.
+    expect(page.guestsForTable('t-1').map((g) => g.id)).toEqual(['g-ok2']);
   });
 
   it('predykaty izolują przeciąganie stołu od list gości', () => {
