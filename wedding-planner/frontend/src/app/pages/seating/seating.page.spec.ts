@@ -35,6 +35,7 @@ interface SeatingInternals {
   printVenueLayout(): void;
   roundSeatsForTable(table: Table): { seatNumber: number; guest: Guest; xPct: number; yPct: number }[];
   dietBadge(guest: Guest): string;
+  shortName(guest: Guest): string;
   unseatedGuests(): Guest[];
   guestsForTable(tableId: string): Guest[];
 }
@@ -315,11 +316,16 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
     // Krzesło 1 (index 0) leży u góry: kąt -90° → środek w poziomie, minimum w pionie.
     const top = seats.find((s) => s.seatNumber === 1)!;
     expect(top.xPct).toBeCloseTo(50, 5);
-    expect(top.yPct).toBeCloseTo(10, 5); // 50 - radius(40)
+    expect(top.yPct).toBeCloseTo(15, 5); // 50 - radius(35)
     // Krzesło 3 (index 2) leży naprzeciw, u dołu.
     const bottom = seats.find((s) => s.seatNumber === 3)!;
     expect(bottom.xPct).toBeCloseTo(50, 5);
-    expect(bottom.yPct).toBeCloseTo(90, 5); // 50 + radius(40)
+    expect(bottom.yPct).toBeCloseTo(85, 5); // 50 + radius(35)
+  });
+
+  it('shortName daje „Imię N." (inicjał nazwiska), a bez nazwiska samo imię', () => {
+    expect(page.shortName(buildGuest({ firstName: 'Kacper', lastName: 'Kubit' }))).toBe('Kacper K.');
+    expect(page.shortName(buildGuest({ firstName: 'Anna', lastName: '' }))).toBe('Anna');
   });
 
   it('dietBadge daje kod WEGE/WEGAN/DZIECKO, a dla reszty pusty string', () => {

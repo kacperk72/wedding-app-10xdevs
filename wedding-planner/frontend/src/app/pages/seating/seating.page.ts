@@ -289,7 +289,7 @@ export class SeatingPage implements OnInit {
       if (guest.seatNumber != null) bySeat.set(guest.seatNumber, guest);
     }
     const count = Math.max(table.seatsCount, 1);
-    const radius = 40; // % kontenera od środka do wieńca krzeseł
+    const radius = 35; // % kontenera od środka do wieńca krzeseł (krzesła przy stole)
     const seats: RoundSeat[] = [];
     for (let index = 0; index < count; index += 1) {
       const seatNumber = index + 1;
@@ -304,6 +304,13 @@ export class SeatingPage implements OnInit {
       });
     }
     return seats;
+  }
+
+  // Format nazwy na wydruku dla sali: „Imię N." (inicjał nazwiska), np. „Kacper K.".
+  // Krótka forma mieści się przy krześle na diagramie. Brak nazwiska → samo imię.
+  protected shortName(guest: Guest): string {
+    const initial = guest.lastName ? `${guest.lastName.charAt(0)}.` : '';
+    return `${guest.firstName} ${initial}`.trim();
   }
 
   // Plakietka diety na wydruku dla sali — krótki kod na ciemnym tle przy nazwisku.

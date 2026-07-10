@@ -434,7 +434,7 @@
               <div class="print-round__seat" [style.left.%]="seat.xPct" [style.top.%]="seat.yPct">
                 <span class="print-round__seat-no">{{ seat.seatNumber }}</span>
                 <span class="print-round__seat-name"
-                  >{{ seat.guest.lastName }} {{ seat.guest.firstName }}@if (dietBadge(seat.guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}</span
+                  >{{ shortName(seat.guest) }}@if (dietBadge(seat.guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}</span
                 >
               </div>
             }
@@ -443,7 +443,7 @@
             <p class="print-round__loose">
               <strong>Bez miejsca:</strong>
               @for (guest of unseatedAtTable(table.id); track guest.id; let last = $last) {
-                {{ guest.lastName }} {{ guest.firstName }}@if (dietBadge(guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}{{ last ? '' : ', ' }}
+                {{ shortName(guest) }}@if (dietBadge(guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}{{ last ? '' : ', ' }}
               }
             </p>
           }
@@ -456,7 +456,7 @@
         <h2>Nieposadzeni ({{ unseatedGuests().length }})</h2>
         <ul>
           @for (guest of unseatedGuests(); track guest.id) {
-            <li>{{ guest.lastName }} {{ guest.firstName }}@if (dietBadge(guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}</li>
+            <li>{{ shortName(guest) }}@if (dietBadge(guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}</li>
           }
         </ul>
       </section>
