@@ -33,8 +33,8 @@ interface SeatingInternals {
   printTarget(): 'couple' | 'venue';
   printLayout(): void;
   printVenueLayout(): void;
-  seatedGuestsForTable(tableId: string): Guest[];
-  dietMark(guest: Guest): string;
+  roundSeatsForTable(table: Table): { seatNumber: number; guest: Guest; xPct: number; yPct: number }[];
+  dietBadge(guest: Guest): string;
 }
 
 function buildGuest(overrides: Partial<Guest> = {}): Guest {
@@ -296,25 +296,36 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
     vi.useRealTimers();
   });
 
-  it('wydruk dla sali pokazuje tylko zajęte krzesła, w kolejności numerów', () => {
-    const seat3 = buildGuest({ id: 'g-3', tableId: 't-1', seatNumber: 3, lastName: 'Zając' });
+  it('diagram okrągłego stołu pozycjonuje tylko zajęte krzesła po kątach wieńca', () => {
+    const table = buildTable({ id: 't-1', seatsCount: 4 });
     const seat1 = buildGuest({ id: 'g-1', tableId: 't-1', seatNumber: 1, lastName: 'Adamska' });
+    const seat3 = buildGuest({ id: 'g-3', tableId: 't-1', seatNumber: 3, lastName: 'Zając' });
     const noSeat = buildGuest({ id: 'g-9', tableId: 't-1', seatNumber: null, lastName: 'Bez' });
     guestsSignal.set([seat3, seat1, noSeat]);
-    tablesSignal.set([buildTable({ id: 't-1', seatsCount: 8 })]);
+    tablesSignal.set([table]);
 
-    const seated = page.seatedGuestsForTable('t-1');
+    const seats = page.roundSeatsForTable(table);
 
-    expect(seated.map((g) => g.id)).toEqual(['g-1', 'g-3']);
-    expect(seated.some((g) => g.id === 'g-9')).toBe(false);
+    // Tylko krzesła z gościem (g-9 bez numeru pomijany); pozycje wg numeru krzesła.
+    expect(seats.map((s) => s.seatNumber)).toEqual([1, 3]);
+    expect(seats.some((s) => s.guest.id === 'g-9')).toBe(false);
+
+    // Krzesło 1 (index 0) leży u góry: kąt -90° → środek w poziomie, minimum w pionie.
+    const top = seats.find((s) => s.seatNumber === 1)!;
+    expect(top.xPct).toBeCloseTo(50, 5);
+    expect(top.yPct).toBeCloseTo(10, 5); // 50 - radius(40)
+    // Krzesło 3 (index 2) leży naprzeciw, u dołu.
+    const bottom = seats.find((s) => s.seatNumber === 3)!;
+    expect(bottom.xPct).toBeCloseTo(50, 5);
+    expect(bottom.yPct).toBeCloseTo(90, 5); // 50 + radius(40)
   });
 
-  it('dietMark oznacza wege/wegan jako Ⓥ, dziecięcą jako Ⓓ, resztę pomija', () => {
-    expect(page.dietMark(buildGuest({ diet: 'vege' as Diet }))).toBe('Ⓥ');
-    expect(page.dietMark(buildGuest({ diet: 'vegan' as Diet }))).toBe('Ⓥ');
-    expect(page.dietMark(buildGuest({ diet: 'kids' as Diet }))).toBe('Ⓓ');
-    expect(page.dietMark(buildGuest({ diet: 'standard' as Diet }))).toBe('');
-    expect(page.dietMark(buildGuest({ diet: 'gluten_free' as Diet }))).toBe('');
+  it('dietBadge daje kod WEGE/WEGAN/DZIECKO, a dla reszty pusty string', () => {
+    expect(page.dietBadge(buildGuest({ diet: 'vege' as Diet }))).toBe('WEGE');
+    expect(page.dietBadge(buildGuest({ diet: 'vegan' as Diet }))).toBe('WEGAN');
+    expect(page.dietBadge(buildGuest({ diet: 'kids' as Diet }))).toBe('DZIECKO');
+    expect(page.dietBadge(buildGuest({ diet: 'standard' as Diet }))).toBe('');
+    expect(page.dietBadge(buildGuest({ diet: 'gluten_free' as Diet }))).toBe('');
   });
 
   it('predykaty izolują przeciąganie stołu od list gości', () => {

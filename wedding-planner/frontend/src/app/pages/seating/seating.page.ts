@@ -26,6 +26,15 @@ import { RoundTable } from './round-table/round-table';
 
 type SeatingViewMode = 'compact' | 'detailed';
 
+// Krzesło rozmieszczone wokół okręgu na wydruku dla sali: numer, gość i pozycja
+// (w % kontenera stołu) wyliczona z kąta na wieńcu.
+interface RoundSeat {
+  seatNumber: number;
+  guest: Guest;
+  xPct: number;
+  yPct: number;
+}
+
 const VIEW_MODE_STORAGE_KEY = 'seating-view-mode';
 
 @Component({
@@ -264,20 +273,46 @@ export class SeatingPage implements OnInit {
     setTimeout(() => window.print(), 0);
   }
 
-  // Goście z przypisanym numerem krzesła, w kolejności miejsc — źródło
-  // numerowanej listy na wydruku dla sali (puste krzesła są pomijane).
-  protected seatedGuestsForTable(tableId: string): Guest[] {
-    return this.guestsForTable(tableId)
-      .filter((guest) => guest.seatNumber != null)
-      .slice()
-      .sort((a, b) => (a.seatNumber ?? 0) - (b.seatNumber ?? 0));
+  // Rozmieszcza zajęte krzesła wokół okręgu na wydruku dla sali: krzesło o
+  // numerze n leży pod kątem (-90° + n·360/seatsCount), start u góry, zgodnie z
+  // ruchem wskazówek zegara. Zwraca pozycje w % kontenera (środek 50/50) tylko
+  // dla miejsc z przypisanym gościem — puste sloty zostawiają lukę w wieńcu.
+  protected roundSeatsForTable(table: Table): RoundSeat[] {
+    const bySeat = new Map<number, Guest>();
+    for (const guest of this.guestsForTable(table.id)) {
+      if (guest.seatNumber != null) bySeat.set(guest.seatNumber, guest);
+    }
+    const count = Math.max(table.seatsCount, 1);
+    const radius = 40; // % kontenera od środka do wieńca krzeseł
+    const seats: RoundSeat[] = [];
+    for (let index = 0; index < count; index += 1) {
+      const seatNumber = index + 1;
+      const guest = bySeat.get(seatNumber);
+      if (!guest) continue;
+      const angle = ((-90 + (360 / count) * index) * Math.PI) / 180;
+      seats.push({
+        seatNumber,
+        guest,
+        xPct: 50 + radius * Math.cos(angle),
+        yPct: 50 + radius * Math.sin(angle),
+      });
+    }
+    return seats;
   }
 
-  // Marker diety na wydruku dla sali: Ⓥ = wege/wegańska, Ⓓ = dziecięca.
-  protected dietMark(guest: Guest): string {
-    if (guest.diet === 'vege' || guest.diet === 'vegan') return 'Ⓥ';
-    if (guest.diet === 'kids') return 'Ⓓ';
-    return '';
+  // Plakietka diety na wydruku dla sali — krótki kod na ciemnym tle przy nazwisku.
+  // Oznaczamy tylko diety istotne dla obsługi: wege, wegańska, dziecięca.
+  protected dietBadge(guest: Guest): string {
+    switch (guest.diet) {
+      case 'vege':
+        return 'WEGE';
+      case 'vegan':
+        return 'WEGAN';
+      case 'kids':
+        return 'DZIECKO';
+      default:
+        return '';
+    }
   }
 
   protected setViewMode(mode: SeatingViewMode): void {

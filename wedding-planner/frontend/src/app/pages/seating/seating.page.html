@@ -419,34 +419,34 @@
 
   <section class="seating-print seating-print--venue">
     <header>
-      <h1>Rozkład stołów — wersja dla obsługi sali</h1>
+      <h1>Rozkład stołów</h1>
       <p>{{ stats().seatedCount }} / {{ stats().seatedCount + stats().unseatedCount }} gości rozsadzonych · {{ stats().tablesUsed }} z {{ tables().length }} stołów</p>
-      <p class="seating-print__legend">Ⓥ = dieta wegetariańska/wegańska · Ⓓ = dieta dziecięca</p>
     </header>
 
-    <div class="seating-print__grid">
+    <div class="seating-print__grid seating-print__grid--round">
       @for (table of tables(); track table.id) {
-        <article class="seating-print__table">
-          <h2>{{ table.name }} <span>· {{ guestsForTable(table.id).length }} / {{ table.seatsCount }} miejsc</span></h2>
-          @if (guestsForTable(table.id).length > 0) {
-            <ol class="seating-print__seats">
-              @for (guest of seatedGuestsForTable(table.id); track guest.id) {
-                <li>
-                  <span class="seating-print__seat-no">Krzesło {{ guest.seatNumber }}</span>
-                  — {{ guest.lastName }} {{ guest.firstName }}@if (dietMark(guest); as mark) {<strong class="seating-print__mark"> {{ mark }}</strong>}
-                </li>
-              }
-            </ol>
-            @if (unseatedAtTable(table.id).length > 0) {
-              <p class="seating-print__subhead">Bez przypisanego miejsca:</p>
-              <ul class="seating-print__loose">
-                @for (guest of unseatedAtTable(table.id); track guest.id) {
-                  <li>{{ guest.lastName }} {{ guest.firstName }}@if (dietMark(guest); as mark) {<strong class="seating-print__mark"> {{ mark }}</strong>}</li>
-                }
-              </ul>
+        <article class="print-round">
+          <div class="print-round__area">
+            <div class="print-round__center">
+              <strong>{{ table.name }}</strong>
+              <span>{{ guestsForTable(table.id).length }}/{{ table.seatsCount }}</span>
+            </div>
+            @for (seat of roundSeatsForTable(table); track seat.seatNumber) {
+              <div class="print-round__seat" [style.left.%]="seat.xPct" [style.top.%]="seat.yPct">
+                <span class="print-round__seat-no">{{ seat.seatNumber }}</span>
+                <span class="print-round__seat-name"
+                  >{{ seat.guest.lastName }} {{ seat.guest.firstName }}@if (dietBadge(seat.guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}</span
+                >
+              </div>
             }
-          } @else {
-            <p class="seating-print__empty">(stół pusty)</p>
+          </div>
+          @if (unseatedAtTable(table.id).length > 0) {
+            <p class="print-round__loose">
+              <strong>Bez miejsca:</strong>
+              @for (guest of unseatedAtTable(table.id); track guest.id; let last = $last) {
+                {{ guest.lastName }} {{ guest.firstName }}@if (dietBadge(guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}{{ last ? '' : ', ' }}
+              }
+            </p>
           }
         </article>
       }
@@ -457,7 +457,7 @@
         <h2>Nieposadzeni ({{ unseatedGuests().length }})</h2>
         <ul>
           @for (guest of unseatedGuests(); track guest.id) {
-            <li>{{ guest.lastName }} {{ guest.firstName }}@if (dietMark(guest); as mark) {<strong class="seating-print__mark"> {{ mark }}</strong>}</li>
+            <li>{{ guest.lastName }} {{ guest.firstName }}@if (dietBadge(guest); as badge) {<span class="seating-print__badge">{{ badge }}</span>}</li>
           }
         </ul>
       </section>

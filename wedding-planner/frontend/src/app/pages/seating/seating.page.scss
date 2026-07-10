@@ -331,37 +331,107 @@
     display: none !important;
   }
 
-  .seating-print__legend {
-    font-size: 9pt;
-    color: #333;
-    margin: 4pt 0 0;
+  // Diagram okrągłego stołu dla sali: wieniec krzeseł wokół środka z nazwą stołu.
+  // Krzesła pozycjonowane absolutnie w % (patrz roundSeatsForTable). Dwa stoły
+  // w rzędzie, żeby nazwiska były czytelne także przy 10–12 miejscach.
+  .seating-print__grid--round {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16pt;
   }
 
-  // Numerowana lista miejsc dla sali: „Krzesło N — Nazwisko" bez wcięcia listy.
-  .seating-print--venue .seating-print__seats {
-    list-style: none;
-    padding-left: 0;
+  .print-round {
+    break-inside: avoid;
+    text-align: center;
+    padding: 0 4pt;
   }
 
-  .seating-print__seat-no {
-    font-weight: 600;
+  .print-round__area {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
   }
 
-  .seating-print__subhead {
-    font-size: 9pt;
-    font-style: italic;
-    color: #555;
-    margin: 4pt 0 2pt;
+  .print-round__center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 32%;
+    aspect-ratio: 1 / 1;
+    box-sizing: border-box;
+    padding: 2pt;
+    border: 1.2pt solid #000;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
-  .seating-print--venue .seating-print__loose {
-    margin: 0;
-    padding-left: 16pt;
-    font-size: 10pt;
-    line-height: 1.4;
+  .print-round__center strong {
+    font-size: 8.5pt;
+    line-height: 1.1;
   }
 
-  .seating-print__mark {
+  .print-round__center span {
+    font-size: 7pt;
+    color: #444;
+  }
+
+  .print-round__seat {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 22%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+  }
+
+  .print-round__seat-no {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12pt;
+    height: 12pt;
+    border: 0.75pt solid #000;
+    border-radius: 50%;
+    font-size: 6.5pt;
     font-weight: 700;
+    background: #fff;
+  }
+
+  .print-round__seat-name {
+    font-size: 6.5pt;
+    margin-top: 1.5pt;
+    background: #fff;
+    padding: 0 1pt;
+  }
+
+  .print-round__loose {
+    font-size: 7.5pt;
+    color: #333;
+    margin: 2pt 0 0;
+  }
+
+  // Plakietka diety: krótki kod na ciemnym tle — wysoki kontrast, czytelna też
+  // w druku czarno-białym. print-color-adjust wymusza wydruk tła (przeglądarki
+  // domyślnie pomijają kolory tła przy drukowaniu).
+  .seating-print__badge {
+    display: inline-block;
+    margin-left: 2pt;
+    padding: 0.3pt 2.5pt;
+    font-size: 6pt;
+    font-weight: 700;
+    letter-spacing: 0.3pt;
+    line-height: 1.3;
+    color: #fff;
+    background: #000;
+    border-radius: 2pt;
+    vertical-align: 1pt;
+    white-space: nowrap;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
