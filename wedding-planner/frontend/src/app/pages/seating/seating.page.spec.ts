@@ -30,6 +30,11 @@ interface SeatingInternals {
   announcement(): string;
   viewMode(): 'compact' | 'detailed';
   setViewMode(mode: 'compact' | 'detailed'): void;
+  printTarget(): 'couple' | 'venue';
+  printLayout(): void;
+  printVenueLayout(): void;
+  seatedGuestsForTable(tableId: string): Guest[];
+  dietMark(guest: Guest): string;
 }
 
 function buildGuest(overrides: Partial<Guest> = {}): Guest {
@@ -269,6 +274,47 @@ describe('SeatingPage — accessible (keyboard) fallback', () => {
 
     expect(page.viewMode()).toBe('detailed');
     expect(localStorage.getItem('seating-view-mode')).toBe('detailed');
+  });
+
+  it('domyślnym wariantem wydruku jest przegląd dla pary', () => {
+    expect(page.printTarget()).toBe('couple');
+  });
+
+  it('„Dla sali" przełącza wariant na venue i otwiera dialog druku po flushu', () => {
+    vi.useFakeTimers();
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
+
+    page.printVenueLayout();
+
+    // Wariant przełącza się synchronicznie; window.print() dopiero po flushu.
+    expect(page.printTarget()).toBe('venue');
+    expect(printSpy).not.toHaveBeenCalled();
+    vi.runAllTimers();
+    expect(printSpy).toHaveBeenCalledOnce();
+
+    printSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it('wydruk dla sali pokazuje tylko zajęte krzesła, w kolejności numerów', () => {
+    const seat3 = buildGuest({ id: 'g-3', tableId: 't-1', seatNumber: 3, lastName: 'Zając' });
+    const seat1 = buildGuest({ id: 'g-1', tableId: 't-1', seatNumber: 1, lastName: 'Adamska' });
+    const noSeat = buildGuest({ id: 'g-9', tableId: 't-1', seatNumber: null, lastName: 'Bez' });
+    guestsSignal.set([seat3, seat1, noSeat]);
+    tablesSignal.set([buildTable({ id: 't-1', seatsCount: 8 })]);
+
+    const seated = page.seatedGuestsForTable('t-1');
+
+    expect(seated.map((g) => g.id)).toEqual(['g-1', 'g-3']);
+    expect(seated.some((g) => g.id === 'g-9')).toBe(false);
+  });
+
+  it('dietMark oznacza wege/wegan jako Ⓥ, dziecięcą jako Ⓓ, resztę pomija', () => {
+    expect(page.dietMark(buildGuest({ diet: 'vege' as Diet }))).toBe('Ⓥ');
+    expect(page.dietMark(buildGuest({ diet: 'vegan' as Diet }))).toBe('Ⓥ');
+    expect(page.dietMark(buildGuest({ diet: 'kids' as Diet }))).toBe('Ⓓ');
+    expect(page.dietMark(buildGuest({ diet: 'standard' as Diet }))).toBe('');
+    expect(page.dietMark(buildGuest({ diet: 'gluten_free' as Diet }))).toBe('');
   });
 
   it('predykaty izolują przeciąganie stołu od list gości', () => {

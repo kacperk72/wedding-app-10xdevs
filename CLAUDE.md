@@ -55,7 +55,7 @@ From `05-implementation-plan.md` § Resolved decisions — already settled, don'
 - Meal options live in a per-wedding `meal_options` table, edited in Settings, consumed as a dropdown in the guest editor.
 - Symmetric partner CRUD; only `created_by_user_id` can hard-delete the wedding.
 - JSON export is a full dump minus secrets (`password_hash`, invitation `token`).
-- `diet` enum has 5 values: `pending` (default), `standard`, `vege`, `vegan`, `gluten_free`.
+- `diet` enum has 6 values: `pending` (default), `standard`, `vege`, `vegan`, `gluten_free`, `kids` (dieta dziecięca, dodana decyzją PO 2026-07-10 migracją `20260710120000_guest_diet_kids`). Wartość w kodzie po angielsku; etykieta PL „Dziecięca" w `DIET_LABELS`.
 - Seating conflict reasons are free text.
 - Meetings and tasks are independent entities — don't merge them in MVP.
 - Hard-delete everywhere (no soft-delete in MVP).
@@ -109,8 +109,10 @@ When asked to start implementation:
 - `20260526160000_wedding_budget_total.sql` — `budget_total` na `weddings` (planowany budżet całkowity dla M5)
 - `20260526160500_drop_budget_planned_amount.sql` — usuwa nadmiarowe `planned_amount` (budżet planowany skonsolidowany w `weddings.budget_total`)
 - `20260529120000_guest_seat_number.sql` — `seat_number` na `guests` dla wizualnego przypisania miejsc przy stołach (M8)
+- (lista powyżej pomija kilka pośrednich migracji z 2026-05/06/07 — pełny stan: `ls` katalogu migracji)
+- `20260710120000_guest_diet_kids.sql` — dodaje `'kids'` (dieta dziecięca) do CHECK-constraint `guests.diet` (decyzja PO 2026-07-10). ⚠️ nie wypchnięta jeszcze przez `db push` na dzień utworzenia.
 
-**Drift check (do this every session):** `mcp list_migrations` vs `ls wedding-planner/backend/supabase/migrations/`. Writing a migration without `npx supabase db push` is the most common mistake in this repo (currently **13 migrations** on disk). If counts disagree, the missing migration(s) need to be pushed before any code that depends on them is exercised.
+**Drift check (do this every session):** `mcp list_migrations` vs `ls wedding-planner/backend/supabase/migrations/`. Writing a migration without `npx supabase db push` is the most common mistake in this repo (currently **18 migrations** on disk). If counts disagree, the missing migration(s) need to be pushed before any code that depends on them is exercised.
 
 To add a new migration: `npx supabase migration new <name>` from `wedding-planner/backend/`, write SQL, then `npx supabase db push`. The Supabase MCP plugin lets agents iterate via `execute_sql` and verify with `get_advisors` before committing to a migration file. **Do not use `apply_migration` MCP tool for iterative work — it writes history on every call and conflicts with `db pull`.**
 

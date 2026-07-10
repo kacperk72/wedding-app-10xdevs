@@ -1,6 +1,6 @@
 export type RsvpStatus = 'pending' | 'confirmed' | 'declined';
 
-export type Diet = 'pending' | 'standard' | 'vege' | 'vegan' | 'gluten_free';
+export type Diet = 'pending' | 'standard' | 'vege' | 'vegan' | 'gluten_free' | 'kids';
 
 export type Relation =
   | 'rodzina_panny_mlodej'
@@ -96,6 +96,7 @@ export const DIET_LABELS: Record<Diet, string> = {
   vege: 'Wegetariańska',
   vegan: 'Wegańska',
   gluten_free: 'Bezglutenowa',
+  kids: 'Dziecięca',
 };
 
 export const RSVP_LABELS: Record<RsvpStatus, string> = {

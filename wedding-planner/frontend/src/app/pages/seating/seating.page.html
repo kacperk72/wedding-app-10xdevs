@@ -4,6 +4,10 @@
     <app-icon name="printer" [size]="16" />
     Drukuj
   </button>
+  <button type="button" class="button-like button-like--secondary" (click)="printVenueLayout()">
+    <app-icon name="printer" [size]="16" />
+    Dla sali
+  </button>
 </app-page-header>
 
 <p class="seating-announcer" role="status" aria-live="polite">{{ announcement() }}</p>
@@ -375,35 +379,88 @@
   </div>
 }
 
-<section class="seating-print" aria-hidden="true">
-  <header>
-    <h1>Rozkład stołów</h1>
-    <p>{{ stats().seatedCount }} / {{ stats().seatedCount + stats().unseatedCount }} gości rozsadzonych · {{ stats().tablesUsed }} z {{ tables().length }} stołów</p>
-  </header>
+<div
+  class="seating-print-root"
+  [class.seating-print-root--venue]="printTarget() === 'venue'"
+  aria-hidden="true"
+>
+  <section class="seating-print seating-print--couple">
+    <header>
+      <h1>Rozkład stołów</h1>
+      <p>{{ stats().seatedCount }} / {{ stats().seatedCount + stats().unseatedCount }} gości rozsadzonych · {{ stats().tablesUsed }} z {{ tables().length }} stołów</p>
+    </header>
 
-  <div class="seating-print__grid">
-    @for (table of tables(); track table.id) {
-      <article class="seating-print__table">
-        <h2>{{ table.name }} <span>· {{ guestsForTable(table.id).length }} / {{ table.seatsCount }} miejsc</span></h2>
-        <ol>
-          @for (guest of sortedGuestsForTable(table.id); track guest.id) {
+    <div class="seating-print__grid">
+      @for (table of tables(); track table.id) {
+        <article class="seating-print__table">
+          <h2>{{ table.name }} <span>· {{ guestsForTable(table.id).length }} / {{ table.seatsCount }} miejsc</span></h2>
+          <ol>
+            @for (guest of sortedGuestsForTable(table.id); track guest.id) {
+              <li>{{ guest.lastName }} {{ guest.firstName }}</li>
+            } @empty {
+              <li class="seating-print__empty">(stół pusty)</li>
+            }
+          </ol>
+        </article>
+      }
+    </div>
+
+    @if (unseatedGuests().length > 0) {
+      <section class="seating-print__unseated">
+        <h2>Nieposadzeni ({{ unseatedGuests().length }})</h2>
+        <ul>
+          @for (guest of unseatedGuests(); track guest.id) {
             <li>{{ guest.lastName }} {{ guest.firstName }}</li>
-          } @empty {
-            <li class="seating-print__empty">(stół pusty)</li>
           }
-        </ol>
-      </article>
+        </ul>
+      </section>
     }
-  </div>
+  </section>
 
-  @if (unseatedGuests().length > 0) {
-    <section class="seating-print__unseated">
-      <h2>Nieposadzeni ({{ unseatedGuests().length }})</h2>
-      <ul>
-        @for (guest of unseatedGuests(); track guest.id) {
-          <li>{{ guest.lastName }} {{ guest.firstName }}</li>
-        }
-      </ul>
-    </section>
-  }
-</section>
+  <section class="seating-print seating-print--venue">
+    <header>
+      <h1>Rozkład stołów — wersja dla obsługi sali</h1>
+      <p>{{ stats().seatedCount }} / {{ stats().seatedCount + stats().unseatedCount }} gości rozsadzonych · {{ stats().tablesUsed }} z {{ tables().length }} stołów</p>
+      <p class="seating-print__legend">Ⓥ = dieta wegetariańska/wegańska · Ⓓ = dieta dziecięca</p>
+    </header>
+
+    <div class="seating-print__grid">
+      @for (table of tables(); track table.id) {
+        <article class="seating-print__table">
+          <h2>{{ table.name }} <span>· {{ guestsForTable(table.id).length }} / {{ table.seatsCount }} miejsc</span></h2>
+          @if (guestsForTable(table.id).length > 0) {
+            <ol class="seating-print__seats">
+              @for (guest of seatedGuestsForTable(table.id); track guest.id) {
+                <li>
+                  <span class="seating-print__seat-no">Krzesło {{ guest.seatNumber }}</span>
+                  — {{ guest.lastName }} {{ guest.firstName }}@if (dietMark(guest); as mark) {<strong class="seating-print__mark"> {{ mark }}</strong>}
+                </li>
+              }
+            </ol>
+            @if (unseatedAtTable(table.id).length > 0) {
+              <p class="seating-print__subhead">Bez przypisanego miejsca:</p>
+              <ul class="seating-print__loose">
+                @for (guest of unseatedAtTable(table.id); track guest.id) {
+                  <li>{{ guest.lastName }} {{ guest.firstName }}@if (dietMark(guest); as mark) {<strong class="seating-print__mark"> {{ mark }}</strong>}</li>
+                }
+              </ul>
+            }
+          } @else {
+            <p class="seating-print__empty">(stół pusty)</p>
+          }
+        </article>
+      }
+    </div>
+
+    @if (unseatedGuests().length > 0) {
+      <section class="seating-print__unseated">
+        <h2>Nieposadzeni ({{ unseatedGuests().length }})</h2>
+        <ul>
+          @for (guest of unseatedGuests(); track guest.id) {
+            <li>{{ guest.lastName }} {{ guest.firstName }}@if (dietMark(guest); as mark) {<strong class="seating-print__mark"> {{ mark }}</strong>}</li>
+          }
+        </ul>
+      </section>
+    }
+  </section>
+</div>

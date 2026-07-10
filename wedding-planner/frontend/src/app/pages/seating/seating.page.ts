@@ -54,6 +54,9 @@ export class SeatingPage implements OnInit {
   protected readonly guests = this.guestsService.guests;
   protected readonly tables = this.tablesService.tables;
   protected readonly viewMode = signal<SeatingViewMode>(this.readStoredViewMode());
+  // Aktywny wariant wydruku: 'couple' — przegląd dla Pary Młodej (nazwiskami),
+  // 'venue' — wersja dla obsługi sali (numery krzeseł + oznaczenia diet).
+  protected readonly printTarget = signal<'couple' | 'venue'>('couple');
   protected readonly showConfirmedOnly = signal(false);
   protected readonly sideFilter = signal<GuestSide | 'all'>('all');
   protected readonly searchTerm = signal('');
@@ -247,7 +250,34 @@ export class SeatingPage implements OnInit {
   }
 
   protected printLayout(): void {
-    window.print();
+    this.print('couple');
+  }
+
+  protected printVenueLayout(): void {
+    this.print('venue');
+  }
+
+  // Przełącza aktywny wariant wydruku, po czym otwiera dialog druku dopiero po
+  // flushu bindingu — inaczej window.print() złapałby DOM sprzed przełączenia.
+  private print(target: 'couple' | 'venue'): void {
+    this.printTarget.set(target);
+    setTimeout(() => window.print(), 0);
+  }
+
+  // Goście z przypisanym numerem krzesła, w kolejności miejsc — źródło
+  // numerowanej listy na wydruku dla sali (puste krzesła są pomijane).
+  protected seatedGuestsForTable(tableId: string): Guest[] {
+    return this.guestsForTable(tableId)
+      .filter((guest) => guest.seatNumber != null)
+      .slice()
+      .sort((a, b) => (a.seatNumber ?? 0) - (b.seatNumber ?? 0));
+  }
+
+  // Marker diety na wydruku dla sali: Ⓥ = wege/wegańska, Ⓓ = dziecięca.
+  protected dietMark(guest: Guest): string {
+    if (guest.diet === 'vege' || guest.diet === 'vegan') return 'Ⓥ';
+    if (guest.diet === 'kids') return 'Ⓓ';
+    return '';
   }
 
   protected setViewMode(mode: SeatingViewMode): void {

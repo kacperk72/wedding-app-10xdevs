@@ -135,7 +135,7 @@ Indexes: `(wedding_id, status)`, `expires_at` (cron unieważniający wygasłe).
 | last_name        | text                                                                  | NO   |                      | Observed   | "Kwiatkowski"                                          |
 | relation         | text CHECK (relation IN ('rodzina_panny_mlodej','rodzina_pana_mlodego','przyjaciele_panny_mlodej','przyjaciele_pana_mlodego','znajomi_z_pracy','wspolni_znajomi')) | NO |  | Observed | Grupy widoczne w tabeli                  |
 | rsvp_status      | text CHECK (rsvp_status IN ('pending','confirmed','declined'))        | NO   | `'pending'`          | Observed   | Badge ⏳/✅/❌                                            |
-| diet             | text CHECK (diet IN ('pending','standard','vege','vegan','gluten_free'))| NO  | `'pending'`         | Observed   | Modal Dodaj gościa pokazuje "Standard" jako default UX, ale semantycznie nowy gość ma `'pending'` dopóki nie potwierdzi diety. KPI "14 nie wybrało dania" = `diet='pending'`. |
+| diet             | text CHECK (diet IN ('pending','standard','vege','vegan','gluten_free','kids'))| NO  | `'pending'`         | Observed   | Modal Dodaj gościa pokazuje "Standard" jako default UX, ale semantycznie nowy gość ma `'pending'` dopóki nie potwierdzi diety. KPI "14 nie wybrało dania" = `diet='pending'`. `kids` (dieta dziecięca) dodana 2026-07-10 migracją `20260710120000`. |
 | has_plus_one     | boolean                                                               | NO   | `false`              | Observed   | Ikona 💑 w karcie nieprzypisanego                       |
 | is_child         | boolean                                                               | NO   | `false`              | Observed   | "5 dzieci" w agregatach. Pole edytowalne w widoku edycji gościa (poza modalem dodawania, który ma tylko 4 pola). |
 | meal_option_id   | uuid FK → meal_options(id) ON DELETE SET NULL                         | YES  |                      | Recommended | Wybór konkretnej opcji menu (osobne od diety — para definiuje listę dań w `meal_options`) |
@@ -741,7 +741,7 @@ CREATE TABLE guests (
   rsvp_status     text NOT NULL DEFAULT 'pending' CHECK (rsvp_status IN
     ('pending','confirmed','declined')),
   diet            text NOT NULL DEFAULT 'pending' CHECK (diet IN
-    ('pending','standard','vege','vegan','gluten_free')),
+    ('pending','standard','vege','vegan','gluten_free','kids')),
   has_plus_one    boolean NOT NULL DEFAULT false,
   is_child        boolean NOT NULL DEFAULT false,
   meal_option_id  uuid REFERENCES meal_options(id) ON DELETE SET NULL,
@@ -1198,7 +1198,7 @@ W MVP nie ma takiej potrzeby — całe API idzie przez Express, jedna ścieżka,
 Domknięte założenia z poprzedniej iteracji — wszystkie z labelem **Recommended** w schemacie. Para/PO może je zmienić, ale dopóki nie zmieni — implementacja idzie z poniższymi:
 
 1. **Modal "Dodaj gościa" ma tylko 4 pola** (Imię/Nazwisko/Relacja/Dieta). Pola `is_child`, `has_plus_one`, `meal_option_id`, `contact_phone`, `contact_email` są edytowane na ekranie szczegółów / edycji gościa (poza prototypem).
-2. **Diet enum ma 5 wartości** (`pending/standard/vege/vegan/gluten_free`); `'pending'` to default i odpowiada KPI "14 nie wybrało dania". UI dropdown w modalu pokazuje "Standard" dla wygody pierwszego użytkownika, ale backend trzyma `'pending'` dopóki gość świadomie nie wybierze.
+2. **Diet enum ma 6 wartości** (`pending/standard/vege/vegan/gluten_free/kids`); `'pending'` to default i odpowiada KPI "14 nie wybrało dania". `kids` (dieta dziecięca) dodana 2026-07-10 migracją `20260710120000`. UI dropdown w modalu pokazuje "Standard" dla wygody pierwszego użytkownika, ale backend trzyma `'pending'` dopóki gość świadomie nie wybierze.
 3. **Meal options** — para definiuje listę dań w `meal_options` (osobna tabela, CRUD w Ustawieniach → "Menu na wesele"). Gość ma `meal_option_id` jako FK. NULL = "nie wybrał".
 4. **Hard-delete** dla wszystkich zasobów wesela. Soft-delete pomijamy w MVP. Cascade delete całego wesela tylko przez `created_by_user_id`.
 5. **Symetryczne uprawnienia** między partnerami (CRUD wszystko). Asymetryczny tylko hard-delete całego wesela (`weddings.created_by_user_id`).

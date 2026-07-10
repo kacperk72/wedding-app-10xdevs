@@ -26,7 +26,7 @@ const RELATIONS = [
   "wspolni_znajomi",
 ];
 const RSVP_STATUSES = ["pending", "confirmed", "declined"];
-const DIETS = ["pending", "standard", "vege", "vegan", "gluten_free"];
+const DIETS = ["pending", "standard", "vege", "vegan", "gluten_free", "kids"];
 
 function buildGuestInsert(body, weddingId) {
   return {
