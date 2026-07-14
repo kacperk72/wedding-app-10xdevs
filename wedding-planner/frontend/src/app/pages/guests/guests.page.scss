@@ -7,3 +7,88 @@
   color: var(--color-text);
   font: inherit;
 }
+
+// Ukryty na ekranie; widoczny wyłącznie na wydruku (patrz @media print niżej).
+.winietki-print {
+  display: none;
+}
+
+@media print {
+  // Chrome powłoki (belka, menu, toasty) chowa globalny styles/_print.scss —
+  // tych selektorów nie da się dosięgnąć stąd przez view encapsulation. Tu
+  // chowamy tylko własne elementy tej strony: nagłówek, panele i modale.
+  app-page-header,
+  .page-stack,
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  .winietki-print {
+    display: block;
+    padding: 12pt;
+    color: #000;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .winietki-print header {
+    margin-bottom: 12pt;
+    border-bottom: 1px solid #000;
+    padding-bottom: 6pt;
+  }
+
+  .winietki-print header h1 {
+    font-size: 20pt;
+    margin: 0 0 4pt;
+  }
+
+  .winietki-print header p {
+    font-size: 10pt;
+    color: #555;
+    margin: 0;
+  }
+
+  .winietki-print__list {
+    // Dwie kolumny — więcej nazwisk na stronie bez utraty czytelności.
+    columns: 2;
+    column-gap: 24pt;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .winietki-print__row {
+    display: flex;
+    align-items: center;
+    gap: 8pt;
+    padding: 3pt 0;
+    font-size: 11pt;
+    line-height: 1.3;
+    break-inside: avoid;
+  }
+
+  .winietki-print__box {
+    flex: 0 0 auto;
+    width: 12pt;
+    height: 12pt;
+    border: 1.2pt solid #000;
+    border-radius: 2pt;
+  }
+
+  .winietki-print__name {
+    flex: 1 1 auto;
+  }
+
+  .winietki-print__table {
+    flex: 0 0 auto;
+    font-size: 9pt;
+    color: #777;
+  }
+
+  .winietki-print__footer {
+    margin-top: 12pt;
+    padding-top: 6pt;
+    border-top: 1px solid #ccc;
+    font-size: 10pt;
+    color: #555;
+  }
+}

@@ -40,6 +40,7 @@ export class GuestsPage implements OnInit {
   private readonly toast = inject(ToastService);
 
   protected readonly guests = this.guestsService.guests;
+  protected readonly wedding = this.weddingService.wedding;
   protected readonly filters = this.guestsService.filters;
   protected readonly filteredGuests = this.guestsService.filteredGuests;
   protected readonly aggregates = this.guestsService.aggregates;
@@ -65,6 +66,19 @@ export class GuestsPage implements OnInit {
     firstName: '',
     lastName: '',
   });
+
+  // Lista gości na wydruk winietek: wszyscy oprócz odmów (declined), sortowani
+  // alfabetycznie po nazwisku, potem imieniu — deterministycznie, niezależnie
+  // od filtrów ustawionych na ekranie.
+  protected readonly winietkiList = computed(() =>
+    this.guests()
+      .filter((guest) => guest.rsvpStatus !== 'declined')
+      .sort(
+        (a, b) =>
+          a.lastName.localeCompare(b.lastName, 'pl') ||
+          a.firstName.localeCompare(b.firstName, 'pl'),
+      ),
+  );
 
   protected readonly aggregateCards = computed(() => {
     const a = this.aggregates();
@@ -216,6 +230,12 @@ export class GuestsPage implements OnInit {
       next: () => this.toast.success('Gość został usunięty.'),
       error: () => this.toast.error('Nie udało się usunąć gościa.'),
     });
+  }
+
+  // Wydruk listy winietek. Druk odpalamy po flushu bindingu (setTimeout 0),
+  // żeby window.print() złapał w pełni wyrenderowany blok .winietki-print-root.
+  protected printWinietki(): void {
+    setTimeout(() => window.print(), 0);
   }
 
   protected rsvpClass(status: RsvpStatus): string {

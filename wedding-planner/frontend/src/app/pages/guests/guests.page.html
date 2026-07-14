@@ -1,4 +1,8 @@
 <app-page-header title="Goście" subtitle="Lista zaproszonych z RSVP">
+  <button type="button" class="button-like button-like--secondary" (click)="printWinietki()">
+    <app-icon name="printer" [size]="16" />
+    Drukuj listę
+  </button>
   <button type="button" class="button-like" (click)="isAddDialogOpen.set(true)">
     <app-icon name="user-plus" [size]="16" />
     Dodaj gościa
@@ -315,3 +319,26 @@
     </section>
   </div>
 }
+
+<div class="winietki-print-root" aria-hidden="true">
+  <section class="winietki-print">
+    <header>
+      <h1>Lista winietek</h1>
+      @if (wedding(); as w) {
+        <p>{{ w.partnerAName }} &amp; {{ w.partnerBName }}</p>
+      }
+    </header>
+
+    <ol class="winietki-print__list">
+      @for (guest of winietkiList(); track guest.id) {
+        <li class="winietki-print__row">
+          <span class="winietki-print__box" aria-hidden="true"></span>
+          <span class="winietki-print__name">{{ guest.lastName }} {{ guest.firstName }}</span>
+          <span class="winietki-print__table">{{ tableLabel(guest.tableId) }}</span>
+        </li>
+      }
+    </ol>
+
+    <p class="winietki-print__footer">Winietki do przygotowania: {{ winietkiList().length }}</p>
+  </section>
+</div>
