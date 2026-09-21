@@ -81,6 +81,15 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "local": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "index": {
+                "input": "src/index.local.html",
+                "output": "index.html"
+              }
             }
           },
           "defaultConfiguration": "production"
@@ -96,6 +105,9 @@
             },
             "development": {
               "buildTarget": "wedding-planner:build:development"
+            },
+            "local": {
+              "buildTarget": "wedding-planner:build:local"
             }
           },
           "defaultConfiguration": "development"

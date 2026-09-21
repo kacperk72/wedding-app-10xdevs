@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>Wedding Planner (lokalnie)</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+</head>
+<body>
+  <!--
+    LOCAL DEV ONLY — used by `ng serve --configuration local` (npm run start:local).
+    Replaces the real SSO SDK, because production SSO refuses to redirect back to
+    localhost. Implements the same window.SSOAuth contract AuthService expects and
+    signs an HS256 token the backend accepts under AUTH_TEST_MODE=1 (npm run dev:local).
+    Never referenced by the production build, which keeps src/index.html.
+
+    Partner switch: add ?as=b (or ?as=a) to any URL.
+  -->
+  <script>
+    (function () {
+      // Must match LOCAL_DEV_SECRET in backend/scripts/dev-local.js.
+      var LOCAL_DEV_SECRET = 'wedding-planner-local-dev';
+      var STORAGE_KEY = 'wp-local-dev-user';
+      var USERS = {
+        a: { userId: 'local-partner-a', email: 'partner.a@local.test', firstName: 'Ania', lastName: 'Lokalna' },
+        b: { userId: 'local-partner-b', email: 'partner.b@local.test', firstName: 'Bartek', lastName: 'Lokalny' },
+      };
+
+      var listeners = [];
+      var token = null;
+      var enc = new TextEncoder();
+
+      function b64url(bytes) {
+        var bin = '';
+        new Uint8Array(bytes).forEach(function (b) { bin += String.fromCharCode(b); });
+        return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      }
+
+      function sign(payload) {
+        var data =
+          b64url(enc.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))) + '.' +
+          b64url(enc.encode(JSON.stringify(payload)));
+        return crypto.subtle
+          .importKey('raw', enc.encode(LOCAL_DEV_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+          .then(function (key) { return crypto.subtle.sign('HMAC', key, enc.encode(data)); })
+          .then(function (sig) { return data + '.' + b64url(sig); });
+      }
+
+      function notify() {
+        var sub = token ? { app: 'wedding-planner' } : null;
+        listeners.slice().forEach(function (fn) { fn(sub); });
+      }
+
+      function currentUser() {
+        try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
+      }
+
+      function setUser(who) {
+        try {
+          if (who) localStorage.setItem(STORAGE_KEY, who);
+          else localStorage.removeItem(STORAGE_KEY);
+        } catch (e) { /* private mode: session-only login */ }
+      }
+
+      var requested = new URLSearchParams(location.search).get('as');
+      if (requested && USERS[requested]) setUser(requested);
+
+      var who = currentUser();
+      if (who && USERS[who]) {
+        sign(USERS[who]).then(function (t) { token = t; notify(); });
+      }
+
+      window.SSOAuth = {
+        login: function (returnUrl) {
+          // Without a return URL (post-logout) show the app's own login page,
+          // mirroring the real SDK sending the user to the SSO login screen.
+          if (!returnUrl) { location.assign('/'); return; }
+          setUser(currentUser() || 'a');
+          location.assign(returnUrl);
+        },
+        logout: function () {
+          setUser(null);
+          token = null;
+          notify();
+          return Promise.resolve();
+        },
+        refresh: function () { return Promise.resolve(); },
+        getToken: function () { return token; },
+        getSubscription: function () { return token ? { app: 'wedding-planner' } : null; },
+        isAuthenticated: function () { return token !== null; },
+        hasAppAccess: function () { return token !== null; },
+        onAuthChange: function (fn) {
+          listeners.push(fn);
+          return function () { listeners = listeners.filter(function (l) { return l !== fn; }); };
+        },
+      };
+
+      // Always-visible marker, so a local tab is never mistaken for production.
+      document.addEventListener('DOMContentLoaded', function () {
+        var badge = document.createElement('div');
+        var u = USERS[currentUser()];
+        badge.textContent = 'LOKALNIE' + (u ? ' · ' + u.firstName + ' (' + currentUser().toUpperCase() + ')' : '');
+        badge.setAttribute('aria-hidden', 'true');
+        badge.style.cssText =
+          'position:fixed;left:8px;bottom:8px;z-index:2147483647;padding:3px 8px;border-radius:6px;' +
+          'font:600 11px/1.4 Inter,system-ui,sans-serif;letter-spacing:.04em;color:#fff;' +
+          'background:#b45309;opacity:.9;pointer-events:none';
+        document.body.appendChild(badge);
+      });
+    })();
+  </script>
+  <app-root></app-root>
+</body>
+</html>

@@ -64,6 +64,8 @@ From `05-implementation-plan.md` § Resolved decisions — already settled, don'
 
 The current scaffold lives under `wedding-planner/`. Backend commands run in `wedding-planner/backend`; frontend commands run in `wedding-planner/frontend`.
 
+**Running locally — never against production.** `backend/.env` holds PRODUCTION Supabase credentials, and production SSO refuses redirects to localhost. Local runs use: `npm run db:start` (local Supabase in Docker, `supabase/config.toml`) → `npm run dev:local` (backend; reads the local URL/key from `supabase status`, turns on `AUTH_TEST_MODE`, sets `LOCAL_DEV=1` so `config/database.js` refuses a non-local Supabase URL) → `npm run start:local` in the frontend (`src/index.local.html` swaps the SSO SDK for a dev stub signing HS256 tokens; `?as=b` switches partner). The shared secret `wedding-planner-local-dev` lives in `backend/scripts/dev-local.js` and `frontend/src/index.local.html` — change both together. Preview entries: `wedding-planner-api` (3000) and `wedding-planner` (4240) in the workspace `.claude/launch.json`.
+
 When asked to start implementation:
 1. Continue from `docs/demo-app/05-implementation-plan.md`, adapted to the existing folders: `wedding-planner/frontend` and `wedding-planner/backend`.
 2. Backend implementation uses Express routes/services, Supabase JS service-role client, and JWKS auth middleware. Do not add Sequelize/MySQL to wedding-planner; MySQL belongs to SSO only.

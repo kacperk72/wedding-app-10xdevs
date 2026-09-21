@@ -20,6 +20,24 @@ if (process.env.DB_TEST_MODE === "1" && process.env.NODE_ENV === "production") {
   );
 }
 
+// Local-dev guard: `npm run dev:local` (scripts/dev-local.js) sets LOCAL_DEV=1
+// and points at the local Supabase stack. If the URL is not local — e.g. a
+// production value leaked in from .env — refuse to boot instead of silently
+// writing development data into the production database.
+if (process.env.LOCAL_DEV === "1") {
+  let host = "";
+  try {
+    host = new URL(process.env.SUPABASE_URL).hostname;
+  } catch {
+    // Unparseable URL falls through to the refusal below.
+  }
+  if (host !== "127.0.0.1" && host !== "localhost") {
+    throw new Error(
+      `LOCAL_DEV=1 but SUPABASE_URL is not local (${process.env.SUPABASE_URL}). Refusing to boot.`,
+    );
+  }
+}
+
 let supabase;
 let isReachable;
 

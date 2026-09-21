@@ -9,7 +9,12 @@
     "dev": "node --watch src/server.js",
     "lint": "eslint \"src/**/*.js\" \"test/**/*.js\"",
     "test": "node --test --test-concurrency=1 test/*.test.js",
-    "migration:check": "node scripts/check-migration-drift.js"
+    "migration:check": "node scripts/check-migration-drift.js",
+    "dev:local": "node scripts/dev-local.js",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status"
   },
   "engines": {
     "node": ">=22"
@@ -28,6 +33,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.4.1",
-    "globals": "^17.6.0"
+    "globals": "^17.6.0",
+    "supabase": "^2.117.0"
   }
 }
